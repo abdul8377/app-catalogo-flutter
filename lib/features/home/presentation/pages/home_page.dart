@@ -6,7 +6,12 @@ import '../bloc/home_bloc.dart';
 import '../bloc/home_state.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  final ValueChanged<int> onNavigate;
+
+  const HomePage({
+    super.key,
+    required this.onNavigate,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,16 +24,23 @@ class HomePage extends StatelessWidget {
           );
         }
 
-        return _HomeContent(state: state);
+        return _HomeContent(
+          state: state,
+          onNavigate: onNavigate,
+        );
       },
     );
   }
 }
 
 class _HomeContent extends StatelessWidget {
-  const _HomeContent({required this.state});
+  const _HomeContent({
+    required this.state,
+    required this.onNavigate,
+  });
 
   final HomeState state;
+  final ValueChanged<int> onNavigate;
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +91,7 @@ class _HomeContent extends StatelessWidget {
                 child: _ActiveSheetCard(
                   primaryColor: primaryColor,
                   state: state,
+                  onNavigate: onNavigate,
                 ),
               ),
             ),
@@ -89,6 +102,7 @@ class _HomeContent extends StatelessWidget {
                 child: _NewOrderButton(
                   primaryColor: primaryColor,
                   enabled: state.tieneHojaActiva,
+                  onNavigate: onNavigate,
                 ),
               ),
             ),
@@ -221,10 +235,15 @@ class _SyncStatusChip extends StatelessWidget {
 }
 
 class _ActiveSheetCard extends StatelessWidget {
-  const _ActiveSheetCard({required this.primaryColor, required this.state});
+  const _ActiveSheetCard({
+    required this.primaryColor,
+    required this.state,
+    required this.onNavigate,
+  });
 
   final Color primaryColor;
   final HomeState state;
+  final ValueChanged<int> onNavigate;
 
   @override
   Widget build(BuildContext context) {
@@ -270,7 +289,7 @@ class _ActiveSheetCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => onNavigate(4),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Nueva hoja de pedido'),
                 style: ElevatedButton.styleFrom(
@@ -387,7 +406,7 @@ class _ActiveSheetCard extends StatelessWidget {
             ),
           ),
           TextButton.icon(
-            onPressed: () {},
+            onPressed: () => onNavigate(4),
             icon: const Icon(Icons.swap_horiz, size: 18),
             label: const Text('Cambiar'),
             style: TextButton.styleFrom(
@@ -405,10 +424,15 @@ class _ActiveSheetCard extends StatelessWidget {
 }
 
 class _NewOrderButton extends StatelessWidget {
-  const _NewOrderButton({required this.primaryColor, required this.enabled});
+  const _NewOrderButton({
+    required this.primaryColor,
+    required this.enabled,
+    required this.onNavigate,
+  });
 
   final Color primaryColor;
   final bool enabled;
+  final ValueChanged<int> onNavigate;
 
   @override
   Widget build(BuildContext context) {
@@ -416,7 +440,7 @@ class _NewOrderButton extends StatelessWidget {
       width: double.infinity,
       height: 56,
       child: ElevatedButton.icon(
-        onPressed: enabled ? () {} : null,
+        onPressed: enabled ? () => onNavigate(3) : null,
         icon: const Icon(Icons.add_shopping_cart, size: 22),
         label: const Text('Nuevo pedido'),
         style: ElevatedButton.styleFrom(

@@ -19,14 +19,16 @@ class _MainShellPageState extends State<MainShellPage> {
   int selectedIndex = 0;
   bool isRailExpanded = false;
 
-  final pages = const [
-    HomePage(),
-    CatalogoPage(),
-    ClientesPage(),
-    PedidosPage(),
-    HojasPedidoPage(),
-    DashboardPage(),
-  ];
+  List<Widget> _buildPages() {
+    return [
+      HomePage(onNavigate: _onItemSelected),
+      const CatalogoPage(),
+      const ClientesPage(),
+      const PedidosPage(),
+      const HojasPedidoPage(),
+      const DashboardPage(),
+    ];
+  }
 
   void _toggleRailExpansion() {
     setState(() {
@@ -55,7 +57,10 @@ class _MainShellPageState extends State<MainShellPage> {
           ),
           Container(width: 1, color: const Color(0xFFE0E0E0)),
           Expanded(
-            child: IndexedStack(index: selectedIndex, children: pages),
+            child: IndexedStack(
+              index: selectedIndex,
+              children: _buildPages(),
+            ),
           ),
         ],
       ),
