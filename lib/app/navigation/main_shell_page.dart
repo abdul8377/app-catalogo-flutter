@@ -57,10 +57,7 @@ class _MainShellPageState extends State<MainShellPage> {
           ),
           Container(width: 1, color: const Color(0xFFE0E0E0)),
           Expanded(
-            child: IndexedStack(
-              index: selectedIndex,
-              children: _buildPages(),
-            ),
+            child: IndexedStack(index: selectedIndex, children: _buildPages()),
           ),
         ],
       ),
@@ -135,39 +132,51 @@ class AppNavigationRail extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          const SizedBox(height: 16),
-          _buildToggleButton(primaryColor),
-          const SizedBox(height: 32),
-          ...items.asMap().entries.map((entry) {
-            final index = entry.key;
-            final item = entry.value;
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // AnimatedContainer entrega anchos intermedios durante la transición.
+          // El contenido ancho solo se muestra cuando realmente tiene espacio.
+          final showExpandedContent = constraints.maxWidth >= 180;
 
-            return _NavRailItem(
-              item: item,
-              isSelected: selectedIndex == index,
-              isExpanded: isExpanded,
-              primaryColor: primaryColor,
-              onTap: () => onItemSelected(index),
-            );
-          }),
-          const Spacer(),
-          if (isExpanded)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 24, left: 16, right: 16),
-              child: _buildUserSection(),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Icon(
-                Icons.account_circle,
-                size: 36,
-                color: Colors.grey.shade400,
-              ),
-            ),
-        ],
+          return Column(
+            children: [
+              const SizedBox(height: 16),
+              _buildToggleButton(primaryColor),
+              const SizedBox(height: 32),
+              ...items.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
+
+                return _NavRailItem(
+                  item: item,
+                  isSelected: selectedIndex == index,
+                  isExpanded: showExpandedContent,
+                  primaryColor: primaryColor,
+                  onTap: () => onItemSelected(index),
+                );
+              }),
+              const Spacer(),
+              if (showExpandedContent)
+                Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: 24,
+                    left: 16,
+                    right: 16,
+                  ),
+                  child: _buildUserSection(),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: Icon(
+                    Icons.account_circle,
+                    size: 36,
+                    color: Colors.grey.shade400,
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }

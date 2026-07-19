@@ -107,10 +107,10 @@ class _HomeContent extends StatelessWidget {
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 28)),
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: _MainActionsGrid(),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _MainActionsGrid(onNavigate: onNavigate),
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 28)),
@@ -135,26 +135,29 @@ class _HomeContent extends StatelessWidget {
                     child: ListView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      children: const [
+                      children: [
                         _QuickActionChip(
                           label: 'Buscar producto',
                           icon: Icons.search,
-                          color: Color(0xFFE3F2FD),
-                          iconColor: Color(0xFF1565C0),
+                          color: const Color(0xFFE3F2FD),
+                          iconColor: const Color(0xFF1565C0),
+                          onTap: () => onNavigate(1),
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         _QuickActionChip(
                           label: 'Registrar cliente',
                           icon: Icons.person_add_alt_1,
-                          color: Color(0xFFF3E5F5),
-                          iconColor: Color(0xFF7B1FA2),
+                          color: const Color(0xFFF3E5F5),
+                          iconColor: const Color(0xFF7B1FA2),
+                          onTap: () => onNavigate(2),
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         _QuickActionChip(
                           label: 'Registrar producto',
                           icon: Icons.inventory_2_outlined,
-                          color: Color(0xFFFFF8E1),
-                          iconColor: Color(0xFFF57F17),
+                          color: const Color(0xFFFFF8E1),
+                          iconColor: const Color(0xFFF57F17),
+                          onTap: () => onNavigate(1),
                         ),
                       ],
                     ),
@@ -466,16 +469,40 @@ class _NewOrderButton extends StatelessWidget {
 }
 
 class _MainActionsGrid extends StatelessWidget {
-  const _MainActionsGrid();
+  const _MainActionsGrid({
+    required this.onNavigate,
+  });
+
+  final ValueChanged<int> onNavigate;
 
   @override
   Widget build(BuildContext context) {
-    const actions = [
-      {'icon': Icons.storefront_outlined, 'label': 'Catálogo'},
-      {'icon': Icons.people_outline, 'label': 'Clientes'},
-      {'icon': Icons.list_alt, 'label': 'Pedidos'},
-      {'icon': Icons.receipt_long, 'label': 'Hoja de pedido'},
-      {'icon': Icons.dashboard_outlined, 'label': 'Dashboard'},
+    final actions = [
+      {
+        'icon': Icons.storefront_outlined,
+        'label': 'Catálogo',
+        'navIndex': 1,
+      },
+      {
+        'icon': Icons.people_outline,
+        'label': 'Clientes',
+        'navIndex': 2,
+      },
+      {
+        'icon': Icons.list_alt,
+        'label': 'Pedidos',
+        'navIndex': 3,
+      },
+      {
+        'icon': Icons.receipt_long,
+        'label': 'Hoja de pedido',
+        'navIndex': 4,
+      },
+      {
+        'icon': Icons.dashboard_outlined,
+        'label': 'Dashboard',
+        'navIndex': 5,
+      },
     ];
 
     return GridView.builder(
@@ -497,7 +524,7 @@ class _MainActionsGrid extends StatelessWidget {
           elevation: 0,
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            onTap: () {},
+            onTap: () => onNavigate(action['navIndex'] as int),
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
@@ -552,12 +579,14 @@ class _QuickActionChip extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.iconColor,
+    required this.onTap,
   });
 
   final String label;
   final IconData icon;
   final Color color;
   final Color iconColor;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -567,7 +596,7 @@ class _QuickActionChip extends StatelessWidget {
       elevation: 0,
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () {},
+        onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
@@ -595,7 +624,6 @@ class _QuickActionChip extends StatelessWidget {
     );
   }
 }
-
 class _SummaryGrid extends StatelessWidget {
   const _SummaryGrid({required this.state});
 

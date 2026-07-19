@@ -1,4 +1,4 @@
-import '../entities/producto.dart';
+import '../entities/producto_detalle.dart';
 import '../repositories/catalogo_repository.dart';
 
 class ObtenerDetalleProductoUseCase {
@@ -6,7 +6,7 @@ class ObtenerDetalleProductoUseCase {
 
   final CatalogoRepository _repository;
 
-  Future<Producto?> call(String id) {
+  Future<ProductoDetalle?> call(String id) {
     return _repository.obtenerDetalleProducto(id);
   }
 }
