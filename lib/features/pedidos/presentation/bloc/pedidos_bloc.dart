@@ -192,8 +192,8 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
       emit(state.copyWith(error: 'Ingresa un teléfono válido.'));
       return;
     }
-    if (cliente.requiereDireccion && cliente.direccion.trim().isEmpty) {
-      emit(state.copyWith(error: 'La dirección es obligatoria para entrega.'));
+    if (cliente.direccion.trim().isEmpty) {
+      emit(state.copyWith(error: 'La dirección del cliente es obligatoria.'));
       return;
     }
     emit(state.copyWith(guardando: true, limpiarError: true));
@@ -204,7 +204,14 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
         items: state.carrito,
         vendedor: 'Alfonzo Esteban',
       );
-      emit(state.copyWith(guardando: false, resultado: result));
+      emit(
+        state.copyWith(
+          guardando: false,
+          carrito: const [],
+          limpiarCliente: true,
+          resultado: result,
+        ),
+      );
     } catch (error) {
       emit(
         state.copyWith(

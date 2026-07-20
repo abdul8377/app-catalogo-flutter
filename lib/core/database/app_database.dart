@@ -15,7 +15,7 @@ class AppDatabase {
     final path = join(await getDatabasesPath(), 'app_catalogo.db');
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: (db, version) async {
         await db.execute(
@@ -59,6 +59,9 @@ class AppDatabase {
           await _crearTablasPedidos(db);
           await _asegurarHojaInicial(db);
         }
+        if (oldVersion < 5) {
+          await _asegurarColumnasClientes(db);
+        }
       },
     );
   }
@@ -67,10 +70,15 @@ class AppDatabase {
     await db.execute('''CREATE TABLE IF NOT EXISTS clientes(
       id TEXT PRIMARY KEY, nombre TEXT NOT NULL, telefono TEXT NOT NULL,
       dni TEXT NOT NULL DEFAULT '', ruc TEXT NOT NULL DEFAULT '',
-      tipo_entrega TEXT NOT NULL DEFAULT 'recojo', direccion TEXT NOT NULL DEFAULT '',
+      tipo TEXT NOT NULL DEFAULT 'Persona',
+      tipo_entrega TEXT NOT NULL DEFAULT 'entrega', direccion TEXT NOT NULL DEFAULT '',
       referencia TEXT NOT NULL DEFAULT '', observaciones TEXT NOT NULL DEFAULT '',
+      foto_ubicacion_path TEXT,
+      activo INTEGER NOT NULL DEFAULT 1,
+      actualizado_en TEXT,
       creado_en TEXT NOT NULL
     )''');
+    await _asegurarColumnasClientes(db);
     await db.execute('''CREATE TABLE IF NOT EXISTS hojas_pedido(
       id TEXT PRIMARY KEY, codigo TEXT NOT NULL UNIQUE, estado TEXT NOT NULL,
       activa INTEGER NOT NULL DEFAULT 0, creado_en TEXT NOT NULL
@@ -96,6 +104,34 @@ class AppDatabase {
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_pedidos_hoja ON pedidos(hoja_id, creado_en)',
+    );
+  }
+
+  Future<void> _asegurarColumnasClientes(Database db) async {
+    final info = await db.rawQuery('PRAGMA table_info(clientes)');
+    final columns = info.map((row) => row['name'] as String).toSet();
+    Future<void> addColumn(String name, String definition) async {
+      if (!columns.contains(name)) await db.execute(definition);
+    }
+
+    await addColumn(
+      'tipo',
+      "ALTER TABLE clientes ADD COLUMN tipo TEXT NOT NULL DEFAULT 'Persona'",
+    );
+    await addColumn(
+      'foto_ubicacion_path',
+      'ALTER TABLE clientes ADD COLUMN foto_ubicacion_path TEXT',
+    );
+    await addColumn(
+      'activo',
+      'ALTER TABLE clientes ADD COLUMN activo INTEGER NOT NULL DEFAULT 1',
+    );
+    await addColumn(
+      'actualizado_en',
+      'ALTER TABLE clientes ADD COLUMN actualizado_en TEXT',
+    );
+    await db.execute(
+      "UPDATE clientes SET tipo = 'Empresa' WHERE ruc != '' AND tipo = 'Persona'",
     );
   }
 

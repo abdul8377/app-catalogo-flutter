@@ -153,17 +153,21 @@ class PedidosLocalDatasource {
     );
     if (matches.isNotEmpty) return matches.first['id'] as String;
     final id = const Uuid().v4();
+    final now = DateTime.now().toIso8601String();
     await txn.insert('clientes', {
       'id': id,
       'nombre': cliente.nombre,
+      'tipo': cliente.ruc.trim().isEmpty ? 'Persona' : 'Empresa',
       'telefono': cliente.telefono,
       'dni': cliente.dni,
       'ruc': cliente.ruc,
-      'tipo_entrega': cliente.tipoEntrega,
+      'tipo_entrega': 'entrega',
       'direccion': cliente.direccion,
       'referencia': cliente.referencia,
+      'activo': 1,
       'observaciones': cliente.observaciones,
-      'creado_en': DateTime.now().toIso8601String(),
+      'creado_en': now,
+      'actualizado_en': now,
     });
     return id;
   }
@@ -174,7 +178,7 @@ class PedidosLocalDatasource {
     telefono: row['telefono'] as String,
     dni: row['dni'] as String,
     ruc: row['ruc'] as String,
-    tipoEntrega: row['tipo_entrega'] as String,
+    tipoEntrega: 'entrega',
     direccion: row['direccion'] as String,
     referencia: row['referencia'] as String,
     observaciones: row['observaciones'] as String,

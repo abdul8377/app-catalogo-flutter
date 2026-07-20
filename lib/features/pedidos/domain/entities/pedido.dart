@@ -22,7 +22,7 @@ class ClientePedido extends Equatable {
     required this.telefono,
     this.dni = '',
     this.ruc = '',
-    this.tipoEntrega = 'recojo',
+    this.tipoEntrega = 'entrega',
     this.direccion = '',
     this.referencia = '',
     this.observaciones = '',
@@ -38,7 +38,7 @@ class ClientePedido extends Equatable {
   final String referencia;
   final String observaciones;
 
-  bool get requiereDireccion => tipoEntrega == 'entrega';
+  bool get requiereDireccion => true;
 
   @override
   List<Object?> get props => [

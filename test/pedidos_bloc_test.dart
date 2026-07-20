@@ -65,7 +65,11 @@ void main() {
 
     bloc.add(
       const PedidoClienteSeleccionado(
-        ClientePedido(nombre: 'Comercial Sur', telefono: '987654321'),
+        ClientePedido(
+          nombre: 'Comercial Sur',
+          telefono: '987654321',
+          direccion: 'Av. Sur 123',
+        ),
       ),
     );
     await bloc.stream.firstWhere((state) => state.cliente != null);
@@ -74,9 +78,11 @@ void main() {
 
     expect(pedidosRepository.itemsGuardados, hasLength(2));
     expect(bloc.state.resultado?.codigo, 'PED-2026-0001');
+    expect(bloc.state.carrito, isEmpty);
+    expect(bloc.state.cantidadProductos, 0);
   });
 
-  test('no confirma una entrega sin dirección', () async {
+  test('no confirma un pedido sin dirección de cliente', () async {
     final bloc = PedidosBloc(
       _CatalogoRepositoryFake(),
       _PedidosRepositoryFake(),
@@ -99,11 +105,7 @@ void main() {
     );
     bloc.add(
       const PedidoClienteSeleccionado(
-        ClientePedido(
-          nombre: 'Cliente',
-          telefono: '999999999',
-          tipoEntrega: 'entrega',
-        ),
+        ClientePedido(nombre: 'Cliente', telefono: '999999999'),
       ),
     );
     await bloc.stream.firstWhere((state) => state.cliente != null);

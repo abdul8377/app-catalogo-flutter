@@ -8,6 +8,9 @@ import '../features/catalogo/data/repositories/catalogo_repository_impl.dart';
 import '../features/catalogo/domain/repositories/catalogo_repository.dart';
 import '../features/catalogo/presentation/bloc/catalogo_bloc.dart';
 import '../features/catalogo/presentation/bloc/catalogo_event.dart';
+import '../features/clientes/data/datasources/clientes_local_datasource.dart';
+import '../features/clientes/data/repositories/clientes_repository_impl.dart';
+import '../features/clientes/domain/repositories/clientes_repository.dart';
 import '../features/home/presentation/bloc/home_bloc.dart';
 import '../features/home/presentation/bloc/home_event.dart';
 import '../features/pedidos/data/datasources/pedidos_local_datasource.dart';
@@ -27,10 +30,14 @@ class AppCatalogo extends StatelessWidget {
     final pedidosRepository = PedidosRepositoryImpl(
       PedidosLocalDatasource(AppDatabase.instance),
     );
+    final clientesRepository = ClientesRepositoryImpl(
+      ClientesLocalDatasource(AppDatabase.instance),
+    );
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<CatalogoRepository>.value(value: catalogoRepository),
         RepositoryProvider<PedidosRepository>.value(value: pedidosRepository),
+        RepositoryProvider<ClientesRepository>.value(value: clientesRepository),
       ],
       child: MultiBlocProvider(
         providers: [

@@ -33,7 +33,6 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
   static const darkColor = Color(0xFF1F1F1F);
 
   int _paso = 0;
-  String tipoEntrega = 'recojo';
 
   final _searchCtrl = TextEditingController();
   final nombre = TextEditingController();
@@ -431,29 +430,8 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
           },
         ),
         const SizedBox(height: 5),
-        Text(
-          'Tipo de entrega *',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-        ),
-        RadioGroup<String>(
-          groupValue: tipoEntrega,
-          onChanged: (value) {
-            if (value != null) setState(() => tipoEntrega = value);
-          },
-          child: const Column(
-            children: [
-              RadioListTile<String>(value: 'recojo', title: Text('Recojo')),
-              RadioListTile<String>(
-                value: 'entrega',
-                title: Text('Entrega en dirección'),
-              ),
-            ],
-          ),
-        ),
-        if (tipoEntrega == 'entrega') ...[
-          _field(direccion, 'Dirección *'),
-          _field(referencia, 'Referencia'),
-        ],
+        _field(direccion, 'Dirección *'),
+        _field(referencia, 'Referencia'),
         _field(observaciones, 'Observaciones', maxLines: 2),
       ],
     ),
@@ -489,11 +467,7 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
                   Text('Teléfono: ${cliente.telefono}'),
                   if (cliente.ruc.isNotEmpty) Text('RUC: ${cliente.ruc}'),
                   if (cliente.dni.isNotEmpty) Text('DNI: ${cliente.dni}'),
-                  Text(
-                    cliente.tipoEntrega == 'recojo'
-                        ? 'Entrega: Recojo'
-                        : 'Entrega: Dirección: ${cliente.direccion}',
-                  ),
+                  Text('Dirección: ${cliente.direccion}'),
                   TextButton.icon(
                     onPressed: () => setState(() => _paso = 1),
                     icon: const Icon(Icons.edit, size: 16),
@@ -661,7 +635,7 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
           telefono: telefono.text.trim(),
           dni: dni.text.trim(),
           ruc: ruc.text.trim(),
-          tipoEntrega: tipoEntrega,
+          tipoEntrega: 'entrega',
           direccion: direccion.text.trim(),
           referencia: referencia.text.trim(),
           observaciones: observaciones.text.trim(),
@@ -688,8 +662,8 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
       _mensaje('Ingresa un teléfono válido.');
       return false;
     }
-    if (cliente.requiereDireccion && cliente.direccion.isEmpty) {
-      _mensaje('Ingresa la dirección para la entrega.');
+    if (cliente.direccion.isEmpty) {
+      _mensaje('Ingresa la dirección del cliente.');
       return false;
     }
     return true;
