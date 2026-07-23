@@ -3,13 +3,38 @@ import 'package:app_catalogo/features/catalogo/domain/entities/nuevo_producto.da
 import 'package:app_catalogo/features/catalogo/domain/entities/producto_detalle.dart';
 import 'package:app_catalogo/features/catalogo/domain/entities/producto_resumen.dart';
 import 'package:app_catalogo/features/catalogo/domain/repositories/catalogo_repository.dart';
+import 'package:app_catalogo/features/pedidos/domain/entities/cotizacion_pedido.dart';
 import 'package:app_catalogo/features/pedidos/domain/entities/pedido.dart';
+import 'package:app_catalogo/features/pedidos/domain/entities/pedido_detalle.dart';
+import 'package:app_catalogo/features/pedidos/domain/entities/pedido_preparacion.dart';
+import 'package:app_catalogo/features/pedidos/domain/entities/pedido_resumen.dart';
+import 'package:app_catalogo/features/pedidos/domain/entities/producto_consolidado.dart';
 import 'package:app_catalogo/features/pedidos/domain/repositories/pedidos_repository.dart';
 import 'package:app_catalogo/features/pedidos/presentation/bloc/pedidos_bloc.dart';
 import 'package:app_catalogo/features/pedidos/presentation/bloc/pedidos_event.dart';
+import 'package:app_catalogo/features/home/presentation/bloc/home_bloc.dart';
+import 'package:app_catalogo/features/home/presentation/bloc/home_event.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('Home actualiza automáticamente el código de la hoja activa', () async {
+    final bloc = HomeBloc(_PedidosRepositoryFake());
+    addTearDown(bloc.close);
+
+    bloc.add(const HomeStarted());
+    await bloc.stream.firstWhere(
+      (state) => !state.loading && state.codigoHojaActiva == 'HP-2026-001',
+    );
+
+    bloc.add(const HomeRefreshed());
+    await bloc.stream.firstWhere(
+      (state) => state.codigoHojaActiva == 'HP-2026-002',
+    );
+
+    expect(bloc.state.tieneHojaActiva, isTrue);
+    expect(bloc.state.codigoHojaActiva, 'HP-2026-002');
+  });
+
   test('gestiona catálogo vendible, carrito, cliente y confirmación', () async {
     final pedidosRepository = _PedidosRepositoryFake();
     final bloc = PedidosBloc(_CatalogoRepositoryFake(), pedidosRepository);
@@ -77,6 +102,7 @@ void main() {
     await bloc.stream.firstWhere((state) => state.resultado != null);
 
     expect(pedidosRepository.itemsGuardados, hasLength(2));
+    expect(pedidosRepository.hojaGuardada?.codigo, 'HP-2026-002');
     expect(bloc.state.resultado?.codigo, 'PED-2026-0001');
     expect(bloc.state.carrito, isEmpty);
     expect(bloc.state.cantidadProductos, 0);
@@ -117,6 +143,8 @@ void main() {
 
 class _PedidosRepositoryFake implements PedidosRepository {
   List<PedidoItem> itemsGuardados = [];
+  HojaPedidoActiva? hojaGuardada;
+  int _consultasHoja = 0;
 
   @override
   Future<List<ClientePedido>> buscarClientes(String query) async => const [];
@@ -129,11 +157,78 @@ class _PedidosRepositoryFake implements PedidosRepository {
   );
 
   @override
-  Future<HojaPedidoActiva?> obtenerHojaActiva() async => const HojaPedidoActiva(
-    id: 'h1',
-    codigo: 'HP-2026-001',
-    estado: 'Abierta',
+  Future<HojaPedidoActiva?> obtenerHojaActiva() async {
+    _consultasHoja++;
+    return _consultasHoja == 1
+        ? const HojaPedidoActiva(
+            id: 'h1',
+            codigo: 'HP-2026-001',
+            estado: 'Abierta',
+          )
+        : const HojaPedidoActiva(
+            id: 'h2',
+            codigo: 'HP-2026-002',
+            estado: 'Abierta',
+          );
+  }
+
+  @override
+  Future<List<PedidoResumen>> obtenerPedidosResumen() async => const [];
+
+  @override
+  Future<PedidoDetalle?> obtenerPedidoDetalle(String id) async => null;
+
+  @override
+  Future<CotizacionPedidoGuardada> guardarCotizacion(
+    CotizacionPedidoDraft cotizacion,
+  ) async => CotizacionPedidoGuardada(
+    id: 'cotizacion-1',
+    pedidoId: cotizacion.pedidoId,
+    codigo: 'COT-2026-0001',
+    total: cotizacion.total,
+    creadoEn: DateTime(2026),
   );
+
+  @override
+  Future<void> registrarPdfCotizacion({
+    required String cotizacionId,
+    required String pdfPath,
+  }) async {}
+
+  @override
+  Future<List<ProductoConsolidado>> obtenerProductosConsolidados() async =>
+      const [];
+
+  @override
+  Future<void> registrarPreparacionProducto(
+    PreparacionProductoDraft preparacion,
+  ) async {}
+
+  @override
+  Future<List<PedidoPreparacion>> obtenerPedidosPreparacion() async => const [];
+
+  @override
+  Future<void> cambiarEstadoPedido({
+    required String pedidoId,
+    required String nuevoEstado,
+    String observacion = '',
+  }) async {}
+
+  @override
+  Future<void> cancelarPedido({
+    required String pedidoId,
+    required String motivo,
+  }) async {}
+
+  @override
+  Future<void> reintentarSincronizacionPedido(String pedidoId) async {}
+
+  @override
+  Future<void> marcarPedidoCargado({
+    required String pedidoId,
+    required int paquetes,
+    String observacion = '',
+  }) async {}
 
   @override
   Future<PedidoRegistrado> guardarPedido({
@@ -143,6 +238,7 @@ class _PedidosRepositoryFake implements PedidosRepository {
     required String vendedor,
   }) async {
     itemsGuardados = items;
+    hojaGuardada = hoja;
     return PedidoRegistrado(
       id: 'pedido-1',
       codigo: 'PED-2026-0001',

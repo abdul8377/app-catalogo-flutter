@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/presentation/widgets/app_notice.dart';
 import '../../domain/entities/catalogo_form_data.dart';
 import '../../domain/repositories/catalogo_repository.dart';
 import '../bloc/producto_form_bloc.dart';
@@ -1081,9 +1082,7 @@ class _PasoPresentacionesState extends State<_PasoPresentaciones> {
   }
 
   void _mensaje(String texto) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(texto)));
+    AppNotice.info(context, texto);
   }
 }
 
@@ -1195,13 +1194,7 @@ class _PasoImagenes extends StatelessWidget {
   }
 
   void _mostrarErrorImagen(BuildContext context) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('No se pudieron seleccionar las imágenes.'),
-        ),
-      );
+    AppNotice.error(context, 'No se pudieron seleccionar las imágenes.');
   }
 }
 

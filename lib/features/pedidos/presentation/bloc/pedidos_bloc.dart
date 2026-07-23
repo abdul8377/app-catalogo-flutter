@@ -49,6 +49,10 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
       (event, emit) =>
           emit(state.copyWith(cliente: event.cliente, limpiarError: true)),
     );
+    on<PedidoClienteLimpiado>(
+      (_, emit) =>
+          emit(state.copyWith(limpiarCliente: true, limpiarError: true)),
+    );
     on<PedidoConfirmado>(_confirmar);
     on<PedidoHojaActivaCreada>(_crearHoja);
     on<PedidoNuevoSolicitado>(
@@ -178,10 +182,6 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
       emit(state.copyWith(error: 'Agrega al menos un producto.'));
       return;
     }
-    if (state.hojaActiva == null) {
-      emit(state.copyWith(error: 'No existe una hoja de pedido activa.'));
-      return;
-    }
     final cliente = state.cliente;
     if (cliente == null || cliente.nombre.trim().isEmpty) {
       emit(state.copyWith(error: 'Selecciona o registra un cliente.'));
@@ -198,8 +198,19 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
     }
     emit(state.copyWith(guardando: true, limpiarError: true));
     try {
+      final hojaActiva = await _pedidosRepository.obtenerHojaActiva();
+      if (hojaActiva == null) {
+        emit(
+          state.copyWith(
+            guardando: false,
+            limpiarHoja: true,
+            error: 'No existe una hoja de pedido activa.',
+          ),
+        );
+        return;
+      }
       final result = await _pedidosRepository.guardarPedido(
-        hoja: state.hojaActiva!,
+        hoja: hojaActiva,
         cliente: cliente,
         items: state.carrito,
         vendedor: 'Alfonzo Esteban',
@@ -207,6 +218,7 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
       emit(
         state.copyWith(
           guardando: false,
+          hojaActiva: hojaActiva,
           carrito: const [],
           limpiarCliente: true,
           resultado: result,

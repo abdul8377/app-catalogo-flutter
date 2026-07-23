@@ -1,644 +1,142 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import '../../../catalogo/domain/repositories/catalogo_repository.dart';
-import '../../domain/entities/pedido.dart';
 import '../../domain/repositories/pedidos_repository.dart';
-import '../bloc/pedidos_bloc.dart';
-import '../bloc/pedidos_event.dart';
-import '../bloc/pedidos_state.dart';
-import '../widgets/agregar_producto_dialog.dart';
-import '../widgets/confirmar_pedido_dialog.dart';
-import '../widgets/pedido_producto_card.dart';
-import '../widgets/pedido_producto_detalle_dialog.dart';
+import '../bloc/pedidos_listado_bloc.dart';
+import '../bloc/pedidos_listado_event.dart';
+import '../bloc/pedidos_listado_state.dart';
+import '../bloc/productos_consolidados_bloc.dart';
+import '../bloc/productos_consolidados_event.dart';
+import '../views/pedidos_listado_view.dart';
+import '../views/preparacion_carga_view.dart';
+import '../views/productos_consolidados_view.dart';
+import '../widgets/pedidos_header.dart';
 
 class PedidosPage extends StatelessWidget {
-  const PedidosPage({super.key});
+  const PedidosPage({
+    this.initialTab = 0,
+    this.initialHojaCodigo,
+    this.onOpenCliente,
+    this.onOpenHoja,
+    super.key,
+  });
+
+  final int initialTab;
+  final String? initialHojaCodigo;
+  final ValueChanged<String>? onOpenCliente;
+  final ValueChanged<String>? onOpenHoja;
 
   @override
-  Widget build(BuildContext context) => BlocProvider(
-    create: (_) => PedidosBloc(
-      context.read<CatalogoRepository>(),
-      context.read<PedidosRepository>(),
-    )..add(const PedidosStarted()),
-    child: const _NuevoPedidoView(),
-  );
-}
-
-class _NuevoPedidoView extends StatefulWidget {
-  const _NuevoPedidoView();
-
-  @override
-  State<_NuevoPedidoView> createState() => _NuevoPedidoViewState();
-}
-
-class _NuevoPedidoViewState extends State<_NuevoPedidoView> {
-  static const primaryColor = Color(0xFFFFC500);
-  static const darkColor = Color(0xFF1F1F1F);
-  final _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => BlocBuilder<PedidosBloc, PedidosState>(
-    builder: (context, state) => Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Nuevo pedido',
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w700,
-                fontSize: 20,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              state.hojaActiva == null
-                  ? 'Sin hoja activa'
-                  : 'Hoja activa: ${state.hojaActiva!.codigo}',
-              style: GoogleFonts.inter(fontSize: 13, color: Colors.white70),
-            ),
-          ],
+  Widget build(BuildContext context) {
+    final bloc = PedidosListadoBloc(context.read<PedidosRepository>())
+      ..add(const PedidosListadoStarted());
+    if (initialHojaCodigo != null) {
+      bloc.add(
+        PedidosListadoFiltrosAvanzadosAplicados(hoja: initialHojaCodigo),
+      );
+    }
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => bloc),
+        BlocProvider(
+          create: (context) => ProductosConsolidadosBloc(
+            context.read<PedidosRepository>(),
+            initialHojaCodigo: initialHojaCodigo,
+          )..add(const ProductosConsolidadosStarted()),
         ),
-        backgroundColor: darkColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            tooltip: state.vistaGrilla ? 'Ver como lista' : 'Ver como grilla',
-            onPressed: () => context.read<PedidosBloc>().add(
-              PedidosVistaCambiada(!state.vistaGrilla),
-            ),
-            icon: Icon(
-              state.vistaGrilla ? Icons.view_list : Icons.grid_view,
-              color: primaryColor,
-            ),
-          ),
-          const SizedBox(width: 6),
-        ],
-      ),
-      body: state.loading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                if (state.hojaActiva == null) const _SinHojaBanner(),
-                _buscador(state),
-                _filtrosRapidos(state),
-                _accionesFiltros(state),
-                Expanded(child: _productos(state)),
-              ],
-            ),
-      bottomNavigationBar: state.loading
-          ? null
-          : _CarritoBar(
-              state: state,
-              onVerCarrito: state.carrito.isEmpty
-                  ? null
-                  : () => _revisarCarrito(context),
-            ),
-    ),
-  );
-
-  Widget _buscador(PedidosState state) => Container(
-    color: Colors.white,
-    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-    child: TextField(
-      controller: _searchController,
-      onChanged: (value) {
-        setState(() {});
-        context.read<PedidosBloc>().add(PedidosBusquedaCambiada(value));
-      },
-      decoration: InputDecoration(
-        hintText: 'Buscar por nombre, código, marca, categoría o atributo...',
-        hintStyle: GoogleFonts.inter(color: const Color(0xFFBDBDBD)),
-        prefixIcon: const Icon(Icons.search, color: Color(0xFF9E9E9E)),
-        suffixIcon: _searchController.text.isEmpty
-            ? null
-            : IconButton(
-                icon: const Icon(Icons.clear, size: 20),
-                onPressed: () {
-                  _searchController.clear();
-                  context.read<PedidosBloc>().add(
-                    const PedidosBusquedaCambiada(''),
-                  );
-                  setState(() {});
-                },
-              ),
-        filled: true,
-        fillColor: const Color(0xFFF5F5F5),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-      ),
-    ),
-  );
-
-  Widget _filtrosRapidos(PedidosState state) {
-    const filtros = [
-      'Todos',
-      'Con precio',
-      'Sin precio',
-      'Empresa',
-      'Marca',
-      'Categoría',
-    ];
-    return Container(
-      color: Colors.white,
-      height: 48,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        children: filtros.map((filtro) {
-          final seleccionado = switch (filtro) {
-            'Todos' =>
-              state.filtroPrecio == 'Todos' &&
-                  state.filtrosAvanzadosActivos == 0,
-            'Con precio' || 'Sin precio' => state.filtroPrecio == filtro,
-            'Empresa' => state.empresa != null,
-            'Marca' => state.marca != null,
-            _ => state.categoria != null,
-          };
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-            child: FilterChip(
-              label: Text(
-                filtro,
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: darkColor,
-                ),
-              ),
-              selected: seleccionado,
-              onSelected: (_) => _seleccionarFiltroRapido(filtro, state),
-              backgroundColor: const Color(0xFFF5F5F5),
-              selectedColor: primaryColor,
-              checkmarkColor: Colors.black,
-              side: BorderSide.none,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              visualDensity: VisualDensity.compact,
-            ),
-          );
-        }).toList(),
+      ],
+      child: _PedidosPageView(
+        initialTab: initialTab,
+        hojaCodigo: initialHojaCodigo,
+        onOpenCliente: onOpenCliente,
+        onOpenHoja: onOpenHoja,
       ),
     );
   }
+}
 
-  Widget _accionesFiltros(PedidosState state) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    child: Row(
+class _PedidosPageView extends StatefulWidget {
+  const _PedidosPageView({
+    required this.initialTab,
+    this.hojaCodigo,
+    this.onOpenCliente,
+    this.onOpenHoja,
+  });
+
+  final int initialTab;
+  final String? hojaCodigo;
+  final ValueChanged<String>? onOpenCliente;
+  final ValueChanged<String>? onOpenHoja;
+
+  @override
+  State<_PedidosPageView> createState() => _PedidosPageViewState();
+}
+
+class _PedidosPageViewState extends State<_PedidosPageView> {
+  late int _currentTab;
+  int _preparacionRevision = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTab = widget.initialTab.clamp(0, 2);
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: const Color(0xFFF7F7F7),
+    appBar: PreferredSize(
+      preferredSize: const Size.fromHeight(204),
+      child: BlocBuilder<PedidosListadoBloc, PedidosListadoState>(
+        builder: (context, state) => PedidosHeader(
+          currentTab: _currentTab,
+          totalPedidos: state.pedidosFiltrados.length,
+          onRefresh: _actualizar,
+          onTabChanged: _cambiarTab,
+        ),
+      ),
+    ),
+    body: IndexedStack(
+      index: _currentTab,
       children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => _mostrarFiltros(context, state),
-            icon: const Icon(Icons.filter_list, size: 18),
-            label: Text(
-              'Filtros avanzados',
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-            ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: darkColor,
-              side: const BorderSide(color: Color(0xFFE0E0E0)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-          ),
+        PedidosListadoView(
+          vistaLista: true,
+          onOpenCliente: widget.onOpenCliente,
+          onOpenHoja: widget.onOpenHoja,
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => _mostrarOrdenamiento(context, state),
-            icon: const Icon(Icons.sort, size: 18),
-            label: Text(
-              'Ordenar',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-            ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: darkColor,
-              side: const BorderSide(color: Color(0xFFE0E0E0)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-          ),
+        ProductosConsolidadosView(initialHojaCodigo: widget.hojaCodigo),
+        PreparacionCargaView(
+          key: ValueKey('preparacion-$_preparacionRevision'),
         ),
       ],
     ),
   );
 
-  Widget _productos(PedidosState state) {
-    final productos = state.productosFiltrados;
-    if (productos.isEmpty) {
-      return Center(
-        child: Text(
-          'No hay productos disponibles',
-          style: GoogleFonts.inter(color: const Color(0xFF757575)),
-        ),
+  void _actualizar() {
+    if (_currentTab == 1) {
+      context.read<ProductosConsolidadosBloc>().add(
+        const ProductosConsolidadosRecargados(),
       );
+      return;
     }
-    if (!state.vistaGrilla) {
-      return ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: productos.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (context, index) => SizedBox(
-          height: 352,
-          child: ProductoVendibleCard.fromResumen(
-            producto: productos[index],
-            onVerDetalle: () => _verDetalle(context, productos[index].id),
-            onAgregar: () => _agregar(context, productos[index].id),
-          ),
-        ),
+    if (_currentTab == 2) {
+      setState(() => _preparacionRevision++);
+      return;
+    }
+    context.read<PedidosListadoBloc>().add(const PedidosListadoRecargado());
+  }
+
+  void _cambiarTab(int value) {
+    setState(() {
+      _currentTab = value;
+      if (value == 2) _preparacionRevision++;
+    });
+    if (value == 1) {
+      context.read<ProductosConsolidadosBloc>().add(
+        const ProductosConsolidadosRecargados(),
       );
-    }
-    return LayoutBuilder(
-      builder: (context, constraints) => GridView.builder(
-        padding: const EdgeInsets.all(16),
-        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: constraints.maxWidth < 500 ? 500 : 360,
-          mainAxisExtent: 352,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-        ),
-        itemCount: productos.length,
-        itemBuilder: (context, index) => ProductoVendibleCard.fromResumen(
-          producto: productos[index],
-          onVerDetalle: () => _verDetalle(context, productos[index].id),
-          onAgregar: () => _agregar(context, productos[index].id),
-        ),
-      ),
-    );
-  }
-
-  void _seleccionarFiltroRapido(String filtro, PedidosState state) {
-    if (filtro == 'Todos') {
-      context.read<PedidosBloc>()
-        ..add(const PedidosFiltroPrecioCambiado('Todos'))
-        ..add(const PedidosFiltrosLimpiados());
-    } else if (filtro == 'Con precio' || filtro == 'Sin precio') {
-      context.read<PedidosBloc>().add(PedidosFiltroPrecioCambiado(filtro));
-    } else {
-      _mostrarFiltros(context, state);
+    } else if (value == 0) {
+      context.read<PedidosListadoBloc>().add(const PedidosListadoRecargado());
     }
   }
-
-  Future<void> _agregar(BuildContext context, String id) async {
-    final item = await AgregarProductoDialog.show(context, productoId: id);
-    if (item == null || !context.mounted) return;
-    context.read<PedidosBloc>().add(PedidoProductoAgregado(item));
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: const Text('Producto agregado al pedido'),
-          action: SnackBarAction(
-            label: 'Ver carrito',
-            onPressed: () => _revisarCarrito(context),
-          ),
-        ),
-      );
-  }
-
-  Future<void> _verDetalle(BuildContext context, String id) async {
-    final agregar = await PedidoProductoDetalleDialog.show(
-      context,
-      productoId: id,
-    );
-    if (agregar && context.mounted) await _agregar(context, id);
-  }
-
-  Future<void> _revisarCarrito(BuildContext context) async {
-    final confirmado = await ConfirmarPedidoDialog.show(context);
-    if (!confirmado || !context.mounted) return;
-    final resultado = context.read<PedidosBloc>().state.resultado;
-    if (resultado != null) await _mostrarResultado(context, resultado);
-  }
-
-  Future<void> _mostrarResultado(
-    BuildContext context,
-    PedidoRegistrado resultado,
-  ) => showDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (dialogContext) => AlertDialog(
-      icon: const CircleAvatar(
-        radius: 28,
-        backgroundColor: Color(0xFFE8F5E9),
-        child: Icon(Icons.check, color: Color(0xFF2E7D32), size: 34),
-      ),
-      title: const Text('Pedido registrado correctamente'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Código: ${resultado.codigo}'),
-          Text('Cliente: ${resultado.cliente}'),
-          Text('Estado: ${resultado.estado}'),
-          Text('Hoja: ${resultado.hojaCodigo}'),
-        ],
-      ),
-      actions: [
-        OutlinedButton(
-          onPressed: () => Navigator.pop(dialogContext),
-          child: const Text('Cerrar'),
-        ),
-        FilledButton.icon(
-          onPressed: () {
-            context.read<PedidosBloc>().add(const PedidoNuevoSolicitado());
-            Navigator.pop(dialogContext);
-          },
-          style: FilledButton.styleFrom(
-            backgroundColor: primaryColor,
-            foregroundColor: Colors.black,
-          ),
-          icon: const Icon(Icons.add_shopping_cart),
-          label: const Text('Nuevo pedido'),
-        ),
-      ],
-    ),
-  );
-
-  Future<void> _mostrarFiltros(BuildContext context, PedidosState state) async {
-    var empresa = state.empresa;
-    var marca = state.marca;
-    var categoria = state.categoria;
-    final result = await showDialog<_PedidoFiltrosSeleccion>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Filtros avanzados'),
-          content: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _dropdown(
-                  'Empresa',
-                  empresa,
-                  state.empresas,
-                  (value) => setDialogState(() => empresa = value),
-                ),
-                const SizedBox(height: 12),
-                _dropdown(
-                  'Marca',
-                  marca,
-                  state.marcas,
-                  (value) => setDialogState(() => marca = value),
-                ),
-                const SizedBox(height: 12),
-                _dropdown(
-                  'Categoría',
-                  categoria,
-                  state.categorias,
-                  (value) => setDialogState(() => categoria = value),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, const _PedidoFiltrosSeleccion()),
-              child: const Text('Limpiar'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(
-                dialogContext,
-                _PedidoFiltrosSeleccion(
-                  empresa: empresa,
-                  marca: marca,
-                  categoria: categoria,
-                ),
-              ),
-              style: FilledButton.styleFrom(
-                backgroundColor: primaryColor,
-                foregroundColor: Colors.black,
-              ),
-              child: const Text('Aplicar'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (result == null || !context.mounted) return;
-    context.read<PedidosBloc>().add(
-      PedidosFiltrosAplicados(
-        empresa: result.empresa,
-        marca: result.marca,
-        categoria: result.categoria,
-      ),
-    );
-  }
-
-  Future<void> _mostrarOrdenamiento(
-    BuildContext context,
-    PedidosState state,
-  ) async {
-    final value = await showDialog<String>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Ordenar productos'),
-        children: [
-          for (final option in const [
-            'Nombre A-Z',
-            'Nombre Z-A',
-            'Precio menor a mayor',
-            'Precio mayor a menor',
-          ])
-            ListTile(
-              leading: Icon(
-                state.orden == option
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_off,
-                color: state.orden == option
-                    ? primaryColor
-                    : const Color(0xFF757575),
-              ),
-              title: Text(option),
-              selected: state.orden == option,
-              onTap: () => Navigator.pop(context, option),
-            ),
-        ],
-      ),
-    );
-    if (value != null && context.mounted) {
-      context.read<PedidosBloc>().add(PedidosOrdenCambiado(value));
-    }
-  }
-
-  Widget _dropdown(
-    String label,
-    String? value,
-    List<String> items,
-    ValueChanged<String?> onChanged,
-  ) => DropdownButtonFormField<String>(
-    initialValue: items.contains(value) ? value : null,
-    isExpanded: true,
-    decoration: InputDecoration(
-      labelText: label,
-      border: const OutlineInputBorder(),
-    ),
-    items: [
-      const DropdownMenuItem(value: '__todos__', child: Text('Todos')),
-      ...items.map((item) => DropdownMenuItem(value: item, child: Text(item))),
-    ],
-    onChanged: (selected) =>
-        onChanged(selected == '__todos__' ? null : selected),
-  );
-}
-
-class _CarritoBar extends StatelessWidget {
-  const _CarritoBar({required this.state, required this.onVerCarrito});
-
-  final PedidosState state;
-  final VoidCallback? onVerCarrito;
-
-  @override
-  Widget build(BuildContext context) => SafeArea(
-    top: false,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .08),
-            blurRadius: 12,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFC500),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                const Icon(Icons.shopping_cart, color: Colors.black, size: 24),
-                if (state.cantidadProductos > 0)
-                  Positioned(
-                    right: 2,
-                    top: 2,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        '${state.cantidadProductos}',
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  state.cantidadProductos == 0
-                      ? 'Carrito vacío'
-                      : '${state.cantidadProductos} producto(s)',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${state.totalParcial ? 'Total parcial' : 'Total'}: S/ ${state.subtotalConocido.toStringAsFixed(2)}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: const Color(0xFFFFC500),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ElevatedButton.icon(
-            key: const Key('revisar_carrito'),
-            onPressed: onVerCarrito,
-            icon: const Icon(Icons.arrow_forward_ios, size: 16),
-            label: const Text('Ver carrito'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFFC500),
-              foregroundColor: Colors.black,
-              disabledBackgroundColor: const Color(0xFFE0E0E0),
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              textStyle: GoogleFonts.inter(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-class _PedidoFiltrosSeleccion {
-  const _PedidoFiltrosSeleccion({this.empresa, this.marca, this.categoria});
-  final String? empresa;
-  final String? marca;
-  final String? categoria;
-}
-
-class _SinHojaBanner extends StatelessWidget {
-  const _SinHojaBanner();
-
-  @override
-  Widget build(BuildContext context) => MaterialBanner(
-    leading: const Icon(Icons.warning_amber, color: Color(0xFFE65100)),
-    content: const Text('No existe una hoja de pedido activa.'),
-    actions: [
-      TextButton(
-        onPressed: () =>
-            context.read<PedidosBloc>().add(const PedidoHojaActivaCreada()),
-        child: const Text('Crear hoja'),
-      ),
-    ],
-  );
 }

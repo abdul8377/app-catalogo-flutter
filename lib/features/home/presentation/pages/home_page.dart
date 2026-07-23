@@ -8,10 +8,7 @@ import '../bloc/home_state.dart';
 class HomePage extends StatelessWidget {
   final ValueChanged<int> onNavigate;
 
-  const HomePage({
-    super.key,
-    required this.onNavigate,
-  });
+  const HomePage({super.key, required this.onNavigate});
 
   @override
   Widget build(BuildContext context) {
@@ -24,20 +21,14 @@ class HomePage extends StatelessWidget {
           );
         }
 
-        return _HomeContent(
-          state: state,
-          onNavigate: onNavigate,
-        );
+        return _HomeContent(state: state, onNavigate: onNavigate);
       },
     );
   }
 }
 
 class _HomeContent extends StatelessWidget {
-  const _HomeContent({
-    required this.state,
-    required this.onNavigate,
-  });
+  const _HomeContent({required this.state, required this.onNavigate});
 
   final HomeState state;
   final ValueChanged<int> onNavigate;
@@ -292,7 +283,7 @@ class _ActiveSheetCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => onNavigate(4),
+                onPressed: () => onNavigate(5),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Nueva hoja de pedido'),
                 style: ElevatedButton.styleFrom(
@@ -409,7 +400,7 @@ class _ActiveSheetCard extends StatelessWidget {
             ),
           ),
           TextButton.icon(
-            onPressed: () => onNavigate(4),
+            onPressed: () => onNavigate(5),
             icon: const Icon(Icons.swap_horiz, size: 18),
             label: const Text('Cambiar'),
             style: TextButton.styleFrom(
@@ -469,40 +460,18 @@ class _NewOrderButton extends StatelessWidget {
 }
 
 class _MainActionsGrid extends StatelessWidget {
-  const _MainActionsGrid({
-    required this.onNavigate,
-  });
+  const _MainActionsGrid({required this.onNavigate});
 
   final ValueChanged<int> onNavigate;
 
   @override
   Widget build(BuildContext context) {
     final actions = [
-      {
-        'icon': Icons.storefront_outlined,
-        'label': 'Catálogo',
-        'navIndex': 1,
-      },
-      {
-        'icon': Icons.people_outline,
-        'label': 'Clientes',
-        'navIndex': 2,
-      },
-      {
-        'icon': Icons.list_alt,
-        'label': 'Pedidos',
-        'navIndex': 3,
-      },
-      {
-        'icon': Icons.receipt_long,
-        'label': 'Hoja de pedido',
-        'navIndex': 4,
-      },
-      {
-        'icon': Icons.dashboard_outlined,
-        'label': 'Dashboard',
-        'navIndex': 5,
-      },
+      {'icon': Icons.storefront_outlined, 'label': 'Catálogo', 'navIndex': 1},
+      {'icon': Icons.people_outline, 'label': 'Clientes', 'navIndex': 2},
+      {'icon': Icons.list_alt, 'label': 'Pedidos', 'navIndex': 4},
+      {'icon': Icons.receipt_long, 'label': 'Hoja de pedido', 'navIndex': 5},
+      {'icon': Icons.dashboard_outlined, 'label': 'Dashboard', 'navIndex': 6},
     ];
 
     return GridView.builder(
@@ -624,6 +593,7 @@ class _QuickActionChip extends StatelessWidget {
     );
   }
 }
+
 class _SummaryGrid extends StatelessWidget {
   const _SummaryGrid({required this.state});
 

@@ -25,6 +25,7 @@ class ClientePedido extends Equatable {
     this.tipoEntrega = 'entrega',
     this.direccion = '',
     this.referencia = '',
+    this.fotoUbicacionPath,
     this.observaciones = '',
   });
 
@@ -36,6 +37,7 @@ class ClientePedido extends Equatable {
   final String tipoEntrega;
   final String direccion;
   final String referencia;
+  final String? fotoUbicacionPath;
   final String observaciones;
 
   bool get requiereDireccion => true;
@@ -50,6 +52,7 @@ class ClientePedido extends Equatable {
     tipoEntrega,
     direccion,
     referencia,
+    fotoUbicacionPath,
     observaciones,
   ];
 }

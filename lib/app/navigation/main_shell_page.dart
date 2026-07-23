@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../features/catalogo/presentation/pages/catalogo_page.dart';
@@ -6,6 +7,9 @@ import '../../features/clientes/presentation/pages/clientes_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/hojas_pedido/presentation/pages/hojas_pedido_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/home/presentation/bloc/home_bloc.dart';
+import '../../features/home/presentation/bloc/home_event.dart';
+import '../../features/pedidos/presentation/pages/nuevo_pedido_page.dart';
 import '../../features/pedidos/presentation/pages/pedidos_page.dart';
 
 class MainShellPage extends StatefulWidget {
@@ -18,14 +22,39 @@ class MainShellPage extends StatefulWidget {
 class _MainShellPageState extends State<MainShellPage> {
   int selectedIndex = 0;
   bool isRailExpanded = false;
+  int _pedidosInitialTab = 0;
+  String? _pedidosHojaCodigo;
+  int _nuevoPedidoRevision = 0;
+  int _pedidosRevision = 0;
+  int _hojasRevision = 0;
+  int _clientesRevision = 0;
+  String? _clienteInicialId;
+  String? _hojaInicialCodigo;
 
   List<Widget> _buildPages() {
     return [
       HomePage(onNavigate: _onItemSelected),
       const CatalogoPage(),
-      const ClientesPage(),
-      const PedidosPage(),
-      const HojasPedidoPage(),
+      ClientesPage(
+        key: ValueKey('clientes-$_clientesRevision-$_clienteInicialId'),
+        initialClienteId: _clienteInicialId,
+      ),
+      NuevoPedidoPage(key: ValueKey('nuevo-pedido-$_nuevoPedidoRevision')),
+      PedidosPage(
+        key: ValueKey(
+          'pedidos-$_pedidosRevision-$_pedidosInitialTab-$_pedidosHojaCodigo',
+        ),
+        initialTab: _pedidosInitialTab,
+        initialHojaCodigo: _pedidosHojaCodigo,
+        onOpenCliente: _openCliente,
+        onOpenHoja: _openHoja,
+      ),
+      HojasPedidoPage(
+        key: ValueKey('hojas-pedido-$_hojasRevision'),
+        onNavigate: _onItemSelected,
+        onOpenPedidos: _openPedidos,
+        initialHojaCodigo: _hojaInicialCodigo,
+      ),
       const DashboardPage(),
     ];
   }
@@ -39,6 +68,50 @@ class _MainShellPageState extends State<MainShellPage> {
   void _onItemSelected(int index) {
     setState(() {
       selectedIndex = index;
+      if (index == 0) {
+        context.read<HomeBloc>().add(const HomeRefreshed());
+      }
+      if (index == 3) {
+        _nuevoPedidoRevision++;
+      }
+      if (index == 2) {
+        _clientesRevision++;
+        _clienteInicialId = null;
+      }
+      if (index == 4) {
+        _pedidosRevision++;
+        _pedidosInitialTab = 0;
+        _pedidosHojaCodigo = null;
+      }
+      if (index == 5) {
+        _hojasRevision++;
+        _hojaInicialCodigo = null;
+      }
+    });
+  }
+
+  void _openCliente(String clienteId) {
+    setState(() {
+      _clientesRevision++;
+      _clienteInicialId = clienteId;
+      selectedIndex = 2;
+    });
+  }
+
+  void _openHoja(String hojaCodigo) {
+    setState(() {
+      _hojasRevision++;
+      _hojaInicialCodigo = hojaCodigo;
+      selectedIndex = 5;
+    });
+  }
+
+  void _openPedidos(int tab, String hojaCodigo) {
+    setState(() {
+      _pedidosRevision++;
+      _pedidosInitialTab = tab.clamp(0, 2);
+      _pedidosHojaCodigo = hojaCodigo;
+      selectedIndex = 4;
     });
   }
 
@@ -100,6 +173,11 @@ class AppNavigationRail extends StatelessWidget {
         icon: Icons.people_outline,
         activeIcon: Icons.people,
         label: 'Clientes',
+      ),
+      _NavItem(
+        icon: Icons.add_shopping_cart_outlined,
+        activeIcon: Icons.add_shopping_cart,
+        label: 'Nuevo pedido',
       ),
       _NavItem(
         icon: Icons.list_alt,

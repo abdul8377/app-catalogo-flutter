@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/presentation/widgets/app_notice.dart';
 import '../../domain/entities/cliente.dart';
 import '../../domain/repositories/clientes_repository.dart';
 import '../bloc/clientes_bloc.dart';
@@ -14,19 +15,30 @@ import '../widgets/clientes_filtros.dart';
 import 'cliente_form_page.dart';
 
 class ClientesPage extends StatelessWidget {
-  const ClientesPage({super.key});
+  const ClientesPage({this.initialClienteId, super.key});
+
+  final String? initialClienteId;
 
   @override
   Widget build(BuildContext context) => BlocProvider(
     create: (context) =>
         ClientesBloc(context.read<ClientesRepository>())
           ..add(const ClientesStarted()),
-    child: const _ClientesView(),
+    child: _ClientesView(initialClienteId: initialClienteId),
   );
 }
 
-class _ClientesView extends StatelessWidget {
-  const _ClientesView();
+class _ClientesView extends StatefulWidget {
+  const _ClientesView({this.initialClienteId});
+
+  final String? initialClienteId;
+
+  @override
+  State<_ClientesView> createState() => _ClientesViewState();
+}
+
+class _ClientesViewState extends State<_ClientesView> {
+  bool _detalleInicialAbierto = false;
 
   static const primaryColor = Color(0xFFFFC500);
   static const darkColor = Color(0xFF1F1F1F);
@@ -37,11 +49,24 @@ class _ClientesView extends StatelessWidget {
   ) => BlocConsumer<ClientesBloc, ClientesState>(
     listenWhen: (previous, current) =>
         previous.error != current.error && current.error != null,
-    listener: (context, state) => ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(state.error!))),
+    listener: (context, state) => AppNotice.error(context, state.error!),
     builder: (context, state) {
       final clientes = state.clientesFiltrados;
+      if (!_detalleInicialAbierto &&
+          !state.loading &&
+          widget.initialClienteId != null &&
+          state.clientes.any(
+            (cliente) => cliente.id == widget.initialClienteId,
+          )) {
+        _detalleInicialAbierto = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          ClienteDetalleDialog.show(
+            context,
+            clienteId: widget.initialClienteId!,
+          );
+        });
+      }
       return Scaffold(
         backgroundColor: const Color(0xFFF7F7F7),
         appBar: AppBar(
@@ -182,7 +207,6 @@ class _ClientesView extends StatelessWidget {
       onNuevoPedido: () => _nuevoPedidoPendiente(context, cliente),
     ),
     onEditar: () => _abrirFormulario(context, clienteId: cliente.id),
-    onNuevoPedido: () => _nuevoPedidoPendiente(context, cliente),
     onActivarDesactivar: () => _confirmarEstado(context, cliente),
   );
 
@@ -201,17 +225,12 @@ class _ClientesView extends StatelessWidget {
     );
     if (guardado == true && context.mounted) {
       context.read<ClientesBloc>().add(const ClientesRecargados());
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              clienteId == null
-                  ? 'Cliente registrado correctamente.'
-                  : 'Cliente actualizado correctamente.',
-            ),
-          ),
-        );
+      AppNotice.success(
+        context,
+        clienteId == null
+            ? 'Cliente registrado correctamente.'
+            : 'Cliente actualizado correctamente.',
+      );
     }
   }
 
@@ -248,14 +267,9 @@ class _ClientesView extends StatelessWidget {
   }
 
   void _nuevoPedidoPendiente(BuildContext context, Cliente cliente) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            'Nuevo pedido para ${cliente.nombre} quedará conectado al flujo de pedidos.',
-          ),
-        ),
-      );
+    AppNotice.info(
+      context,
+      'Nuevo pedido para ${cliente.nombre} quedará conectado al flujo de pedidos.',
+    );
   }
 }

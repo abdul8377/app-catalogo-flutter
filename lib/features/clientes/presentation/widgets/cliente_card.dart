@@ -8,7 +8,6 @@ class ClienteCard extends StatelessWidget {
     required this.cliente,
     this.onVer,
     this.onEditar,
-    this.onNuevoPedido,
     this.onActivarDesactivar,
     super.key,
   });
@@ -16,7 +15,6 @@ class ClienteCard extends StatelessWidget {
   final Cliente cliente;
   final VoidCallback? onVer;
   final VoidCallback? onEditar;
-  final VoidCallback? onNuevoPedido;
   final VoidCallback? onActivarDesactivar;
 
   @override
@@ -191,26 +189,6 @@ class ClienteCard extends StatelessWidget {
                       ),
                     ),
                     child: const Text('Editar'),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onNuevoPedido,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: Colors.black,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      textStyle: GoogleFonts.inter(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11,
-                      ),
-                    ),
-                    child: const Text('Pedido'),
                   ),
                 ),
                 const SizedBox(width: 4),

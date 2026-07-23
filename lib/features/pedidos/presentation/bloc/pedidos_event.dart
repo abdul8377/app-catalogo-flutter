@@ -97,6 +97,10 @@ class PedidoClienteSeleccionado extends PedidosEvent {
   List<Object?> get props => [cliente];
 }
 
+class PedidoClienteLimpiado extends PedidosEvent {
+  const PedidoClienteLimpiado();
+}
+
 class PedidoConfirmado extends PedidosEvent {
   const PedidoConfirmado();
 }

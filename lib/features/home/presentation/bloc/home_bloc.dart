@@ -8,13 +8,11 @@ import 'home_state.dart';
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
   HomeBloc(this._pedidosRepository) : super(HomeState.initial()) {
     on<HomeStarted>(_onHomeStarted);
+    on<HomeRefreshed>(_onHomeStarted);
   }
   final PedidosRepository _pedidosRepository;
 
-  Future<void> _onHomeStarted(
-    HomeStarted event,
-    Emitter<HomeState> emit,
-  ) async {
+  Future<void> _onHomeStarted(HomeEvent event, Emitter<HomeState> emit) async {
     HojaPedidoActiva? hoja;
     try {
       hoja = await _pedidosRepository.obtenerHojaActiva();

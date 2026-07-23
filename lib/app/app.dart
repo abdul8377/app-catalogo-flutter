@@ -13,6 +13,9 @@ import '../features/clientes/data/repositories/clientes_repository_impl.dart';
 import '../features/clientes/domain/repositories/clientes_repository.dart';
 import '../features/home/presentation/bloc/home_bloc.dart';
 import '../features/home/presentation/bloc/home_event.dart';
+import '../features/hojas_pedido/data/datasources/hojas_pedido_local_datasource.dart';
+import '../features/hojas_pedido/data/repositories/hojas_pedido_repository_impl.dart';
+import '../features/hojas_pedido/domain/repositories/hojas_pedido_repository.dart';
 import '../features/pedidos/data/datasources/pedidos_local_datasource.dart';
 import '../features/pedidos/data/repositories/pedidos_repository_impl.dart';
 import '../features/pedidos/domain/repositories/pedidos_repository.dart';
@@ -33,11 +36,17 @@ class AppCatalogo extends StatelessWidget {
     final clientesRepository = ClientesRepositoryImpl(
       ClientesLocalDatasource(AppDatabase.instance),
     );
+    final hojasPedidoRepository = HojasPedidoRepositoryImpl(
+      HojasPedidoLocalDatasource(AppDatabase.instance),
+    );
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<CatalogoRepository>.value(value: catalogoRepository),
         RepositoryProvider<PedidosRepository>.value(value: pedidosRepository),
         RepositoryProvider<ClientesRepository>.value(value: clientesRepository),
+        RepositoryProvider<HojasPedidoRepository>.value(
+          value: hojasPedidoRepository,
+        ),
       ],
       child: MultiBlocProvider(
         providers: [

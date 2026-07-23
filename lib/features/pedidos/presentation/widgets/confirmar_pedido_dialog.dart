@@ -4,6 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/presentation/widgets/app_notice.dart';
+import '../../../clientes/domain/entities/cliente.dart' as clientes_domain;
+import '../../../clientes/domain/entities/nuevo_cliente.dart';
+import '../../../clientes/domain/repositories/clientes_repository.dart';
+import '../../../clientes/presentation/widgets/cliente_formulario.dart';
+import '../../../clientes/presentation/widgets/cliente_selector.dart';
 import '../../domain/entities/pedido.dart';
 import '../bloc/pedidos_bloc.dart';
 import '../bloc/pedidos_event.dart';
@@ -12,17 +18,23 @@ import '../bloc/pedidos_state.dart';
 class ConfirmarPedidoDialog extends StatefulWidget {
   const ConfirmarPedidoDialog({super.key});
 
-  static Future<bool> show(BuildContext context) async =>
-      await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        barrierColor: Colors.black54,
-        builder: (_) => BlocProvider<PedidosBloc>.value(
-          value: context.read<PedidosBloc>(),
-          child: const ConfirmarPedidoDialog(),
-        ),
-      ) ??
-      false;
+  static Future<bool> show(BuildContext context) async {
+    final pedidosBloc = context.read<PedidosBloc>();
+    final clientesRepository = context.read<ClientesRepository>();
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          barrierColor: Colors.black54,
+          builder: (_) => RepositoryProvider<ClientesRepository>.value(
+            value: clientesRepository,
+            child: BlocProvider<PedidosBloc>.value(
+              value: pedidosBloc,
+              child: const ConfirmarPedidoDialog(),
+            ),
+          ),
+        ) ??
+        false;
+  }
 
   @override
   State<ConfirmarPedidoDialog> createState() => _ConfirmarPedidoDialogState();
@@ -32,29 +44,8 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
   static const primaryColor = Color(0xFFFFC500);
   static const darkColor = Color(0xFF1F1F1F);
 
+  final _clienteFormKey = GlobalKey<ClienteFormularioState>();
   int _paso = 0;
-
-  final _searchCtrl = TextEditingController();
-  final nombre = TextEditingController();
-  final telefono = TextEditingController();
-  final dni = TextEditingController();
-  final ruc = TextEditingController();
-  final direccion = TextEditingController();
-  final referencia = TextEditingController();
-  final observaciones = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    nombre.dispose();
-    telefono.dispose();
-    dni.dispose();
-    ruc.dispose();
-    direccion.dispose();
-    referencia.dispose();
-    observaciones.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) => BlocConsumer<PedidosBloc, PedidosState>(
@@ -180,10 +171,7 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
     width: double.infinity,
     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
     color: const Color(0xFFFFEBEE),
-    child: Text(
-      value,
-      style: GoogleFonts.inter(color: const Color(0xFFC62828)),
-    ),
+    child: Text(value, style: GoogleFonts.inter(color: Colors.red.shade700)),
   );
 
   Widget _buildPasoProductos(PedidosState state) {
@@ -201,7 +189,6 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
         ...state.carrito.asMap().entries.map((entry) {
           final index = entry.key;
           final item = entry.value;
-          final tienePrecio = item.precioUnitario != null;
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
             elevation: 0,
@@ -221,9 +208,7 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
                         width: 60,
                         height: 60,
                         decoration: BoxDecoration(
-                          color: item.imagenPath == null
-                              ? const Color(0xFFEEEEEE)
-                              : const Color(0xFFF5F5F5),
+                          color: const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: _itemImage(item),
@@ -259,7 +244,7 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            if (tienePrecio) ...[
+                            if (item.precioUnitario != null) ...[
                               Text(
                                 'S/ ${item.precioUnitario!.toStringAsFixed(2)}',
                                 maxLines: 1,
@@ -365,74 +350,55 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Cliente',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _searchCtrl,
-          decoration: InputDecoration(
-            hintText: 'Buscar por nombre, DNI, RUC o teléfono',
-            prefixIcon: const Icon(Icons.search),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          onChanged: (value) =>
-              context.read<PedidosBloc>().add(PedidoClienteBuscado(value)),
-        ),
-        const SizedBox(height: 12),
-        if (state.clientes.isNotEmpty)
-          ...state.clientes.map(
-            (cliente) => Material(
-              color: Colors.transparent,
-              child: ListTile(
-                selected: state.cliente == cliente,
-                selectedTileColor: primaryColor.withValues(alpha: .12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                title: Text(cliente.nombre),
-                subtitle: Text(cliente.telefono),
-                trailing: state.cliente == cliente
-                    ? const Icon(Icons.check_circle, color: Color(0xFFFFC500))
-                    : null,
-                onTap: () {
-                  context.read<PedidosBloc>().add(
-                    PedidoClienteSeleccionado(cliente),
-                  );
-                  setState(() => _paso = 2);
-                },
-              ),
-            ),
-          )
-        else
-          Text(
-            'No se encontraron clientes.',
-            style: GoogleFonts.inter(color: const Color(0xFF757575)),
-          ),
-        const Divider(height: 28),
-        _field(nombre, 'Nombre o razón social *'),
-        _field(telefono, 'Teléfono *', keyboardType: TextInputType.phone),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final fields = [
-              _field(dni, 'DNI', keyboardType: TextInputType.number),
-              _field(ruc, 'RUC', keyboardType: TextInputType.number),
-            ];
-            if (constraints.maxWidth < 520) return Column(children: fields);
-            return Row(
-              children: [
-                Expanded(child: fields[0]),
-                const SizedBox(width: 10),
-                Expanded(child: fields[1]),
-              ],
+        ClienteSelector(
+          clienteSeleccionadoId: state.cliente?.id,
+          onClienteSeleccionado: (cliente) {
+            _clienteFormKey.currentState?.limpiar();
+            context.read<PedidosBloc>().add(
+              PedidoClienteSeleccionado(_clienteExistenteToPedido(cliente)),
             );
+            setState(() => _paso = 2);
           },
         ),
-        const SizedBox(height: 5),
-        _field(direccion, 'Dirección *'),
-        _field(referencia, 'Referencia'),
-        _field(observaciones, 'Observaciones', maxLines: 2),
+        const Divider(height: 32),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Registrar cliente nuevo',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+            if (state.cliente != null)
+              TextButton.icon(
+                onPressed: () {
+                  context.read<PedidosBloc>().add(
+                    const PedidoClienteLimpiado(),
+                  );
+                  setState(() {});
+                },
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text('Usar formulario'),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ClienteFormulario(
+          key: _clienteFormKey,
+          padding: EdgeInsets.zero,
+          mostrarAuditoria: false,
+          onChanged: (_) {
+            final formularioTieneDatos =
+                _clienteFormKey.currentState?.tieneDatos ?? false;
+            if (formularioTieneDatos && state.cliente != null) {
+              context.read<PedidosBloc>().add(const PedidoClienteLimpiado());
+            }
+            setState(() {});
+          },
+        ),
       ],
     ),
   );
@@ -440,7 +406,7 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
   Widget _buildPasoConfirmacion(PedidosState state) {
     final cliente = state.cliente;
     if (cliente == null) {
-      return Center(child: Text('Complete los datos del cliente'));
+      return const Center(child: Text('Complete los datos del cliente'));
     }
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -468,6 +434,8 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
                   if (cliente.ruc.isNotEmpty) Text('RUC: ${cliente.ruc}'),
                   if (cliente.dni.isNotEmpty) Text('DNI: ${cliente.dni}'),
                   Text('Dirección: ${cliente.direccion}'),
+                  if (cliente.referencia.isNotEmpty)
+                    Text('Referencia: ${cliente.referencia}'),
                   TextButton.icon(
                     onPressed: () => setState(() => _paso = 1),
                     icon: const Icon(Icons.edit, size: 16),
@@ -618,7 +586,7 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
     }
     if (_paso == 1) {
       return state.cliente != null ||
-          (nombre.text.trim().isNotEmpty && telefono.text.trim().isNotEmpty);
+          (_clienteFormKey.currentState?.tieneDatosMinimos ?? false);
     }
     return state.cliente != null;
   }
@@ -629,20 +597,18 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
       return;
     }
     if (_paso == 1) {
-      if (nombre.text.trim().isNotEmpty || telefono.text.trim().isNotEmpty) {
-        final client = ClientePedido(
-          nombre: nombre.text.trim(),
-          telefono: telefono.text.trim(),
-          dni: dni.text.trim(),
-          ruc: ruc.text.trim(),
-          tipoEntrega: 'entrega',
-          direccion: direccion.text.trim(),
-          referencia: referencia.text.trim(),
-          observaciones: observaciones.text.trim(),
+      final formulario = _clienteFormKey.currentState;
+      if (formulario != null && formulario.tieneDatos) {
+        if (!formulario.validate()) return;
+        context.read<PedidosBloc>().add(
+          PedidoClienteSeleccionado(
+            _nuevoClienteToPedido(formulario.toNuevoCliente()),
+          ),
         );
-        if (!_validarCliente(client)) return;
-        context.read<PedidosBloc>().add(PedidoClienteSeleccionado(client));
-      } else if (state.cliente == null) {
+        setState(() => _paso = 2);
+        return;
+      }
+      if (state.cliente == null) {
         _mensaje('Selecciona o registra un cliente para continuar.');
         return;
       }
@@ -652,22 +618,31 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
     context.read<PedidosBloc>().add(const PedidoConfirmado());
   }
 
-  bool _validarCliente(ClientePedido cliente) {
-    if (cliente.nombre.isEmpty || cliente.telefono.isEmpty) {
-      _mensaje('Completa el nombre y teléfono del cliente.');
-      return false;
-    }
-    final digits = cliente.telefono.replaceAll(RegExp(r'\D'), '');
-    if (digits.length < 7) {
-      _mensaje('Ingresa un teléfono válido.');
-      return false;
-    }
-    if (cliente.direccion.isEmpty) {
-      _mensaje('Ingresa la dirección del cliente.');
-      return false;
-    }
-    return true;
-  }
+  ClientePedido _clienteExistenteToPedido(clientes_domain.Cliente cliente) =>
+      ClientePedido(
+        id: cliente.id,
+        nombre: cliente.nombre,
+        telefono: cliente.telefono,
+        dni: cliente.dni ?? '',
+        ruc: cliente.ruc ?? '',
+        tipoEntrega: 'entrega',
+        direccion: cliente.direccion ?? '',
+        referencia: cliente.referencia ?? '',
+        fotoUbicacionPath: cliente.fotoUbicacionPath,
+        observaciones: cliente.observaciones ?? '',
+      );
+
+  ClientePedido _nuevoClienteToPedido(NuevoCliente cliente) => ClientePedido(
+    nombre: cliente.nombre,
+    telefono: cliente.telefono,
+    dni: cliente.dni,
+    ruc: cliente.ruc,
+    tipoEntrega: 'entrega',
+    direccion: cliente.direccion,
+    referencia: cliente.referencia,
+    fotoUbicacionPath: cliente.fotoUbicacionPath,
+    observaciones: cliente.observaciones,
+  );
 
   void _actualizarCantidad(int index, int nuevaCantidad) {
     context.read<PedidosBloc>().add(
@@ -723,25 +698,6 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
     ),
   );
 
-  Widget _field(
-    TextEditingController controller,
-    String label, {
-    int maxLines = 1,
-    TextInputType? keyboardType,
-  }) => Padding(
-    padding: const EdgeInsets.only(bottom: 11),
-    child: TextFormField(
-      controller: controller,
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      onChanged: (_) => setState(() {}),
-    ),
-  );
-
   Widget _title(String value) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
     child: Text(
@@ -780,8 +736,6 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
   );
 
   void _mensaje(String value) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(value)));
+    AppNotice.info(context, value);
   }
 }

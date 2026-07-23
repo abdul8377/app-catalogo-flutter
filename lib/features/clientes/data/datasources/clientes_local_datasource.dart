@@ -53,11 +53,20 @@ class ClientesLocalDatasource {
              p.codigo,
              p.creado_en,
              p.estado,
-             p.subtotal_conocido,
-             p.total_parcial,
+             COALESCE(cv.total, p.subtotal_conocido) AS subtotal_conocido,
+             CASE WHEN cv.id IS NULL THEN p.total_parcial ELSE 0 END
+               AS total_parcial,
              COUNT(i.id) AS cantidad_productos
       FROM pedidos p
       LEFT JOIN pedido_items i ON i.pedido_id = p.id
+      LEFT JOIN cotizaciones cv ON cv.id = (
+        SELECT co.id
+          FROM cotizaciones co
+         WHERE co.pedido_id = p.id
+           AND LOWER(co.estado) <> 'borrador'
+         ORDER BY co.version DESC, co.creado_en DESC
+         LIMIT 1
+      )
       WHERE p.cliente_id = ?
       GROUP BY p.id
       ORDER BY p.creado_en DESC

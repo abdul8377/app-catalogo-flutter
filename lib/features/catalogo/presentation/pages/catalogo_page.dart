@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/presentation/widgets/app_notice.dart';
 import '../bloc/catalogo_bloc.dart';
 import '../bloc/catalogo_event.dart';
 import '../bloc/catalogo_state.dart';
@@ -19,9 +20,7 @@ class CatalogoPage extends StatelessWidget {
   ) => BlocConsumer<CatalogoBloc, CatalogoState>(
     listenWhen: (previous, current) =>
         previous.error != current.error && current.error != null,
-    listener: (context, state) => ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(state.error!))),
+    listener: (context, state) => AppNotice.error(context, state.error!),
     builder: (context, state) => Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
       appBar: AppBar(
@@ -186,9 +185,7 @@ class CatalogoPage extends StatelessWidget {
     ).push<bool>(MaterialPageRoute(builder: (_) => const ProductoFormPage()));
     if (guardado == true && context.mounted) {
       context.read<CatalogoBloc>().add(const CatalogoRecargado());
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Producto registrado correctamente.')),
-      );
+      AppNotice.success(context, 'Producto registrado correctamente.');
     }
   }
 
@@ -207,9 +204,7 @@ class CatalogoPage extends StatelessWidget {
     );
     if (actualizado == true && context.mounted) {
       context.read<CatalogoBloc>().add(const CatalogoRecargado());
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Producto actualizado correctamente.')),
-      );
+      AppNotice.success(context, 'Producto actualizado correctamente.');
     }
   }
 
