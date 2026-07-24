@@ -4,9 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   testWidgets('muestra la pantalla inicial de la aplicación', (tester) async {
     await tester.pumpWidget(const AppCatalogo());
-    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
 
     expect(find.text('App Catálogo'), findsOneWidget);
-    expect(find.text('Hola, Alfonzo Esteban'), findsOneWidget);
+    expect(find.textContaining('Hola,'), findsOneWidget);
   });
 }

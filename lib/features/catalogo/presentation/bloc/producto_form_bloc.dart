@@ -9,7 +9,7 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
   ProductoFormBloc(this._repository) : super(ProductoFormState.initial()) {
     on<ProductoFormStarted>(_started);
     on<ProductoFormPasoSiguiente>((_, emit) {
-      if (state.pasoValido && state.paso < 5) {
+      if (state.pasoValido && state.paso < 6) {
         emit(state.copyWith(paso: state.paso + 1, limpiarError: true));
       }
     });
@@ -61,6 +61,25 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       final imagenes = [...state.imagenesPaths];
       final principal = imagenes.removeAt(event.index);
       imagenes.insert(0, principal);
+      emit(state.copyWith(imagenesPaths: imagenes, limpiarError: true));
+    });
+    on<ProductoFormImagenReemplazada>((event, emit) {
+      if (event.index < 0 || event.index >= state.imagenesPaths.length) return;
+      final imagenes = [...state.imagenesPaths];
+      imagenes[event.index] = event.path;
+      emit(state.copyWith(imagenesPaths: imagenes, limpiarError: true));
+    });
+    on<ProductoFormImagenReordenada>((event, emit) {
+      if (event.desde < 0 ||
+          event.desde >= state.imagenesPaths.length ||
+          event.hasta < 0 ||
+          event.hasta >= state.imagenesPaths.length ||
+          event.desde == event.hasta) {
+        return;
+      }
+      final imagenes = [...state.imagenesPaths];
+      final image = imagenes.removeAt(event.desde);
+      imagenes.insert(event.hasta, image);
       emit(state.copyWith(imagenesPaths: imagenes, limpiarError: true));
     });
     on<ProductoFormTipoCambiado>(
@@ -181,16 +200,24 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
     ProductoFormClasificacionCambiada event,
     Emitter<ProductoFormState> emit,
   ) {
+    final cambioEmpresa =
+        event.empresa != null && event.empresa != state.empresa;
+    final cambioMarca = event.marca != null && event.marca != state.marca;
     final cambioCategoria =
         event.categoria != null && event.categoria != state.categoria;
     emit(
       state.copyWith(
         empresa: event.empresa,
         marca: event.marca,
+        limpiarMarca: cambioEmpresa && event.marca == null,
         categoria: event.categoria,
+        limpiarCategoria:
+            (cambioEmpresa || cambioMarca) && event.categoria == null,
         subcategoria: event.subcategoria,
-        limpiarSubcategoria: cambioCategoria,
-        atributos: cambioCategoria ? {} : null,
+        limpiarSubcategoria:
+            (cambioEmpresa || cambioMarca || cambioCategoria) &&
+            event.subcategoria == null,
+        atributos: cambioEmpresa || cambioMarca || cambioCategoria ? {} : null,
         limpiarError: true,
       ),
     );
@@ -233,11 +260,13 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
         await _repository.actualizarProducto(state.productoId!, producto);
       }
       emit(state.copyWith(saving: false, guardado: true));
-    } catch (_) {
+    } catch (error) {
       emit(
         state.copyWith(
           saving: false,
-          error: state.editando
+          error: error is StateError
+              ? error.message.toString()
+              : state.editando
               ? 'No se pudo actualizar. Verifica que el código no esté repetido.'
               : 'No se pudo guardar. Verifica que el código no esté repetido.',
         ),

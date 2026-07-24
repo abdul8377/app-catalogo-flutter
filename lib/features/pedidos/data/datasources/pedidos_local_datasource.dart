@@ -10,12 +10,86 @@ import '../../domain/entities/pedido_detalle.dart';
 import '../../domain/entities/pedido_preparacion.dart';
 import '../../domain/entities/pedido_resumen.dart';
 import '../../domain/entities/producto_consolidado.dart';
+import '../../domain/entities/resumen_hoy.dart';
 
 class PedidosLocalDatasource {
   const PedidosLocalDatasource(this._appDatabase);
   final AppDatabase _appDatabase;
 
   Future<Database> get _db => _appDatabase.database;
+
+  Future<ResumenHoy> obtenerResumenHoy() async {
+    final db = await _db;
+    final orderStats = (await db.rawQuery('''
+      SELECT
+        SUM(CASE WHEN LOWER(estado) = 'pendiente' THEN 1 ELSE 0 END) AS pendientes,
+        SUM(CASE WHEN LOWER(estado) LIKE '%proceso%' THEN 1 ELSE 0 END) AS en_proceso,
+        SUM(CASE WHEN LOWER(estado) LIKE 'listo%' THEN 1 ELSE 0 END) AS listos,
+        SUM(CASE WHEN LOWER(estado) = 'entregado' THEN 1 ELSE 0 END) AS entregados,
+        SUM(CASE WHEN sincronizado = 0 THEN 1 ELSE 0 END) AS pedidos_sin_sync
+      FROM pedidos
+      WHERE DATE(creado_en, 'localtime') = DATE('now', 'localtime')
+        AND LOWER(estado) <> 'cancelado'
+    ''')).first;
+    final unpriced =
+        Sqflite.firstIntValue(
+          await db.rawQuery('''
+            SELECT COUNT(*)
+            FROM pedido_items i
+            INNER JOIN pedidos p ON p.id = i.pedido_id
+            LEFT JOIN cotizaciones cv ON cv.id = (
+              SELECT co.id
+              FROM cotizaciones co
+              WHERE co.pedido_id = p.id
+                AND LOWER(co.estado) <> 'borrador'
+              ORDER BY co.version DESC, co.creado_en DESC
+              LIMIT 1
+            )
+            LEFT JOIN cotizacion_items ci
+              ON ci.cotizacion_id = cv.id
+             AND ci.pedido_item_id = i.id
+            WHERE DATE(p.creado_en, 'localtime') = DATE('now', 'localtime')
+              AND LOWER(p.estado) <> 'cancelado'
+              AND COALESCE(ci.precio_cotizacion, i.precio_unitario) IS NULL
+          '''),
+        ) ??
+        0;
+    final queuePending =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            "SELECT COUNT(*) FROM sync_queue WHERE estado = 'pendiente'",
+          ),
+        ) ??
+        0;
+    final activeSheet = await db.query(
+      'hojas_pedido',
+      columns: ['vendedor', 'sincronizado'],
+      where: "activa = 1 AND estado = 'Abierta'",
+      orderBy: 'creado_en DESC',
+      limit: 1,
+    );
+    final sheetPending =
+        activeSheet.isNotEmpty &&
+            (activeSheet.first['sincronizado'] as int? ?? 0) == 0
+        ? 1
+        : 0;
+    return ResumenHoy(
+      vendedorNombre: activeSheet.isEmpty
+          ? 'Usuario'
+          : (activeSheet.first['vendedor'] as String? ?? '').trim().isEmpty
+          ? 'Usuario'
+          : activeSheet.first['vendedor'] as String,
+      pedidosPendientes: orderStats['pendientes'] as int? ?? 0,
+      pedidosEnProceso: orderStats['en_proceso'] as int? ?? 0,
+      pedidosListos: orderStats['listos'] as int? ?? 0,
+      pedidosEntregados: orderStats['entregados'] as int? ?? 0,
+      productosSinPrecio: unpriced,
+      cambiosSinSincronizar:
+          (orderStats['pedidos_sin_sync'] as int? ?? 0) +
+          sheetPending +
+          queuePending,
+    );
+  }
 
   Future<HojaPedidoActiva?> obtenerHojaActiva() async {
     final rows = await (await _db).query(

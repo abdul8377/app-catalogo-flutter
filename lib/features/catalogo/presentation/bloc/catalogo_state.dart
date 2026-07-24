@@ -20,8 +20,7 @@ class CatalogoFiltros extends Equatable {
       categoria != null ||
       estado != null ||
       precio != null ||
-      imagen != null ||
-      orden != 'Nombre A-Z';
+      imagen != null;
   @override
   List<Object?> get props => [
     empresa,

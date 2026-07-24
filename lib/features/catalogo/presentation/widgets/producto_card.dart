@@ -10,16 +10,18 @@ class ProductoCard extends StatelessWidget {
     required this.producto,
     required this.isGrid,
     required this.onVerDetalle,
-    required this.onEditar,
-    required this.onCambiarEstado,
+    this.onEditar,
+    this.onCambiarEstado,
+    this.onAgregar,
     super.key,
   });
 
   final ProductoResumen producto;
   final bool isGrid;
   final VoidCallback onVerDetalle;
-  final VoidCallback onEditar;
-  final VoidCallback onCambiarEstado;
+  final VoidCallback? onEditar;
+  final VoidCallback? onCambiarEstado;
+  final VoidCallback? onAgregar;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -197,53 +199,81 @@ class ProductoCard extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: FilledButton(
-                key: Key('ver_producto_${producto.id}'),
-                onPressed: onVerDetalle,
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFC500),
-                  foregroundColor: Colors.black,
-                ),
-                child: const Text('Ver detalles'),
-              ),
-            ),
-            const SizedBox(width: 7),
-            PopupMenuButton<String>(
-              tooltip: 'Más acciones',
-              onSelected: (value) {
-                if (value == 'editar') {
-                  onEditar();
-                } else if (value == 'estado') {
-                  onCambiarEstado();
-                }
-              },
-              itemBuilder: (_) => [
-                const PopupMenuItem(
-                  value: 'editar',
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit_outlined),
-                      SizedBox(width: 8),
-                      Text('Editar'),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'estado',
-                  child: Row(
-                    children: [
-                      Icon(
-                        producto.activo
-                            ? Icons.block
-                            : Icons.check_circle_outline,
+              child: onAgregar == null
+                  ? FilledButton(
+                      key: Key('ver_producto_${producto.id}'),
+                      onPressed: onVerDetalle,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFFFC500),
+                        foregroundColor: Colors.black,
                       ),
-                      const SizedBox(width: 8),
-                      Text(producto.activo ? 'Desactivar' : 'Activar'),
-                    ],
-                  ),
-                ),
-              ],
+                      child: const Text('Ver detalles'),
+                    )
+                  : OutlinedButton(
+                      key: Key('ver_producto_${producto.id}'),
+                      onPressed: onVerDetalle,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF1F1F1F),
+                      ),
+                      child: const Text('Ver detalles'),
+                    ),
             ),
+            if (onAgregar != null) ...[
+              const SizedBox(width: 7),
+              Expanded(
+                child: FilledButton.icon(
+                  key: Key('agregar_producto_${producto.id}'),
+                  onPressed: onAgregar,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFC500),
+                    foregroundColor: Colors.black,
+                  ),
+                  icon: const Icon(Icons.add_shopping_cart, size: 18),
+                  label: const Text('Agregar'),
+                ),
+              ),
+            ],
+            if (onEditar != null || onCambiarEstado != null) ...[
+              const SizedBox(width: 7),
+              PopupMenuButton<String>(
+                tooltip: 'Más acciones',
+                onSelected: (value) {
+                  if (value == 'editar') {
+                    onEditar?.call();
+                  } else if (value == 'estado') {
+                    onCambiarEstado?.call();
+                  }
+                },
+                itemBuilder: (_) => [
+                  if (onEditar != null)
+                    const PopupMenuItem(
+                      value: 'editar',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined),
+                          SizedBox(width: 8),
+                          Text('Editar'),
+                        ],
+                      ),
+                    ),
+                  if (onCambiarEstado != null)
+                    PopupMenuItem(
+                      value: 'estado',
+                      child: Row(
+                        children: [
+                          Icon(
+                            producto.activo
+                                ? Icons.block
+                                : Icons.check_circle_outline,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(producto.activo ? 'Desactivar' : 'Activar'),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ],
         ),
       ],

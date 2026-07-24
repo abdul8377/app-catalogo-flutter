@@ -10,19 +10,22 @@ import '../bloc/producto_detalle_bloc.dart';
 
 class ProductoDetalleDialog extends StatelessWidget {
   const ProductoDetalleDialog({
-    required this.onEditar,
-    required this.onCambiarEstado,
+    this.onEditar,
+    this.onCambiarEstado,
+    this.onAgregar,
     super.key,
   });
 
-  final ValueChanged<ProductoDetalle> onEditar;
-  final ValueChanged<ProductoDetalle> onCambiarEstado;
+  final ValueChanged<ProductoDetalle>? onEditar;
+  final ValueChanged<ProductoDetalle>? onCambiarEstado;
+  final ValueChanged<ProductoDetalle>? onAgregar;
 
   static Future<void> show(
     BuildContext context, {
     required String productoId,
-    required ValueChanged<ProductoDetalle> onEditar,
-    required ValueChanged<ProductoDetalle> onCambiarEstado,
+    ValueChanged<ProductoDetalle>? onEditar,
+    ValueChanged<ProductoDetalle>? onCambiarEstado,
+    ValueChanged<ProductoDetalle>? onAgregar,
   }) => showDialog<void>(
     context: context,
     barrierColor: Colors.black.withValues(alpha: .65),
@@ -33,6 +36,7 @@ class ProductoDetalleDialog extends StatelessWidget {
       child: ProductoDetalleDialog(
         onEditar: onEditar,
         onCambiarEstado: onCambiarEstado,
+        onAgregar: onAgregar,
       ),
     ),
   );
@@ -72,6 +76,7 @@ class ProductoDetalleDialog extends StatelessWidget {
               producto: state.producto!,
               onEditar: onEditar,
               onCambiarEstado: onCambiarEstado,
+              onAgregar: onAgregar,
             );
           },
         ),
@@ -83,12 +88,14 @@ class ProductoDetalleDialog extends StatelessWidget {
 class _ContenidoDetalle extends StatelessWidget {
   const _ContenidoDetalle({
     required this.producto,
-    required this.onEditar,
-    required this.onCambiarEstado,
+    this.onEditar,
+    this.onCambiarEstado,
+    this.onAgregar,
   });
   final ProductoDetalle producto;
-  final ValueChanged<ProductoDetalle> onEditar;
-  final ValueChanged<ProductoDetalle> onCambiarEstado;
+  final ValueChanged<ProductoDetalle>? onEditar;
+  final ValueChanged<ProductoDetalle>? onCambiarEstado;
+  final ValueChanged<ProductoDetalle>? onAgregar;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -252,62 +259,95 @@ class _ContenidoDetalle extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final editarButton = FilledButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                  onEditar(producto);
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFC500),
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                label: const Text('Editar'),
-              );
-              final estadoButton = FilledButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                  onCambiarEstado(producto);
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: producto.activo
-                      ? const Color(0xFFC62828)
-                      : const Color(0xFF2E7D32),
-                  foregroundColor: Colors.white,
-                ),
-                icon: Icon(
-                  producto.activo ? Icons.block : Icons.check_circle_outline,
-                ),
-                label: Text(producto.activo ? 'Desactivar' : 'Activar'),
-              );
+              final buttons = <Widget>[];
+              if (onAgregar != null) {
+                buttons.add(
+                  FilledButton.icon(
+                    key: const Key('agregar_desde_detalle'),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      onAgregar!(producto);
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFC500),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    icon: const Icon(Icons.add_shopping_cart, size: 18),
+                    label: const Text('Agregar al pedido'),
+                  ),
+                );
+              }
+              if (onEditar != null) {
+                buttons.add(
+                  FilledButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      onEditar!(producto);
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFC500),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('Editar'),
+                  ),
+                );
+              }
+              if (onCambiarEstado != null) {
+                buttons.add(
+                  FilledButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      onCambiarEstado!(producto);
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: producto.activo
+                          ? const Color(0xFFC62828)
+                          : const Color(0xFF2E7D32),
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: Icon(
+                      producto.activo
+                          ? Icons.block
+                          : Icons.check_circle_outline,
+                    ),
+                    label: Text(producto.activo ? 'Desactivar' : 'Activar'),
+                  ),
+                );
+              }
               final cerrarButton = OutlinedButton.icon(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.close, size: 18),
                 label: const Text('Cerrar'),
               );
+              buttons.add(cerrarButton);
 
               if (constraints.maxWidth < 520) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    editarButton,
-                    const SizedBox(height: 10),
-                    estadoButton,
-                    const SizedBox(height: 10),
-                    cerrarButton,
-                  ],
+                  children: buttons
+                      .expand(
+                        (button) => [
+                          button,
+                          if (button != buttons.last)
+                            const SizedBox(height: 10),
+                        ],
+                      )
+                      .toList(),
                 );
               }
 
               return Row(
-                children: [
-                  Expanded(child: editarButton),
-                  const SizedBox(width: 10),
-                  Expanded(child: estadoButton),
-                  const SizedBox(width: 10),
-                  Expanded(child: cerrarButton),
-                ],
+                children: buttons
+                    .expand(
+                      (button) => [
+                        Expanded(child: button),
+                        if (button != buttons.last) const SizedBox(width: 10),
+                      ],
+                    )
+                    .toList(),
               );
             },
           ),

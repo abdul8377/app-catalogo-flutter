@@ -28,6 +28,7 @@ void main() {
     await tester.tap(find.byKey(const Key('abrir_filtros_avanzados')));
     await tester.pumpAndSettle();
     expect(find.text('Filtros avanzados'), findsWidgets);
+    expect(find.text('Ordenar por'), findsNothing);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('Limpiar todo'));

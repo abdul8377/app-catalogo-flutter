@@ -4,6 +4,7 @@ import '../../domain/entities/pedido_detalle.dart';
 import '../../domain/entities/pedido_preparacion.dart';
 import '../../domain/entities/pedido_resumen.dart';
 import '../../domain/entities/producto_consolidado.dart';
+import '../../domain/entities/resumen_hoy.dart';
 import '../../domain/repositories/pedidos_repository.dart';
 import '../datasources/pedidos_local_datasource.dart';
 
@@ -14,6 +15,9 @@ class PedidosRepositoryImpl implements PedidosRepository {
   @override
   Future<HojaPedidoActiva?> obtenerHojaActiva() =>
       localDatasource.obtenerHojaActiva();
+
+  @override
+  Future<ResumenHoy> obtenerResumenHoy() => localDatasource.obtenerResumenHoy();
 
   @override
   Future<HojaPedidoActiva> crearHojaActiva() =>

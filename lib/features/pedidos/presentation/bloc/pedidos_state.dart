@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../../catalogo/domain/entities/producto_resumen.dart';
+import '../../../catalogo/presentation/bloc/catalogo_state.dart';
 import '../../domain/entities/pedido.dart';
 
 class PedidosState extends Equatable {
@@ -21,6 +22,9 @@ class PedidosState extends Equatable {
     this.empresa,
     this.marca,
     this.categoria,
+    this.estado,
+    this.imagen,
+    this.filtrosRapidos = const {'Todos'},
   });
 
   factory PedidosState.initial() => const PedidosState(
@@ -46,6 +50,9 @@ class PedidosState extends Equatable {
   final String? empresa;
   final String? marca;
   final String? categoria;
+  final String? estado;
+  final String? imagen;
+  final Set<String> filtrosRapidos;
   final List<PedidoItem> carrito;
   final List<ClientePedido> clientes;
   final HojaPedidoActiva? hojaActiva;
@@ -70,12 +77,27 @@ class PedidosState extends Equatable {
           filtroPrecio == 'Todos' ||
           (filtroPrecio == 'Con precio' && !producto.sinPrecio) ||
           (filtroPrecio == 'Sin precio' && producto.sinPrecio);
+      final quick = filtrosRapidos;
       return producto.activo &&
           coincideTexto &&
           coincidePrecio &&
+          (!quick.contains('Inactivos')) &&
+          (!quick.contains('Con precio') || !producto.sinPrecio) &&
+          (!quick.contains('Sin precio') || producto.sinPrecio) &&
+          (!quick.contains('Con imagen') || producto.imagenPath != null) &&
+          (!quick.contains('Sin imagen') || producto.imagenPath == null) &&
+          (!quick.contains('Con variantes') ||
+              producto.tipoRegistro != 'unico') &&
+          (!quick.contains('Sin variantes') ||
+              producto.tipoRegistro == 'unico') &&
           (empresa == null || producto.empresa == empresa) &&
           (marca == null || producto.marca == marca) &&
-          (categoria == null || producto.categoria == categoria);
+          (categoria == null || producto.categoria == categoria) &&
+          (estado == null || estado == 'Activo') &&
+          (imagen == null ||
+              (imagen == 'Con imagen'
+                  ? producto.imagenPath != null
+                  : producto.imagenPath == null));
     }).toList();
     switch (orden) {
       case 'Nombre Z-A':
@@ -101,7 +123,16 @@ class PedidosState extends Equatable {
   List<String> get categorias =>
       ({for (final item in productos) item.categoria}.toList()..sort());
   int get filtrosAvanzadosActivos =>
-      [empresa, marca, categoria].whereType<String>().length;
+      [empresa, marca, categoria, estado, imagen].whereType<String>().length;
+  CatalogoFiltros get catalogoFiltros => CatalogoFiltros(
+    empresa: empresa,
+    marca: marca,
+    categoria: categoria,
+    estado: estado,
+    precio: filtroPrecio == 'Todos' ? null : filtroPrecio,
+    imagen: imagen,
+    orden: orden,
+  );
 
   int get cantidadProductos =>
       carrito.fold(0, (total, item) => total + item.cantidad);
@@ -122,6 +153,9 @@ class PedidosState extends Equatable {
     String? empresa,
     String? marca,
     String? categoria,
+    String? estado,
+    String? imagen,
+    Set<String>? filtrosRapidos,
     bool limpiarFiltros = false,
     List<PedidoItem>? carrito,
     List<ClientePedido>? clientes,
@@ -144,6 +178,9 @@ class PedidosState extends Equatable {
     empresa: limpiarFiltros ? null : empresa ?? this.empresa,
     marca: limpiarFiltros ? null : marca ?? this.marca,
     categoria: limpiarFiltros ? null : categoria ?? this.categoria,
+    estado: limpiarFiltros ? null : estado ?? this.estado,
+    imagen: limpiarFiltros ? null : imagen ?? this.imagen,
+    filtrosRapidos: filtrosRapidos ?? this.filtrosRapidos,
     carrito: carrito ?? this.carrito,
     clientes: clientes ?? this.clientes,
     hojaActiva: limpiarHoja ? null : hojaActiva ?? this.hojaActiva,
@@ -164,6 +201,9 @@ class PedidosState extends Equatable {
     empresa,
     marca,
     categoria,
+    estado,
+    imagen,
+    filtrosRapidos,
     carrito,
     clientes,
     hojaActiva,

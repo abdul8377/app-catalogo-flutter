@@ -65,6 +65,20 @@ class ProductoFormState extends Equatable {
   List<String> get subcategorias => categoria == null
       ? const []
       : datos?.subcategorias[categoria] ?? const [];
+  List<String> get marcasDisponibles {
+    final values = datos?.marcasDe(empresa) ?? const [];
+    return datos?.marcasPorEmpresa.isEmpty ?? true
+        ? datos?.marcas ?? const []
+        : values;
+  }
+
+  List<String> get categoriasDisponibles {
+    final values = datos?.categoriasDe(empresa, marca) ?? const [];
+    return datos?.categoriasPorMarca.isEmpty ?? true
+        ? datos?.categorias ?? const []
+        : values;
+  }
+
   List<AtributoDef> get atributosDisponibles =>
       categoria == null ? const [] : datos?.atributos[categoria] ?? const [];
   bool get pasoValido => switch (paso) {
@@ -110,7 +124,9 @@ class ProductoFormState extends Equatable {
     String? descripcion,
     String? empresa,
     String? marca,
+    bool limpiarMarca = false,
     String? categoria,
+    bool limpiarCategoria = false,
     String? subcategoria,
     bool limpiarSubcategoria = false,
     String? tipoRegistro,
@@ -133,8 +149,8 @@ class ProductoFormState extends Equatable {
     nombre: nombre ?? this.nombre,
     descripcion: descripcion ?? this.descripcion,
     empresa: empresa ?? this.empresa,
-    marca: marca ?? this.marca,
-    categoria: categoria ?? this.categoria,
+    marca: limpiarMarca ? null : marca ?? this.marca,
+    categoria: limpiarCategoria ? null : categoria ?? this.categoria,
     subcategoria: limpiarSubcategoria
         ? null
         : subcategoria ?? this.subcategoria,

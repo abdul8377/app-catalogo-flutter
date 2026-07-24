@@ -4,6 +4,7 @@ import 'package:app_catalogo/features/pedidos/domain/entities/pedido_detalle.dar
 import 'package:app_catalogo/features/pedidos/domain/entities/pedido_preparacion.dart';
 import 'package:app_catalogo/features/pedidos/domain/entities/pedido_resumen.dart';
 import 'package:app_catalogo/features/pedidos/domain/entities/producto_consolidado.dart';
+import 'package:app_catalogo/features/pedidos/domain/entities/resumen_hoy.dart';
 import 'package:app_catalogo/features/pedidos/domain/repositories/pedidos_repository.dart';
 import 'package:app_catalogo/features/pedidos/presentation/dialogs/generar_cotizacion_dialog.dart';
 import 'package:app_catalogo/features/pedidos/presentation/pages/pedidos_page.dart';
@@ -159,6 +160,17 @@ class _PedidosListadoRepositoryFake implements PedidosRepository {
   PreparacionProductoDraft? ultimaPreparacion;
   CotizacionPedidoDraft? ultimaCotizacion;
   int pdfRegistrados = 0;
+
+  @override
+  Future<ResumenHoy> obtenerResumenHoy() async => const ResumenHoy(
+    vendedorNombre: 'Prueba',
+    pedidosPendientes: 0,
+    pedidosEnProceso: 0,
+    pedidosListos: 0,
+    pedidosEntregados: 0,
+    productosSinPrecio: 0,
+    cambiosSinSincronizar: 0,
+  );
 
   @override
   Future<void> reintentarSincronizacionPedido(String pedidoId) async {}

@@ -32,8 +32,32 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
       ),
     );
     on<PedidosFiltrosLimpiados>(
-      (_, emit) => emit(state.copyWith(limpiarFiltros: true)),
+      (_, emit) => emit(
+        state.copyWith(
+          limpiarFiltros: true,
+          filtroPrecio: 'Todos',
+          orden: 'Nombre A-Z',
+          filtrosRapidos: const {'Todos'},
+        ),
+      ),
     );
+    on<PedidosFiltroRapidoCatalogoCambiado>(_filtroRapidoCatalogo);
+    on<PedidosFiltrosCatalogoAplicados>((event, emit) {
+      final filtros = event.filtros;
+      emit(
+        state
+            .copyWith(limpiarFiltros: true)
+            .copyWith(
+              empresa: filtros.empresa,
+              marca: filtros.marca,
+              categoria: filtros.categoria,
+              estado: filtros.estado,
+              imagen: filtros.imagen,
+              filtroPrecio: filtros.precio ?? 'Todos',
+              orden: filtros.orden,
+            ),
+      );
+    });
     on<PedidosOrdenCambiado>(
       (event, emit) => emit(state.copyWith(orden: event.value)),
     );
@@ -69,6 +93,46 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
 
   final CatalogoRepository _catalogoRepository;
   final PedidosRepository _pedidosRepository;
+
+  void _filtroRapidoCatalogo(
+    PedidosFiltroRapidoCatalogoCambiado event,
+    Emitter<PedidosState> emit,
+  ) {
+    final filters = {...state.filtrosRapidos};
+    if (event.filtro == 'Todos') {
+      filters
+        ..clear()
+        ..add('Todos');
+    } else {
+      filters.remove('Todos');
+      const opposites = {
+        'Activos': 'Inactivos',
+        'Inactivos': 'Activos',
+        'Con precio': 'Sin precio',
+        'Sin precio': 'Con precio',
+        'Con imagen': 'Sin imagen',
+        'Sin imagen': 'Con imagen',
+        'Con variantes': 'Sin variantes',
+        'Sin variantes': 'Con variantes',
+      };
+      if (!filters.remove(event.filtro)) {
+        filters
+          ..remove(opposites[event.filtro])
+          ..add(event.filtro);
+      }
+      if (filters.isEmpty) filters.add('Todos');
+    }
+    emit(
+      state.copyWith(
+        filtrosRapidos: filters,
+        filtroPrecio: filters.contains('Con precio')
+            ? 'Con precio'
+            : filters.contains('Sin precio')
+            ? 'Sin precio'
+            : 'Todos',
+      ),
+    );
+  }
 
   Future<void> _started(
     PedidosStarted event,

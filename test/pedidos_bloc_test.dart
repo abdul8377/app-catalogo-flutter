@@ -9,6 +9,7 @@ import 'package:app_catalogo/features/pedidos/domain/entities/pedido_detalle.dar
 import 'package:app_catalogo/features/pedidos/domain/entities/pedido_preparacion.dart';
 import 'package:app_catalogo/features/pedidos/domain/entities/pedido_resumen.dart';
 import 'package:app_catalogo/features/pedidos/domain/entities/producto_consolidado.dart';
+import 'package:app_catalogo/features/pedidos/domain/entities/resumen_hoy.dart';
 import 'package:app_catalogo/features/pedidos/domain/repositories/pedidos_repository.dart';
 import 'package:app_catalogo/features/pedidos/presentation/bloc/pedidos_bloc.dart';
 import 'package:app_catalogo/features/pedidos/presentation/bloc/pedidos_event.dart';
@@ -33,6 +34,9 @@ void main() {
 
     expect(bloc.state.tieneHojaActiva, isTrue);
     expect(bloc.state.codigoHojaActiva, 'HP-2026-002');
+    expect(bloc.state.pedidosPendientes, 2);
+    expect(bloc.state.productosSinPrecio, 1);
+    expect(bloc.state.sincronizado, isFalse);
   });
 
   test('gestiona catálogo vendible, carrito, cliente y confirmación', () async {
@@ -145,6 +149,17 @@ class _PedidosRepositoryFake implements PedidosRepository {
   List<PedidoItem> itemsGuardados = [];
   HojaPedidoActiva? hojaGuardada;
   int _consultasHoja = 0;
+
+  @override
+  Future<ResumenHoy> obtenerResumenHoy() async => const ResumenHoy(
+    vendedorNombre: 'Prueba',
+    pedidosPendientes: 2,
+    pedidosEnProceso: 1,
+    pedidosListos: 1,
+    pedidosEntregados: 3,
+    productosSinPrecio: 1,
+    cambiosSinSincronizar: 2,
+  );
 
   @override
   Future<List<ClientePedido>> buscarClientes(String query) async => const [];

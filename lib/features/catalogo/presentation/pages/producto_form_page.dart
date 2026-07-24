@@ -380,6 +380,7 @@ class _StepIndicator extends StatelessWidget {
     'Atributos',
     'Venta',
     'Imágenes',
+    'Estado',
   ];
 
   @override
@@ -394,12 +395,12 @@ class _StepIndicator extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Paso ${paso + 1} de 6 · ${_nombres[paso]}',
+                'Paso ${paso + 1} de 7 · ${_nombres[paso]}',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               LinearProgressIndicator(
-                value: (paso + 1) / 6,
+                value: (paso + 1) / 7,
                 minHeight: 4,
                 borderRadius: BorderRadius.circular(4),
                 backgroundColor: const Color(0xFFE0E0E0),
@@ -414,7 +415,7 @@ class _StepIndicator extends StatelessWidget {
         color: Colors.white,
         child: Row(
           children: List.generate(
-            6,
+            7,
             (index) => Expanded(
               child: Row(
                 children: [
@@ -477,7 +478,8 @@ class _PasoActual extends StatelessWidget {
         2 => _PasoTipo(state: state),
         3 => _PasoAtributos(state: state),
         4 => _PasoPresentaciones(state: state),
-        _ => _PasoImagenes(state: state),
+        5 => _PasoImagenes(state: state),
+        _ => _PasoEstado(state: state),
       },
     ),
   );
@@ -493,28 +495,28 @@ class _PasoClasificacion extends StatelessWidget {
     children: [
       _dropdown(
         context,
-        'Empresa',
+        'Empresa *',
         state.empresa,
         state.datos!.empresas,
         (value) => ProductoFormClasificacionCambiada(empresa: value),
       ),
       _dropdown(
         context,
-        'Marca',
+        'Marca *',
         state.marca,
-        state.datos!.marcas,
+        state.marcasDisponibles,
         (value) => ProductoFormClasificacionCambiada(marca: value),
       ),
       _dropdown(
         context,
-        'Categoría',
+        'Categoría *',
         state.categoria,
-        state.datos!.categorias,
+        state.categoriasDisponibles,
         (value) => ProductoFormClasificacionCambiada(categoria: value),
       ),
       _dropdown(
         context,
-        'Subcategoría',
+        'Subcategoría *',
         state.subcategoria,
         state.subcategorias,
         (value) => ProductoFormClasificacionCambiada(subcategoria: value),
@@ -562,7 +564,11 @@ class _PasoFamilia extends StatelessWidget {
         onChanged: (value) => context.read<ProductoFormBloc>().add(
           ProductoFormFamiliaCambiada(codigo: value),
         ),
-        decoration: _decoration('Código único', Icons.qr_code_2),
+        decoration: _decoration(
+          'Código único *',
+          Icons.qr_code_2,
+          helperText: 'Debe ser único en todo el catálogo.',
+        ),
       ),
       const SizedBox(height: 16),
       TextFormField(
@@ -571,8 +577,9 @@ class _PasoFamilia extends StatelessWidget {
           ProductoFormFamiliaCambiada(nombre: value),
         ),
         decoration: _decoration(
-          'Nombre de la familia',
+          'Nombre de la familia *',
           Icons.inventory_2_outlined,
+          helperText: 'Nombre visible para vendedores y clientes.',
         ),
       ),
       const SizedBox(height: 16),
@@ -582,7 +589,11 @@ class _PasoFamilia extends StatelessWidget {
         onChanged: (value) => context.read<ProductoFormBloc>().add(
           ProductoFormFamiliaCambiada(descripcion: value),
         ),
-        decoration: _decoration('Descripción general', Icons.notes),
+        decoration: _decoration(
+          'Descripción general',
+          Icons.notes,
+          helperText: 'Describe el uso o las características generales.',
+        ),
       ),
     ],
   );
@@ -603,16 +614,16 @@ class _PasoGeneralEdicion extends StatelessWidget {
           fields: [
             _editDropdown(
               context,
-              'Empresa',
+              'Empresa *',
               state.empresa,
               state.datos!.empresas,
               (value) => ProductoFormClasificacionCambiada(empresa: value),
             ),
             _editDropdown(
               context,
-              'Marca',
+              'Marca *',
               state.marca,
-              state.datos!.marcas,
+              state.marcasDisponibles,
               (value) => ProductoFormClasificacionCambiada(marca: value),
             ),
           ],
@@ -627,14 +638,14 @@ class _PasoGeneralEdicion extends StatelessWidget {
           fields: [
             _editDropdown(
               context,
-              'Categoría',
+              'Categoría *',
               state.categoria,
-              state.datos!.categorias,
+              state.categoriasDisponibles,
               (value) => ProductoFormClasificacionCambiada(categoria: value),
             ),
             _editDropdown(
               context,
-              'Subcategoría',
+              'Subcategoría *',
               state.subcategoria,
               state.subcategorias,
               (value) => ProductoFormClasificacionCambiada(subcategoria: value),
@@ -651,7 +662,11 @@ class _PasoGeneralEdicion extends StatelessWidget {
         onChanged: (value) => context.read<ProductoFormBloc>().add(
           ProductoFormFamiliaCambiada(codigo: value),
         ),
-        decoration: _decoration('Código único', Icons.qr_code_2),
+        decoration: _decoration(
+          'Código único *',
+          Icons.qr_code_2,
+          helperText: 'Debe ser único en todo el catálogo.',
+        ),
       ),
       const SizedBox(height: 16),
       TextFormField(
@@ -660,8 +675,9 @@ class _PasoGeneralEdicion extends StatelessWidget {
           ProductoFormFamiliaCambiada(nombre: value),
         ),
         decoration: _decoration(
-          'Nombre de la familia',
+          'Nombre de la familia *',
           Icons.inventory_2_outlined,
+          helperText: 'Nombre visible para vendedores y clientes.',
         ),
       ),
       const SizedBox(height: 16),
@@ -671,7 +687,11 @@ class _PasoGeneralEdicion extends StatelessWidget {
         onChanged: (value) => context.read<ProductoFormBloc>().add(
           ProductoFormFamiliaCambiada(descripcion: value),
         ),
-        decoration: _decoration('Descripción general', Icons.notes),
+        decoration: _decoration(
+          'Descripción general',
+          Icons.notes,
+          helperText: 'Describe el uso o las características generales.',
+        ),
       ),
     ],
   );
@@ -1229,15 +1249,89 @@ class _ImagenProductoCard extends StatelessWidget {
             backgroundColor: Colors.white.withValues(alpha: .92),
             foregroundColor: Colors.black,
           ),
-          onSelected: (action) {
+          onSelected: (action) async {
             final bloc = context.read<ProductoFormBloc>();
             if (action == 'principal') {
               bloc.add(ProductoFormImagenPrincipalCambiada(index));
             } else if (action == 'eliminar') {
               bloc.add(ProductoFormImagenEliminada(index));
+            } else if (action == 'reemplazar') {
+              try {
+                final image = await ImagePicker().pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 85,
+                  maxWidth: 1920,
+                  maxHeight: 1920,
+                );
+                if (image != null && context.mounted) {
+                  bloc.add(ProductoFormImagenReemplazada(index, image.path));
+                }
+              } catch (_) {
+                if (context.mounted) {
+                  AppNotice.error(context, 'No se pudo reemplazar la imagen.');
+                }
+              }
+            } else if (action == 'anterior') {
+              bloc.add(ProductoFormImagenReordenada(index, index - 1));
+            } else if (action == 'siguiente') {
+              bloc.add(ProductoFormImagenReordenada(index, index + 1));
+            } else if (action == 'ver') {
+              await showDialog<void>(
+                context: context,
+                barrierColor: Colors.black87,
+                builder: (dialogContext) => Dialog(
+                  backgroundColor: Colors.transparent,
+                  child: Stack(
+                    children: [
+                      InteractiveViewer(
+                        minScale: .5,
+                        maxScale: 4,
+                        child: Image.file(
+                          File(path),
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) => const SizedBox(
+                            height: 260,
+                            child: Center(
+                              child: Icon(
+                                Icons.broken_image_outlined,
+                                color: Colors.white,
+                                size: 54,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: IconButton.filled(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
             }
           },
           itemBuilder: (_) => [
+            const PopupMenuItem(
+              value: 'ver',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.zoom_in),
+                title: Text('Previsualizar'),
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'reemplazar',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.find_replace_outlined),
+                title: Text('Reemplazar'),
+              ),
+            ),
             if (index > 0)
               const PopupMenuItem(
                 value: 'principal',
@@ -1245,6 +1339,25 @@ class _ImagenProductoCard extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.star_outline),
                   title: Text('Hacer principal'),
+                ),
+              ),
+            if (index > 0)
+              const PopupMenuItem(
+                value: 'anterior',
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.arrow_back),
+                  title: Text('Mover antes'),
+                ),
+              ),
+            if (index <
+                context.read<ProductoFormBloc>().state.imagenesPaths.length - 1)
+              const PopupMenuItem(
+                value: 'siguiente',
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.arrow_forward),
+                  title: Text('Mover después'),
                 ),
               ),
             const PopupMenuItem(
@@ -1472,7 +1585,7 @@ class _BottomNavigation extends StatelessWidget {
           onPressed: !state.pasoValido || state.saving
               ? null
               : () => context.read<ProductoFormBloc>().add(
-                  state.paso < 5
+                  state.paso < 6
                       ? const ProductoFormPasoSiguiente()
                       : const ProductoFormGuardado(),
                 ),
@@ -1481,8 +1594,8 @@ class _BottomNavigation extends StatelessWidget {
                   dimension: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Icon(state.paso < 5 ? Icons.arrow_forward : Icons.check),
-          label: Text(state.paso < 5 ? 'Siguiente' : 'Guardar'),
+              : Icon(state.paso < 6 ? Icons.arrow_forward : Icons.check),
+          label: Text(state.paso < 6 ? 'Siguiente' : 'Guardar'),
           style: FilledButton.styleFrom(
             backgroundColor: const Color(0xFFFFC500),
             foregroundColor: Colors.black,
@@ -1516,8 +1629,15 @@ class _BottomNavigation extends StatelessWidget {
   );
 }
 
-InputDecoration _decoration(String label, IconData icon) => InputDecoration(
+InputDecoration _decoration(
+  String label,
+  IconData icon, {
+  String? helperText,
+}) => InputDecoration(
   labelText: label,
+  floatingLabelBehavior: FloatingLabelBehavior.always,
+  helperText: helperText,
+  helperMaxLines: 2,
   prefixIcon: Icon(icon),
   filled: true,
   fillColor: Colors.white,

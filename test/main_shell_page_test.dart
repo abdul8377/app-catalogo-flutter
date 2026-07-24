@@ -53,6 +53,7 @@ void main() {
 
     await tester.pumpAndSettle();
     expect(find.text('Inicio'), findsOneWidget);
+    expect(find.text('Estructura del catálogo'), findsOneWidget);
     expect(find.text('Alfonzo Esteban'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

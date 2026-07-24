@@ -11,6 +11,12 @@ import '../features/catalogo/presentation/bloc/catalogo_event.dart';
 import '../features/clientes/data/datasources/clientes_local_datasource.dart';
 import '../features/clientes/data/repositories/clientes_repository_impl.dart';
 import '../features/clientes/domain/repositories/clientes_repository.dart';
+import '../features/dashboard/data/datasources/dashboard_local_datasource.dart';
+import '../features/dashboard/data/repositories/dashboard_repository_impl.dart';
+import '../features/dashboard/domain/repositories/dashboard_repository.dart';
+import '../features/estructura_catalogo/data/datasources/estructura_catalogo_local_datasource.dart';
+import '../features/estructura_catalogo/data/repositories/estructura_catalogo_repository_impl.dart';
+import '../features/estructura_catalogo/domain/repositories/estructura_catalogo_repository.dart';
 import '../features/home/presentation/bloc/home_bloc.dart';
 import '../features/home/presentation/bloc/home_event.dart';
 import '../features/hojas_pedido/data/datasources/hojas_pedido_local_datasource.dart';
@@ -39,6 +45,13 @@ class AppCatalogo extends StatelessWidget {
     final hojasPedidoRepository = HojasPedidoRepositoryImpl(
       HojasPedidoLocalDatasource(AppDatabase.instance),
     );
+    final estructuraCatalogoRepository = EstructuraCatalogoRepositoryImpl(
+      EstructuraCatalogoLocalDatasource(AppDatabase.instance),
+    );
+    final dashboardRepository = DashboardRepositoryImpl(
+      DashboardLocalDatasource(AppDatabase.instance),
+      pedidosRepository,
+    );
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<CatalogoRepository>.value(value: catalogoRepository),
@@ -46,6 +59,12 @@ class AppCatalogo extends StatelessWidget {
         RepositoryProvider<ClientesRepository>.value(value: clientesRepository),
         RepositoryProvider<HojasPedidoRepository>.value(
           value: hojasPedidoRepository,
+        ),
+        RepositoryProvider<EstructuraCatalogoRepository>.value(
+          value: estructuraCatalogoRepository,
+        ),
+        RepositoryProvider<DashboardRepository>.value(
+          value: dashboardRepository,
         ),
       ],
       child: MultiBlocProvider(

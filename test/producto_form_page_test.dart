@@ -127,6 +127,14 @@ void main() {
       await bloc.stream.firstWhere(
         (state) => state.imagenesPaths.first == 'segunda.jpg',
       );
+      bloc.add(const ProductoFormImagenReemplazada(1, 'reemplazo.jpg'));
+      await bloc.stream.firstWhere(
+        (state) => state.imagenesPaths.last == 'reemplazo.jpg',
+      );
+      bloc.add(const ProductoFormImagenReordenada(1, 0));
+      await bloc.stream.firstWhere(
+        (state) => state.imagenesPaths.first == 'reemplazo.jpg',
+      );
       bloc.add(const ProductoFormImagenEliminada(1));
       await bloc.stream.firstWhere((state) => state.imagenesPaths.length == 1);
       bloc.add(const ProductoFormEstadoCambiado(false));
@@ -134,7 +142,7 @@ void main() {
       bloc.add(const ProductoFormGuardado());
       await bloc.stream.firstWhere((state) => state.guardado);
 
-      expect(repository.productoActualizado?.imagenesPaths, ['segunda.jpg']);
+      expect(repository.productoActualizado?.imagenesPaths, ['reemplazo.jpg']);
       expect(repository.productoActualizado?.activo, isFalse);
     },
   );
@@ -181,6 +189,12 @@ class _FakeCatalogoRepository implements CatalogoRepository {
           'Pernería': ['Pernos métricos'],
         },
         atributos: {'Pernería': []},
+        marcasPorEmpresa: {
+          'DINA': ['DINA'],
+        },
+        categoriasPorMarca: {
+          'DINA::DINA': ['Pernería'],
+        },
       );
 
   @override

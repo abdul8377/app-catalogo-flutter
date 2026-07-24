@@ -333,15 +333,6 @@ class _FiltrosAvanzadosDialogState extends State<_FiltrosAvanzadosDialog> {
                           const ['Con imagen', 'Sin imagen'],
                           (v) => imagen = v,
                         ),
-                        _tile(
-                          constraints.maxWidth,
-                          Icons.sort,
-                          'Ordenar por',
-                          orden,
-                          _ordenes,
-                          (v) => orden = v ?? 'Nombre A-Z',
-                          allowAll: false,
-                        ),
                       ],
                     );
                   },
@@ -642,15 +633,6 @@ class _OrdenOpcion {
   final IconData icon;
   final String subtitle;
 }
-
-const _ordenes = [
-  'Nombre A-Z',
-  'Nombre Z-A',
-  'Precio menor a mayor',
-  'Precio mayor a menor',
-  'Más recientes',
-  'Activos primero',
-];
 
 const _opcionesOrden = [
   _OrdenOpcion('Nombre A-Z', Icons.sort_by_alpha, 'Alfabético ascendente'),

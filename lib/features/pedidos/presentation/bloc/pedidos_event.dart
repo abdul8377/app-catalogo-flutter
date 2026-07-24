@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../domain/entities/pedido.dart';
+import '../../../catalogo/presentation/bloc/catalogo_state.dart';
 
 sealed class PedidosEvent extends Equatable {
   const PedidosEvent();
@@ -37,6 +38,24 @@ class PedidosFiltrosAplicados extends PedidosEvent {
 
 class PedidosFiltrosLimpiados extends PedidosEvent {
   const PedidosFiltrosLimpiados();
+}
+
+class PedidosFiltroRapidoCatalogoCambiado extends PedidosEvent {
+  const PedidosFiltroRapidoCatalogoCambiado(this.filtro);
+
+  final String filtro;
+
+  @override
+  List<Object?> get props => [filtro];
+}
+
+class PedidosFiltrosCatalogoAplicados extends PedidosEvent {
+  const PedidosFiltrosCatalogoAplicados(this.filtros);
+
+  final CatalogoFiltros filtros;
+
+  @override
+  List<Object?> get props => [filtros];
 }
 
 class PedidosOrdenCambiado extends PedidosEvent {

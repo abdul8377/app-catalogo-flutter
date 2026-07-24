@@ -62,19 +62,41 @@ class CatalogoLocalDatasource {
 
   Future<CatalogoFormData> obtenerDatosFormulario() async {
     final db = await _db;
-    final empresas = await db.query('empresas', orderBy: 'nombre');
-    final marcas = await db.query('marcas', orderBy: 'nombre');
-    final categorias = await db.query('categorias', orderBy: 'nombre');
+    final empresas = await db.query(
+      'empresas',
+      where: 'estado = 1',
+      orderBy: 'nombre COLLATE NOCASE',
+    );
+    final marcas = await db.rawQuery('''
+      SELECT m.nombre, e.nombre AS empresa
+      FROM marcas m
+      INNER JOIN empresas e ON e.id = m.empresa_id
+      WHERE m.estado = 1 AND e.estado = 1
+      ORDER BY e.nombre COLLATE NOCASE, m.nombre COLLATE NOCASE
+    ''');
+    final categorias = await db.query(
+      'categorias',
+      where: 'categoria_padre_id IS NULL AND estado = 1',
+      orderBy: 'nombre COLLATE NOCASE',
+    );
     final subcategorias = <String, List<String>>{};
     final atributos = <String, List<AtributoDef>>{};
+    final marcasPorEmpresa = <String, List<String>>{};
+    final categoriasPorMarca = <String, List<String>>{};
+    for (final marca in marcas) {
+      final empresa = marca['empresa'] as String;
+      marcasPorEmpresa
+          .putIfAbsent(empresa, () => [])
+          .add(marca['nombre'] as String);
+    }
     for (final categoria in categorias) {
       final id = categoria['id'] as int;
       final nombre = categoria['nombre'] as String;
       final subs = await db.query(
-        'subcategorias',
-        where: 'categoria_id = ?',
+        'categorias',
+        where: 'categoria_padre_id = ? AND estado = 1',
         whereArgs: [id],
-        orderBy: 'nombre',
+        orderBy: 'nombre COLLATE NOCASE',
       );
       final attrs = await db.query(
         'atributos_def',
@@ -95,15 +117,38 @@ class CatalogoLocalDatasource {
           )
           .toList();
     }
+    final relations = await db.rawQuery('''
+      SELECT e.nombre AS empresa, m.nombre AS marca, c.nombre AS categoria
+      FROM marca_categorias mc
+      INNER JOIN marcas m ON m.id = mc.marca_id
+      INNER JOIN empresas e ON e.id = m.empresa_id
+      INNER JOIN categorias c ON c.id = mc.categoria_id
+      WHERE mc.estado = 1
+        AND m.estado = 1
+        AND e.estado = 1
+        AND c.estado = 1
+        AND c.categoria_padre_id IS NULL
+      ORDER BY c.nombre COLLATE NOCASE
+    ''');
+    for (final relation in relations) {
+      final key = '${relation['empresa']}::${relation['marca']}';
+      categoriasPorMarca
+          .putIfAbsent(key, () => [])
+          .add(relation['categoria'] as String);
+    }
     return CatalogoFormData(
       empresas: empresas.map((row) => row['nombre'] as String).toList(),
-      marcas: marcas.map((row) => row['nombre'] as String).toList(),
+      marcas: marcas.map((row) => row['nombre'] as String).toSet().toList(),
       subcategorias: subcategorias,
       atributos: atributos,
+      marcasPorEmpresa: marcasPorEmpresa,
+      categoriasPorMarca: categoriasPorMarca,
     );
   }
 
   Future<void> guardarProducto(NuevoProducto producto) async {
+    final db = await _db;
+    await _validarClasificacion(db, producto);
     final id = const Uuid().v4();
     final precio = producto.precios.isEmpty
         ? null
@@ -113,7 +158,7 @@ class CatalogoLocalDatasource {
         : producto.presentaciones.first;
     final imagenesPaths = await _guardarImagenes(producto.imagenes, id);
     try {
-      await (await _db).insert('productos', {
+      await db.insert('productos', {
         'id': id,
         'codigo': producto.codigo,
         'nombre': producto.nombre,
@@ -146,6 +191,7 @@ class CatalogoLocalDatasource {
 
   Future<void> actualizarProducto(String id, NuevoProducto producto) async {
     final db = await _db;
+    await _validarClasificacion(db, producto);
     final rows = await db.query(
       'productos',
       columns: ['imagen_path', 'imagenes_json'],
@@ -261,6 +307,48 @@ class CatalogoLocalDatasource {
     for (final path in paths) {
       final archivo = File(path);
       if (await archivo.exists()) await archivo.delete();
+    }
+  }
+
+  Future<void> _validarClasificacion(
+    DatabaseExecutor db,
+    NuevoProducto producto,
+  ) async {
+    final rows = await db.rawQuery(
+      '''
+      SELECT e.id
+      FROM empresas e
+      INNER JOIN marcas m
+        ON m.empresa_id = e.id
+       AND LOWER(TRIM(m.nombre)) = LOWER(TRIM(?))
+       AND m.estado = 1
+      INNER JOIN marca_categorias mc
+        ON mc.marca_id = m.id
+       AND mc.estado = 1
+      INNER JOIN categorias c
+        ON c.id = mc.categoria_id
+       AND LOWER(TRIM(c.nombre)) = LOWER(TRIM(?))
+       AND c.categoria_padre_id IS NULL
+       AND c.estado = 1
+      INNER JOIN categorias s
+        ON s.categoria_padre_id = c.id
+       AND LOWER(TRIM(s.nombre)) = LOWER(TRIM(?))
+       AND s.estado = 1
+      WHERE LOWER(TRIM(e.nombre)) = LOWER(TRIM(?))
+        AND e.estado = 1
+      LIMIT 1
+      ''',
+      [
+        producto.marca,
+        producto.categoria,
+        producto.subcategoria,
+        producto.empresa,
+      ],
+    );
+    if (rows.isEmpty) {
+      throw StateError(
+        'La combinación empresa, marca, categoría y subcategoría no es válida o contiene elementos inactivos.',
+      );
     }
   }
 

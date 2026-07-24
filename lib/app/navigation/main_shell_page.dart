@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../features/catalogo/presentation/pages/catalogo_page.dart';
 import '../../features/clientes/presentation/pages/clientes_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
+import '../../features/estructura_catalogo/presentation/pages/estructura_catalogo_page.dart';
 import '../../features/hojas_pedido/presentation/pages/hojas_pedido_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/bloc/home_bloc.dart';
@@ -13,7 +14,9 @@ import '../../features/pedidos/presentation/pages/nuevo_pedido_page.dart';
 import '../../features/pedidos/presentation/pages/pedidos_page.dart';
 
 class MainShellPage extends StatefulWidget {
-  const MainShellPage({super.key});
+  const MainShellPage({this.isAdministrator = true, super.key});
+
+  final bool isAdministrator;
 
   @override
   State<MainShellPage> createState() => _MainShellPageState();
@@ -28,11 +31,12 @@ class _MainShellPageState extends State<MainShellPage> {
   int _pedidosRevision = 0;
   int _hojasRevision = 0;
   int _clientesRevision = 0;
+  int _dashboardRevision = 0;
   String? _clienteInicialId;
   String? _hojaInicialCodigo;
 
   List<Widget> _buildPages() {
-    return [
+    final pages = <Widget>[
       HomePage(onNavigate: _onItemSelected),
       const CatalogoPage(),
       ClientesPage(
@@ -55,8 +59,18 @@ class _MainShellPageState extends State<MainShellPage> {
         onOpenPedidos: _openPedidos,
         initialHojaCodigo: _hojaInicialCodigo,
       ),
-      const DashboardPage(),
+      DashboardPage(
+        key: ValueKey('dashboard-$_dashboardRevision'),
+        onNavigate: _onItemSelected,
+        onOpenPedidos: _openPedidos,
+        onOpenHoja: _openHoja,
+        onOpenCliente: _openCliente,
+      ),
     ];
+    if (widget.isAdministrator) {
+      pages.add(const EstructuraCatalogoPage());
+    }
+    return pages;
   }
 
   void _toggleRailExpansion() {
@@ -86,6 +100,9 @@ class _MainShellPageState extends State<MainShellPage> {
       if (index == 5) {
         _hojasRevision++;
         _hojaInicialCodigo = null;
+      }
+      if (index == 6) {
+        _dashboardRevision++;
       }
     });
   }
@@ -126,6 +143,7 @@ class _MainShellPageState extends State<MainShellPage> {
               selectedIndex: selectedIndex,
               onItemSelected: _onItemSelected,
               onToggleExpansion: _toggleRailExpansion,
+              isAdministrator: widget.isAdministrator,
             ),
           ),
           Container(width: 1, color: const Color(0xFFE0E0E0)),
@@ -144,6 +162,7 @@ class AppNavigationRail extends StatelessWidget {
     required this.selectedIndex,
     required this.onItemSelected,
     required this.onToggleExpansion,
+    this.isAdministrator = true,
     super.key,
   });
 
@@ -151,6 +170,7 @@ class AppNavigationRail extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
   final VoidCallback onToggleExpansion;
+  final bool isAdministrator;
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +178,7 @@ class AppNavigationRail extends StatelessWidget {
     const railCollapsedWidth = 72.0;
     const railExpandedWidth = 220.0;
 
-    final items = [
+    final items = <_NavItem>[
       _NavItem(
         icon: Icons.home_outlined,
         activeIcon: Icons.home,
@@ -195,6 +215,15 @@ class AppNavigationRail extends StatelessWidget {
         label: 'Dashboard',
       ),
     ];
+    if (isAdministrator) {
+      items.add(
+        const _NavItem(
+          icon: Icons.account_tree_outlined,
+          activeIcon: Icons.account_tree,
+          label: 'Estructura del catálogo',
+        ),
+      );
+    }
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -220,20 +249,25 @@ class AppNavigationRail extends StatelessWidget {
             children: [
               const SizedBox(height: 16),
               _buildToggleButton(primaryColor),
-              const SizedBox(height: 32),
-              ...items.asMap().entries.map((entry) {
-                final index = entry.key;
-                final item = entry.value;
+              const SizedBox(height: 20),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: items.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
 
-                return _NavRailItem(
-                  item: item,
-                  isSelected: selectedIndex == index,
-                  isExpanded: showExpandedContent,
-                  primaryColor: primaryColor,
-                  onTap: () => onItemSelected(index),
-                );
-              }),
-              const Spacer(),
+                    return _NavRailItem(
+                      item: item,
+                      isSelected: selectedIndex == index,
+                      isExpanded: showExpandedContent,
+                      primaryColor: primaryColor,
+                      onTap: () => onItemSelected(index),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 8),
               if (showExpandedContent)
                 Padding(
                   padding: const EdgeInsets.only(
@@ -327,7 +361,7 @@ class AppNavigationRail extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  'Vendedor',
+                  isAdministrator ? 'Administrador' : 'Vendedor',
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     color: Colors.grey.shade600,

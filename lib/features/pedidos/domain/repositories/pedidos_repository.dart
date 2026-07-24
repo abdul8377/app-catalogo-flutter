@@ -4,9 +4,19 @@ import '../entities/pedido_detalle.dart';
 import '../entities/pedido_preparacion.dart';
 import '../entities/pedido_resumen.dart';
 import '../entities/producto_consolidado.dart';
+import '../entities/resumen_hoy.dart';
 
 abstract class PedidosRepository {
   Future<HojaPedidoActiva?> obtenerHojaActiva();
+  Future<ResumenHoy> obtenerResumenHoy() async => const ResumenHoy(
+    vendedorNombre: 'Usuario',
+    pedidosPendientes: 0,
+    pedidosEnProceso: 0,
+    pedidosListos: 0,
+    pedidosEntregados: 0,
+    productosSinPrecio: 0,
+    cambiosSinSincronizar: 0,
+  );
   Future<HojaPedidoActiva> crearHojaActiva();
   Future<List<PedidoResumen>> obtenerPedidosResumen();
   Future<PedidoDetalle?> obtenerPedidoDetalle(String id);

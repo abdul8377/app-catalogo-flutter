@@ -87,6 +87,26 @@ class ProductoFormImagenPrincipalCambiada extends ProductoFormEvent {
   List<Object?> get props => [index];
 }
 
+class ProductoFormImagenReemplazada extends ProductoFormEvent {
+  const ProductoFormImagenReemplazada(this.index, this.path);
+
+  final int index;
+  final String path;
+
+  @override
+  List<Object?> get props => [index, path];
+}
+
+class ProductoFormImagenReordenada extends ProductoFormEvent {
+  const ProductoFormImagenReordenada(this.desde, this.hasta);
+
+  final int desde;
+  final int hasta;
+
+  @override
+  List<Object?> get props => [desde, hasta];
+}
+
 class ProductoFormTipoCambiado extends ProductoFormEvent {
   const ProductoFormTipoCambiado(this.tipo);
   final String tipo;
