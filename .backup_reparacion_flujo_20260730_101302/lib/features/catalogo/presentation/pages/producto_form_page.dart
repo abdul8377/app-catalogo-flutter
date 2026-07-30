@@ -764,44 +764,30 @@ class _PasoFamiliaTipo extends StatelessWidget {
   final ProductoFormState state;
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final compact = constraints.maxWidth < 720;
-
-      return Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              compact ? 12 : 20,
-              compact ? 10 : 20,
-              compact ? 12 : 20,
-              0,
-            ),
-            child: _configurationCard(context, compact: compact),
+  Widget build(BuildContext context) => Column(
+    children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        child: _configurationCard(context),
+      ),
+      const SizedBox(height: 14),
+      Expanded(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          child: KeyedSubtree(
+            key: ValueKey('editor-${state.tipoRegistro}'),
+            child: switch (state.tipoRegistro) {
+              'matriz' => ProductoMatrizStep(state: state),
+              'unico' => ProductoUnicoStep(state: state),
+              _ => ProductoVariantesStep(state: state),
+            },
           ),
-          SizedBox(height: compact ? 8 : 14),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
-              child: KeyedSubtree(
-                key: ValueKey('editor-${state.tipoRegistro}'),
-                child: switch (state.tipoRegistro) {
-                  'matriz' => ProductoMatrizStep(state: state),
-                  'unico' => ProductoUnicoStep(state: state),
-                  _ => ProductoVariantesStep(state: state),
-                },
-              ),
-            ),
-          ),
-        ],
-      );
-    },
+        ),
+      ),
+    ],
   );
 
-  Widget _configurationCard(
-    BuildContext context, {
-    required bool compact,
-  }) => Card(
+  Widget _configurationCard(BuildContext context) => Card(
     margin: EdgeInsets.zero,
     elevation: 0,
     color: Colors.white,
@@ -810,34 +796,75 @@ class _PasoFamiliaTipo extends StatelessWidget {
       side: const BorderSide(color: Color(0xFFD5DDE8)),
     ),
     child: Padding(
-      padding: EdgeInsets.all(compact ? 14 : 20),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
+          const Text(
             '¿Cómo se organiza este producto?',
             style: TextStyle(
-              color: const Color(0xFF20242B),
-              fontSize: compact ? 15 : 17,
+              color: Color(0xFF20242B),
+              fontSize: 17,
               fontWeight: FontWeight.w800,
             ),
           ),
-          if (!compact) ...[
-            const SizedBox(height: 5),
-            const Text(
-              'Elige una opción. Los datos del artículo se completan debajo.',
-              style: TextStyle(color: Color(0xFF667085), fontSize: 12),
-            ),
-          ],
-          SizedBox(height: compact ? 10 : 14),
-          _typeSelector(context, compact: compact),
-          SizedBox(height: compact ? 12 : 16),
+          const SizedBox(height: 5),
+          const Text(
+            'Elige una opción. Los datos del artículo se completan debajo.',
+            style: TextStyle(color: Color(0xFF667085), fontSize: 12),
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 720;
+              final options = [
+                _typeOption(
+                  context,
+                  value: 'unico',
+                  title: 'Producto único',
+                  subtitle: 'Un solo artículo vendible',
+                  icon: Icons.inventory_2_outlined,
+                ),
+                _typeOption(
+                  context,
+                  value: 'variantes',
+                  title: 'Lista de variantes',
+                  subtitle: 'Medidas o modelos independientes',
+                  icon: Icons.view_list_outlined,
+                ),
+                _typeOption(
+                  context,
+                  value: 'matriz',
+                  title: 'Matriz',
+                  subtitle: 'Combinaciones de dos ejes',
+                  icon: Icons.grid_view_outlined,
+                ),
+              ];
+              if (compact) {
+                return Column(
+                  children: [
+                    for (var index = 0; index < options.length; index++) ...[
+                      options[index],
+                      if (index < options.length - 1)
+                        const SizedBox(height: 10),
+                    ],
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  for (var index = 0; index < options.length; index++) ...[
+                    Expanded(child: options[index]),
+                    if (index < options.length - 1) const SizedBox(width: 10),
+                  ],
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
           if (state.tipoRegistro == 'unico')
             Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: compact ? 9 : 12,
-              ),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFF8DE),
                 borderRadius: BorderRadius.circular(12),
@@ -845,15 +872,16 @@ class _PasoFamiliaTipo extends StatelessWidget {
               child: const Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.auto_awesome, size: 18, color: Color(0xFF8A6700)),
-                  SizedBox(width: 9),
+                  Icon(Icons.auto_awesome, size: 20, color: Color(0xFF8A6700)),
+                  SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'El nombre general se tomará del nombre comercial.',
+                      'El nombre general se tomará del nombre comercial del '
+                      'producto. No tendrás que escribirlo dos veces.',
                       style: TextStyle(
                         color: Color(0xFF5F4A00),
                         fontSize: 12,
-                        height: 1.35,
+                        height: 1.4,
                       ),
                     ),
                   ),
@@ -861,120 +889,57 @@ class _PasoFamiliaTipo extends StatelessWidget {
               ),
             )
           else
-            _familyFields(context, compact: compact),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 720;
+                final name = TextFormField(
+                  key: const Key('familia_nombre'),
+                  initialValue: state.nombre,
+                  onChanged: (value) => context.read<ProductoFormBloc>().add(
+                    ProductoFormFamiliaCambiada(nombre: value),
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre general del producto *',
+                    hintText: 'Ej. Broca para metal HSS',
+                    helperText:
+                        'Agrupa medidas, modelos o versiones del mismo producto.',
+                    helperMaxLines: 2,
+                    border: OutlineInputBorder(),
+                  ),
+                );
+                final description = TextFormField(
+                  key: const Key('familia_descripcion'),
+                  initialValue: state.descripcion,
+                  onChanged: (value) => context.read<ProductoFormBloc>().add(
+                    ProductoFormFamiliaCambiada(descripcion: value),
+                  ),
+                  maxLines: compact ? 3 : 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Descripción general',
+                    hintText:
+                        'Características compartidas por todas las variantes.',
+                    border: OutlineInputBorder(),
+                  ),
+                );
+                if (compact) {
+                  return Column(
+                    children: [name, const SizedBox(height: 12), description],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: name),
+                    const SizedBox(width: 12),
+                    Expanded(child: description),
+                  ],
+                );
+              },
+            ),
         ],
       ),
     ),
   );
-
-  Widget _typeSelector(BuildContext context, {required bool compact}) {
-    final options = [
-      (
-        value: 'unico',
-        title: 'Producto único',
-        subtitle: 'Un artículo',
-        icon: Icons.inventory_2_outlined,
-      ),
-      (
-        value: 'variantes',
-        title: 'Lista de variantes',
-        subtitle: 'Medidas o modelos',
-        icon: Icons.view_list_outlined,
-      ),
-      (
-        value: 'matriz',
-        title: 'Matriz',
-        subtitle: 'Dos ejes',
-        icon: Icons.grid_view_outlined,
-      ),
-    ];
-
-    if (compact) {
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            for (var index = 0; index < options.length; index++) ...[
-              SizedBox(
-                width: 176,
-                child: _typeOption(
-                  context,
-                  value: options[index].value,
-                  title: options[index].title,
-                  subtitle: options[index].subtitle,
-                  icon: options[index].icon,
-                  compact: true,
-                ),
-              ),
-              if (index < options.length - 1) const SizedBox(width: 8),
-            ],
-          ],
-        ),
-      );
-    }
-
-    return Row(
-      children: [
-        for (var index = 0; index < options.length; index++) ...[
-          Expanded(
-            child: _typeOption(
-              context,
-              value: options[index].value,
-              title: options[index].title,
-              subtitle: options[index].subtitle,
-              icon: options[index].icon,
-              compact: false,
-            ),
-          ),
-          if (index < options.length - 1) const SizedBox(width: 10),
-        ],
-      ],
-    );
-  }
-
-  Widget _familyFields(BuildContext context, {required bool compact}) {
-    final name = TextFormField(
-      key: const Key('familia_nombre'),
-      initialValue: state.nombre,
-      onChanged: (value) => context.read<ProductoFormBloc>().add(
-        ProductoFormFamiliaCambiada(nombre: value),
-      ),
-      decoration: const InputDecoration(
-        labelText: 'Nombre general del producto *',
-        hintText: 'Ej. Broca para metal HSS',
-        helperText: 'Agrupa las medidas o modelos del mismo producto.',
-        helperMaxLines: 2,
-        border: OutlineInputBorder(),
-      ),
-    );
-
-    final description = TextFormField(
-      key: const Key('familia_descripcion'),
-      initialValue: state.descripcion,
-      onChanged: (value) => context.read<ProductoFormBloc>().add(
-        ProductoFormFamiliaCambiada(descripcion: value),
-      ),
-      maxLines: compact ? 2 : 3,
-      decoration: const InputDecoration(
-        labelText: 'Descripción general',
-        hintText: 'Características compartidas por las variantes.',
-        border: OutlineInputBorder(),
-      ),
-    );
-
-    if (compact) {
-      return Column(children: [name, const SizedBox(height: 10), description]);
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: name),
-        const SizedBox(width: 12),
-        Expanded(child: description),
-      ],
-    );
-  }
 
   Widget _typeOption(
     BuildContext context, {
@@ -982,17 +947,15 @@ class _PasoFamiliaTipo extends StatelessWidget {
     required String title,
     required String subtitle,
     required IconData icon,
-    required bool compact,
   }) {
     final selected = state.tipoRegistro == value;
-
     return InkWell(
       onTap: () =>
           context.read<ProductoFormBloc>().add(ProductoFormTipoCambiado(value)),
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        constraints: BoxConstraints(minHeight: compact ? 64 : 76),
-        padding: EdgeInsets.all(compact ? 10 : 12),
+        constraints: const BoxConstraints(minHeight: 76),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: selected
               ? const Color(0xFFFFC500).withValues(alpha: .12)
@@ -1005,8 +968,8 @@ class _PasoFamiliaTipo extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFF20242B), size: compact ? 20 : 24),
-            const SizedBox(width: 9),
+            Icon(icon, color: const Color(0xFF20242B)),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1014,22 +977,17 @@ class _PasoFamiliaTipo extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: const Color(0xFF20242B),
-                      fontSize: compact ? 12 : 14,
+                    style: const TextStyle(
+                      color: Color(0xFF20242B),
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF667085),
-                      fontSize: 10,
+                      fontSize: 11,
                     ),
                   ),
                 ],
@@ -1039,7 +997,7 @@ class _PasoFamiliaTipo extends StatelessWidget {
               const Icon(
                 Icons.check_circle,
                 color: Color(0xFFFFC500),
-                size: 18,
+                size: 20,
               ),
           ],
         ),

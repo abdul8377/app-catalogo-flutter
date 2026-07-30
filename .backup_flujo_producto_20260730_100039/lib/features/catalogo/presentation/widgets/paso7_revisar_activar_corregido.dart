@@ -15,13 +15,29 @@ import 'package:flutter/material.dart';
 // - La activación offline informa que la sincronización continúa pendiente.
 // ============================================================================
 
-enum Step7ProductLayout { single, variantList, variantMatrix }
+enum Step7ProductLayout {
+  single,
+  variantList,
+  variantMatrix,
+}
 
-enum Step7InitialStatus { active, inactive }
+enum Step7InitialStatus {
+  active,
+  inactive,
+}
 
-enum Step7ReviewSeverity { ready, warning, blocked }
+enum Step7ReviewSeverity {
+  ready,
+  warning,
+  blocked,
+}
 
-enum Step7CardState { complete, warning, blocked, willActivate }
+enum Step7CardState {
+  complete,
+  warning,
+  blocked,
+  willActivate,
+}
 
 @immutable
 class Step7PresentationReview {
@@ -44,10 +60,10 @@ class Step7PricingReview {
     required this.numericPriceCount,
     required this.quoteCount,
     required this.pendingCount,
-  }) : assert(totalCombinationCount >= 0),
-       assert(numericPriceCount >= 0),
-       assert(quoteCount >= 0),
-       assert(pendingCount >= 0);
+  })  : assert(totalCombinationCount >= 0),
+        assert(numericPriceCount >= 0),
+        assert(quoteCount >= 0),
+        assert(pendingCount >= 0);
 
   final String listName;
   final String currencyCode;
@@ -76,10 +92,10 @@ class Step7ImagesReview {
     required this.exceptionCount,
     this.processingCount = 0,
     this.failedCount = 0,
-  }) : assert(familyImageCount >= 0),
-       assert(exceptionCount >= 0),
-       assert(processingCount >= 0),
-       assert(failedCount >= 0);
+  })  : assert(familyImageCount >= 0),
+        assert(exceptionCount >= 0),
+        assert(processingCount >= 0),
+        assert(failedCount >= 0);
 
   final int familyImageCount;
   final bool hasFamilyPrimary;
@@ -113,13 +129,13 @@ class Step7ReviewData {
     this.visibleInCatalog = true,
     this.visibleInNewOrder = true,
     this.additionalBlockingIssues = const [],
-  }) : assert(includedVariantCount >= 0),
-       assert(excludedCombinationCount >= 0),
-       assert(duplicateSkuCount >= 0),
-       assert(logisticsPackageCount >= 0),
-       assert(contentComponentCount >= 0),
-       assert(inactiveVariantCount >= 0),
-       assert(inactiveVariantCount <= includedVariantCount);
+  })  : assert(includedVariantCount >= 0),
+        assert(excludedCombinationCount >= 0),
+        assert(duplicateSkuCount >= 0),
+        assert(logisticsPackageCount >= 0),
+        assert(contentComponentCount >= 0),
+        assert(inactiveVariantCount >= 0),
+        assert(inactiveVariantCount <= includedVariantCount);
 
   final String productId;
   final String familyName;
@@ -167,7 +183,10 @@ class Step7ReviewData {
 
 @immutable
 class Step7ValidationResult {
-  const Step7ValidationResult({required this.blockers, required this.warnings});
+  const Step7ValidationResult({
+    required this.blockers,
+    required this.warnings,
+  });
 
   factory Step7ValidationResult.fromReview(Step7ReviewData data) {
     final blockers = <String>[];
@@ -209,8 +228,7 @@ class Step7ValidationResult {
       );
     }
 
-    final unexplainedPriceRows =
-        data.pricing.totalCombinationCount -
+    final unexplainedPriceRows = data.pricing.totalCombinationCount -
         data.pricing.numericPriceCount -
         data.pricing.quoteCount -
         data.pricing.pendingCount;
@@ -308,8 +326,9 @@ class Step7ActivationResult {
   final String? message;
 }
 
-typedef Step7Activator =
-    Future<Step7ActivationResult> Function(Step7ActivationRequest request);
+typedef Step7Activator = Future<Step7ActivationResult> Function(
+  Step7ActivationRequest request,
+);
 
 class Step7ReviewActivatePanel extends StatefulWidget {
   const Step7ReviewActivatePanel({
@@ -334,7 +353,8 @@ class Step7ReviewActivatePanel extends StatefulWidget {
       _Step7ReviewActivatePanelState();
 }
 
-class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
+class _Step7ReviewActivatePanelState
+    extends State<Step7ReviewActivatePanel> {
   static const Color _primary = Color(0xFFFFC500);
   static const Color _ink = Color(0xFF242830);
   static const Color _muted = Color(0xFF667085);
@@ -425,7 +445,7 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Paso 6 · Revisar y activar',
+              'Paso 7 · Revisar y activar',
               style: TextStyle(
                 color: _ink,
                 fontSize: 26,
@@ -436,7 +456,11 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
             Text(
               'Comprueba la información final y corrige cualquier bloqueo '
               'antes de activar el producto.',
-              style: TextStyle(color: _muted, fontSize: 14, height: 1.4),
+              style: TextStyle(
+                color: _muted,
+                fontSize: 14,
+                height: 1.4,
+              ),
             ),
           ],
         ),
@@ -525,11 +549,9 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
                   ),
                 ),
                 const SizedBox(height: 5),
-                for (
-                  var index = 0;
-                  index < messages.length && index < 3;
-                  index++
-                ) ...[
+                for (var index = 0;
+                    index < messages.length && index < 3;
+                    index++) ...[
                   Text(
                     messages[index],
                     style: const TextStyle(
@@ -569,8 +591,8 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
         final columns = constraints.maxWidth >= 1040
             ? 3
             : constraints.maxWidth >= 680
-            ? 2
-            : 1;
+                ? 2
+                : 1;
         final cardHeight = columns == 1 ? 216.0 : 202.0;
 
         return GridView.builder(
@@ -599,23 +621,26 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
     final familyBlocked = !data.requiredInformationComplete;
     final structureBlocked =
         data.includedVariantCount == 0 || data.duplicateSkuCount > 0;
-    final salesBlocked =
-        data.presentations.isEmpty ||
+    final salesBlocked = data.presentations.isEmpty ||
         data.sellableAssignmentCount == 0 ||
         price.totalCombinationCount == 0;
-    final priceBlocked =
-        price.pendingCount > 0 ||
-        price.readyCount + price.pendingCount != price.totalCombinationCount;
-    final imageBlocked =
-        images.processingCount > 0 ||
+    final priceBlocked = price.pendingCount > 0 ||
+        price.readyCount + price.pendingCount !=
+            price.totalCombinationCount;
+    final imageBlocked = images.processingCount > 0 ||
         images.failedCount > 0 ||
         (data.mainImageRequired && !images.hasFamilyPrimary);
 
     return [
       _Step7CardData(
         title: 'Familia y clasificación',
-        state: familyBlocked ? Step7CardState.blocked : Step7CardState.complete,
-        lines: ['${data.companyName} · ${data.categoryName}', data.familyName],
+        state: familyBlocked
+            ? Step7CardState.blocked
+            : Step7CardState.complete,
+        lines: [
+          '${data.companyName} · ${data.categoryName}',
+          data.familyName,
+        ],
         stepNumber: 1,
       ),
       _Step7CardData(
@@ -637,7 +662,8 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
       ),
       _Step7CardData(
         title: 'Venta y logística',
-        state: salesBlocked ? Step7CardState.blocked : Step7CardState.complete,
+        state:
+            salesBlocked ? Step7CardState.blocked : Step7CardState.complete,
         lines: [
           'Presentaciones: ${_presentationSummary(data.presentations)}',
           'Empaques logísticos: ${data.logisticsPackageCount}',
@@ -650,20 +676,22 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
         state: priceBlocked
             ? Step7CardState.blocked
             : price.quoteCount > 0
-            ? Step7CardState.warning
-            : Step7CardState.complete,
+                ? Step7CardState.warning
+                : Step7CardState.complete,
         lines: [
           'Lista ${price.listName} · ${price.currencyCode} · '
               '${price.includesIgv ? 'incluye IGV' : 'sin IGV'}',
           '${price.numericPriceCount} con precio · '
               '${price.quoteCount} por cotizar',
-          if (price.pendingCount > 0) '${price.pendingCount} pendientes',
+          if (price.pendingCount > 0)
+            '${price.pendingCount} pendientes',
         ],
         stepNumber: 5,
       ),
       _Step7CardData(
         title: 'Imágenes',
-        state: imageBlocked ? Step7CardState.blocked : Step7CardState.complete,
+        state:
+            imageBlocked ? Step7CardState.blocked : Step7CardState.complete,
         lines: [
           '${images.familyImageCount} '
               '${images.familyImageCount == 1 ? 'imagen de familia' : 'imágenes de familia'}',
@@ -671,7 +699,8 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
               '${images.exceptionCount == 1 ? 'variante con excepción de imagen' : 'variantes con excepción de imagen'}',
           if (images.processingCount > 0)
             '${images.processingCount} procesándose',
-          if (images.failedCount > 0) '${images.failedCount} con error',
+          if (images.failedCount > 0)
+            '${images.failedCount} con error',
         ],
         stepNumber: 6,
       ),
@@ -685,7 +714,7 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
           data.isSingleProduct
               ? 'El producto se mostrará'
               : '${data.includedVariantCount - data.inactiveVariantCount} '
-                    '${data.includedVariantCount - data.inactiveVariantCount == 1 ? 'variante se mostrará' : 'variantes se mostrarán'}',
+                  '${data.includedVariantCount - data.inactiveVariantCount == 1 ? 'variante se mostrará' : 'variantes se mostrarán'}',
           if (data.inactiveVariantCount > 0)
             '${data.inactiveVariantCount} '
                 '${data.inactiveVariantCount == 1 ? 'variante comenzará inactiva' : 'variantes comenzarán inactivas'}',
@@ -697,9 +726,8 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
 
   Widget _buildReviewCard(_Step7CardData card) {
     final tone = _cardTone(card.state);
-    final actionLabel = card.state == Step7CardState.blocked
-        ? 'Corregir'
-        : 'Revisar';
+    final actionLabel =
+        card.state == Step7CardState.blocked ? 'Corregir' : 'Revisar';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
@@ -707,7 +735,9 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: card.state == Step7CardState.blocked ? tone.border : _border,
+          color: card.state == Step7CardState.blocked
+              ? tone.border
+              : _border,
         ),
         boxShadow: const [
           BoxShadow(
@@ -747,31 +777,28 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (
-                  var index = 0;
-                  index < card.lines.length && index < 4;
-                  index++
-                ) ...[
+                for (var index = 0;
+                    index < card.lines.length && index < 4;
+                    index++) ...[
                   Text(
                     card.lines[index],
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color:
-                          card.state == Step7CardState.blocked &&
+                      color: card.state == Step7CardState.blocked &&
                               index == card.lines.length - 1
                           ? _danger
                           : _muted,
                       fontSize: 14,
                       height: 1.35,
-                      fontWeight:
-                          card.state == Step7CardState.blocked &&
+                      fontWeight: card.state == Step7CardState.blocked &&
                               index == card.lines.length - 1
                           ? FontWeight.w700
                           : FontWeight.w400,
                     ),
                   ),
-                  if (index < card.lines.length - 1) const SizedBox(height: 4),
+                  if (index < card.lines.length - 1)
+                    const SizedBox(height: 4),
                 ],
               ],
             ),
@@ -816,7 +843,9 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
           'Confirmo que la información, las presentaciones y los precios '
           'coinciden con el catálogo del proveedor.',
       child: Material(
-        color: blocked ? const Color(0xFFF7F8FA) : const Color(0xFFFFFBEB),
+        color: blocked
+            ? const Color(0xFFF7F8FA)
+            : const Color(0xFFFFFBEB),
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: _activating
@@ -829,10 +858,15 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
           borderRadius: BorderRadius.circular(12),
           child: Container(
             constraints: const BoxConstraints(minHeight: 64),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: blocked ? _border : _primary),
+              border: Border.all(
+                color: blocked ? _border : _primary,
+              ),
             ),
             child: Row(
               children: [
@@ -878,8 +912,8 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
     final text = result.message?.trim().isNotEmpty == true
         ? result.message!.trim()
         : result.pendingSynchronization
-        ? 'Activado en este dispositivo · Pendiente de sincronización'
-        : 'Producto activado correctamente';
+            ? 'Activado en este dispositivo · Pendiente de sincronización'
+            : 'Producto activado correctamente';
 
     return Container(
       constraints: const BoxConstraints(minHeight: 64),
@@ -935,7 +969,10 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
                   const Text(
                     'Paso 7 de 7',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: _muted, fontSize: 14),
+                    style: TextStyle(
+                      color: _muted,
+                      fontSize: 14,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   activateButton,
@@ -952,7 +989,10 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
                   child: Text(
                     'Paso 7 de 7',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: _muted, fontSize: 14),
+                    style: TextStyle(
+                      color: _muted,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
                 activateButton,
@@ -971,7 +1011,9 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
         foregroundColor: _ink,
         minimumSize: const Size(126, 48),
         side: const BorderSide(color: Color(0xFFABB8C8)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
       ),
       child: const Text(
         'Anterior',
@@ -988,7 +1030,9 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
         disabledBackgroundColor: const Color(0xFFD6DAE0),
         disabledForegroundColor: const Color(0xFF7A828D),
         minimumSize: const Size(168, 48),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
       ),
       child: _activating
           ? const SizedBox(
@@ -1003,7 +1047,9 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
               _activationResult == null
                   ? 'Activar producto'
                   : 'Producto activado',
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+              ),
             ),
     );
   }
@@ -1144,7 +1190,9 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
     bool compact = false,
   }) {
     return Container(
-      constraints: BoxConstraints(minHeight: compact ? 32 : 40),
+      constraints: BoxConstraints(
+        minHeight: compact ? 32 : 40,
+      ),
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 11 : 15,
         vertical: compact ? 6 : 9,
@@ -1157,7 +1205,11 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: compact ? 16 : 18, color: tone.foreground),
+          Icon(
+            icon,
+            size: compact ? 16 : 18,
+            color: tone.foreground,
+          ),
           const SizedBox(width: 6),
           Text(
             text,
@@ -1233,3 +1285,4 @@ class _Step7CardData {
 //    y la pantalla mostrará:
 //    "Activado en este dispositivo · Pendiente de sincronización".
 // ============================================================================
+

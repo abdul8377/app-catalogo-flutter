@@ -159,7 +159,7 @@ class ProductoFormState extends Equatable {
     0 => 'Completa la empresa, marca, categoría y subcategoría requeridas.',
     1 when nombre.trim().isEmpty =>
       tipoRegistro == 'unico'
-          ? 'Ingresa el nombre comercial.'
+          ? 'Ingresa el nombre comercial del producto.'
           : 'Ingresa el nombre general del producto.',
     1 when edicionVariantePendiente =>
       'Guarda o cancela los cambios de la variante antes de continuar.',

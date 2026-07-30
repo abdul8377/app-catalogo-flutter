@@ -311,10 +311,7 @@ void main() {
       tester.widget<FilledButton>(siguiente).onPressed?.call();
       await tester.pumpAndSettle();
       expect(bloc.state.paso, 1);
-      expect(
-        find.textContaining('Ingresa el nombre comercial'),
-        findsOneWidget,
-      );
+      expect(find.text('Ingresa el nombre comercial.'), findsOneWidget);
 
       await tester.enterText(
         find.byKey(const Key('producto_unico_nombre')),

@@ -506,7 +506,7 @@ class _Step6ImagesPanelState extends State<Step6ImagesPanel> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Paso 5 · Imágenes',
+              'Paso 6 · Imágenes',
               style: TextStyle(
                 color: _ink,
                 fontSize: 26,

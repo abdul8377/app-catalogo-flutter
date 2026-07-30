@@ -168,8 +168,8 @@ class _EditableQuantityRange {
     String until = '',
     String price = '',
   }) : fromController = TextEditingController(text: from),
-       untilController = TextEditingController(text: until),
-       priceController = TextEditingController(text: price);
+        untilController = TextEditingController(text: until),
+        priceController = TextEditingController(text: price);
 
   factory _EditableQuantityRange.fromDraft(QuantityPriceRange range) {
     return _EditableQuantityRange(
@@ -261,14 +261,14 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
 
     _lists = widget.initialLists.isEmpty
         ? [
-            PriceListDraft(
-              id: 'regular',
-              name: 'Regular',
-              currencyCode: 'USD',
-              includesIgv: true,
-              validFrom: DateTime.now(),
-            ),
-          ]
+      PriceListDraft(
+        id: 'regular',
+        name: 'Regular',
+        currencyCode: 'USD',
+        includesIgv: true,
+        validFrom: DateTime.now(),
+      ),
+    ]
         : List<PriceListDraft>.of(widget.initialLists);
 
     _selectedListId = _lists.first.id;
@@ -291,7 +291,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
     if (oldKeys.length != newKeys.length || !oldKeys.containsAll(newKeys)) {
       _syncGeneratedRows();
       _selectedPriceKeys.removeWhere(
-        (key) => !_prices.any((item) => item.key == key),
+            (key) => !_prices.any((item) => item.key == key),
       );
 
       if (_editorPriceKey != null &&
@@ -310,7 +310,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
 
   PriceListDraft get _selectedList {
     return _lists.firstWhere(
-      (item) => item.id == _selectedListId,
+          (item) => item.id == _selectedListId,
       orElse: () => _lists.first,
     );
   }
@@ -338,11 +338,11 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
   int get _pricedCount => _activeListRows
       .where(
         (item) =>
-            (item.configuration == PriceConfigurationType.fixed &&
-                item.fixedPrice != null) ||
-            (item.configuration == PriceConfigurationType.quantity &&
-                item.ranges.isNotEmpty),
-      )
+    (item.configuration == PriceConfigurationType.fixed &&
+        item.fixedPrice != null) ||
+        (item.configuration == PriceConfigurationType.quantity &&
+            item.ranges.isNotEmpty),
+  )
       .length;
 
   int get _readyCount => _activeListRows.length - _pendingCount;
@@ -406,9 +406,9 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
   }
 
   SellablePriceCombination? _findSource(
-    String variantId,
-    String presentationId,
-  ) {
+      String variantId,
+      String presentationId,
+      ) {
     for (final source in _uniqueSources) {
       if (source.variantId == variantId &&
           source.presentationId == presentationId) {
@@ -557,7 +557,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
           title: const Text('Confirmar producto gratuito'),
           content: const Text(
             'El valor 0.00 se guardará como un precio válido y gratuito. '
-            'No se considerará pendiente ni por cotizar.',
+                'No se considerará pendiente ni por cotizar.',
           ),
           actions: [
             TextButton(
@@ -679,8 +679,8 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
   }
 
   ({String? error, List<QuantityPriceRange> ranges}) _validateQuantityRanges(
-    SellablePriceCombination source,
-  ) {
+      SellablePriceCombination source,
+      ) {
     if (_editableRanges.isEmpty) {
       return (error: 'Agrega al menos un rango.', ranges: const []);
     }
@@ -695,23 +695,23 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
 
       if (from == null || from <= 0) {
         return (
-          error: 'El inicio del rango ${index + 1} no es válido.',
-          ranges: const [],
+        error: 'El inicio del rango ${index + 1} no es válido.',
+        ranges: const [],
         );
       }
 
       if (until != null && until < from) {
         return (
-          error:
-              'El final del rango ${index + 1} no puede ser menor que el inicio.',
-          ranges: const [],
+        error:
+        'El final del rango ${index + 1} no puede ser menor que el inicio.',
+        ranges: const [],
         );
       }
 
       if (price == null || price < 0) {
         return (
-          error: 'El precio del rango ${index + 1} no es válido.',
-          ranges: const [],
+        error: 'El precio del rango ${index + 1} no es válido.',
+        ranges: const [],
         );
       }
 
@@ -731,9 +731,9 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
 
     if ((parsed.first.from - expectedFirst).abs() > epsilon) {
       return (
-        error:
-            'El primer rango debe comenzar en ${_plainNumber(expectedFirst)}.',
-        ranges: const [],
+      error:
+      'El primer rango debe comenzar en ${_plainNumber(expectedFirst)}.',
+      ranges: const [],
       );
     }
 
@@ -743,15 +743,15 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
 
       if (previous.until == null) {
         return (
-          error: 'Un rango sin límite debe ser el último.',
-          ranges: const [],
+        error: 'Un rango sin límite debe ser el último.',
+        ranges: const [],
         );
       }
 
       if (current.from <= previous.until! + epsilon) {
         return (
-          error: 'Los rangos ${index} y ${index + 1} se superponen.',
-          ranges: const [],
+        error: 'Los rangos ${index} y ${index + 1} se superponen.',
+        ranges: const [],
         );
       }
 
@@ -759,16 +759,16 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
 
       if ((current.from - expectedFrom).abs() > epsilon) {
         return (
-          error: 'Hay un vacío entre los rangos ${index} y ${index + 1}.',
-          ranges: const [],
+        error: 'Hay un vacío entre los rangos ${index} y ${index + 1}.',
+        ranges: const [],
         );
       }
     }
 
     if (parsed.last.until != null) {
       return (
-        error: 'El último rango debe quedar sin límite.',
-        ranges: const [],
+      error: 'El último rango debe quedar sin límite.',
+      ranges: const [],
       );
     }
 
@@ -849,8 +849,8 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
             title: const Text('Presentaciones diferentes'),
             content: const Text(
               'La selección mezcla presentaciones distintas. '
-              'El mismo importe se copiará como precio completo de cada '
-              'presentación, no como precio por unidad base.',
+                  'El mismo importe se copiará como precio completo de cada '
+                  'presentación, no como precio por unidad base.',
             ),
             actions: [
               TextButton(
@@ -922,9 +922,9 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
   }
 
   Future<_BulkPriceResult?> _showBulkDialog(
-    int selectedCount,
-    bool mixedPresentations,
-  ) async {
+      int selectedCount,
+      bool mixedPresentations,
+      ) async {
     var rawPrice = '';
     var configuration = PriceConfigurationType.fixed;
 
@@ -981,7 +981,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
                         decoration: _inputDecoration(
                           'Precio por presentación',
                           prefixText:
-                              '${_currencySymbol(_selectedList.currencyCode)} ',
+                          '${_currencySymbol(_selectedList.currencyCode)} ',
                         ),
                       ),
                     ],
@@ -989,16 +989,16 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
                       const SizedBox(height: 14),
                       _buildInlineNote(
                         'La selección contiene presentaciones diferentes. '
-                        'Antes de copiar un precio fijo se solicitará '
-                        'confirmación.',
+                            'Antes de copiar un precio fijo se solicitará '
+                            'confirmación.',
                         icon: Icons.warning_amber_rounded,
                       ),
                     ],
                     const SizedBox(height: 12),
                     const Text(
                       'Los rangos por cantidad se configuran individualmente '
-                      'para respetar el pedido mínimo y el incremento de cada '
-                      'presentación.',
+                          'para respetar el pedido mínimo y el incremento de cada '
+                          'presentación.',
                       style: TextStyle(
                         color: _muted,
                         fontSize: 12,
@@ -1071,10 +1071,10 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
 
     final changesMeaning =
         current.currencyCode != result.currencyCode ||
-        current.includesIgv != result.includesIgv;
+            current.includesIgv != result.includesIgv;
 
     final hasConfiguredAmounts = _activeListRows.any(
-      (item) => item.hasNumericPrice,
+          (item) => item.hasNumericPrice,
     );
 
     if (changesMeaning && hasConfiguredAmounts) {
@@ -1086,8 +1086,8 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
             title: const Text('Revisar importes existentes'),
             content: const Text(
               'Cambiar moneda o tratamiento de IGV no convertirá ni '
-              'recalculará los importes guardados. Los valores numéricos '
-              'permanecerán iguales y deberán revisarse.',
+                  'recalculará los importes guardados. Los valores numéricos '
+                  'permanecerán iguales y deberán revisarse.',
             ),
             actions: [
               TextButton(
@@ -1187,8 +1187,8 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
                             }
 
                             final duplicated = _lists.any(
-                              (item) =>
-                                  item.id != initial?.id &&
+                                  (item) =>
+                              item.id != initial?.id &&
                                   item.name.trim().toLowerCase() ==
                                       name.toLowerCase(),
                             );
@@ -1302,15 +1302,15 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
                           onClear: validUntil == null
                               ? null
                               : () {
-                                  setDialogState(() {
-                                    validUntil = null;
-                                  });
-                                },
+                            setDialogState(() {
+                              validUntil = null;
+                            });
+                          },
                         ),
                         const SizedBox(height: 14),
                         _buildInlineNote(
                           'Cambiar moneda no convierte precios. Cambiar el '
-                          'tratamiento de IGV tampoco recalcula importes.',
+                              'tratamiento de IGV tampoco recalcula importes.',
                         ),
                       ],
                     ),
@@ -1334,7 +1334,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
                       dialogContext,
                       PriceListDraft(
                         id:
-                            initial?.id ??
+                        initial?.id ??
                             'list-${DateTime.now().microsecondsSinceEpoch}',
                         name: name.trim(),
                         currencyCode: currency,
@@ -1408,7 +1408,8 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
   }
 
   void _changeSelectedList(String listId) {
-    if (listId == _selectedListId || !_lists.any((item) => item.id == listId)) {
+    if (listId == _selectedListId ||
+        !_lists.any((item) => item.id == listId)) {
       return;
     }
 
@@ -1446,8 +1447,8 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
             title: Text('Continuar con $_pendingCount pendientes'),
             content: const Text(
               'Puedes continuar y guardar el producto como borrador. '
-              'Sin embargo, las combinaciones pendientes impedirán '
-              'la activación definitiva en el paso 7.',
+                  'Sin embargo, las combinaciones pendientes impedirán '
+                  'la activación definitiva en el paso 7.',
             ),
             actions: [
               TextButton(
@@ -1527,7 +1528,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Paso 4 · Precios',
+              'Paso 5 · Precios',
               style: TextStyle(
                 color: _ink,
                 fontSize: 26,
@@ -1537,7 +1538,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
             SizedBox(height: 5),
             Text(
               'Define cómo se calcula el precio de cada combinación de '
-              'variante y presentación vendible.',
+                  'variante y presentación vendible.',
               style: TextStyle(color: _muted, fontSize: 13),
             ),
           ],
@@ -1558,7 +1559,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
                 ),
                 child: Text(
                   'Familia: ${widget.familyName} · '
-                  '${widget.totalVariantCount} variantes',
+                      '${widget.totalVariantCount} variantes',
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
@@ -1571,8 +1572,8 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
               const SizedBox(height: 6),
               Text(
                 '${_activeListRows.length} combinaciones vendibles · '
-                '$_pricedCount listas · $_quoteCount por cotizar · '
-                '$_pendingCount pendientes',
+                    '$_pricedCount listas · $_quoteCount por cotizar · '
+                    '$_pendingCount pendientes',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: _muted, fontSize: 11),
               ),
@@ -1622,17 +1623,19 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
                         items: _lists
                             .map(
                               (item) => DropdownMenuItem(
-                                key: ValueKey('price_list_option_${item.id}'),
-                                value: item.id,
-                                child: Text(
-                                  item.name,
-                                  style: const TextStyle(
-                                    color: _ink,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
+                            key: ValueKey(
+                              'price_list_option_${item.id}',
+                            ),
+                            value: item.id,
+                            child: Text(
+                              item.name,
+                              style: const TextStyle(
+                                color: _ink,
+                                fontWeight: FontWeight.w800,
                               ),
-                            )
+                            ),
+                          ),
+                        )
                             .toList(),
                         onChanged: _lists.length > 1
                             ? _requestSelectedListChange
@@ -1644,9 +1647,9 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
                 const SizedBox(height: 5),
                 Text(
                   '${_currencySymbol(list.currencyCode)} · '
-                  'Importes ${list.includesIgv ? 'con' : 'sin'} IGV · '
-                  'Desde ${_formatDate(list.validFrom)} · '
-                  '${list.validUntil == null ? 'Sin fecha final' : 'Hasta ${_formatDate(list.validUntil!)}'}',
+                      'Importes ${list.includesIgv ? 'con' : 'sin'} IGV · '
+                      'Desde ${_formatDate(list.validFrom)} · '
+                      '${list.validUntil == null ? 'Sin fecha final' : 'Hasta ${_formatDate(list.validUntil!)}'}',
                   style: const TextStyle(
                     color: _muted,
                     fontSize: 12,
@@ -1684,7 +1687,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
     for (final source in _uniqueSources) {
       presentationOptions.putIfAbsent(
         source.presentationId,
-        () => source.presentationLabel,
+            () => source.presentationLabel,
       );
     }
 
@@ -1724,7 +1727,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
                       child: Text('Todas'),
                     ),
                     ...presentationOptions.entries.map(
-                      (item) => DropdownMenuItem<String>(
+                          (item) => DropdownMenuItem<String>(
                         value: item.key,
                         child: Text(item.value),
                       ),
@@ -1750,7 +1753,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
                   icon: const Icon(Icons.tune, size: 18),
                   label: Text(
                     'Configurar seleccionadas '
-                    '(${_selectedPriceKeys.length})',
+                        '(${_selectedPriceKeys.length})',
                   ),
                   style: FilledButton.styleFrom(
                     backgroundColor: _ink,
@@ -1857,41 +1860,41 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
       child: rows.isEmpty
           ? _buildEmptyFilteredState()
           : LayoutBuilder(
-              builder: (context, constraints) {
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minWidth: constraints.maxWidth,
-                      ),
-                      child: DataTable(
-                        showCheckboxColumn: false,
-                        headingRowHeight: 44,
-                        dataRowMinHeight: 62,
-                        dataRowMaxHeight: 72,
-                        horizontalMargin: 12,
-                        columnSpacing: 24,
-                        headingRowColor: MaterialStateProperty.all(
-                          const Color(0xFFF0F3F7),
-                        ),
-                        columns: const [
-                          DataColumn(label: Text('')),
-                          DataColumn(label: Text('Variante')),
-                          DataColumn(label: Text('Presentación')),
-                          DataColumn(label: Text('Configuración')),
-                          DataColumn(label: Text('Precio o detalle')),
-                          DataColumn(label: Text('Estado')),
-                          DataColumn(label: Text('Acción')),
-                        ],
-                        rows: rows.map(_buildPriceDataRow).toList(),
-                      ),
-                    ),
+        builder: (context, constraints) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: constraints.maxWidth,
+                ),
+                child: DataTable(
+                  showCheckboxColumn: false,
+                  headingRowHeight: 44,
+                  dataRowMinHeight: 62,
+                  dataRowMaxHeight: 72,
+                  horizontalMargin: 12,
+                  columnSpacing: 24,
+                  headingRowColor: MaterialStateProperty.all(
+                    const Color(0xFFF0F3F7),
                   ),
-                );
-              },
+                  columns: const [
+                    DataColumn(label: Text('')),
+                    DataColumn(label: Text('Variante')),
+                    DataColumn(label: Text('Presentación')),
+                    DataColumn(label: Text('Configuración')),
+                    DataColumn(label: Text('Precio o detalle')),
+                    DataColumn(label: Text('Estado')),
+                    DataColumn(label: Text('Acción')),
+                  ],
+                  rows: rows.map(_buildPriceDataRow).toList(),
+                ),
+              ),
             ),
+          );
+        },
+      ),
     );
   }
 
@@ -1949,7 +1952,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color:
-                    price.configuration == PriceConfigurationType.unconfigured
+                price.configuration == PriceConfigurationType.unconfigured
                     ? _muted
                     : _ink,
               ),
@@ -1987,7 +1990,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
           source.presentationId == _presentationFilterId) {
         presentations.putIfAbsent(
           source.presentationId,
-          () => source.presentationLabel,
+              () => source.presentationLabel,
         );
       }
     }
@@ -2034,7 +2037,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
                   children: [
                     _buildMatrixVariantCell(variant.value),
                     ...presentations.entries.map(
-                      (presentation) => _buildMatrixPriceCell(
+                          (presentation) => _buildMatrixPriceCell(
                         variantId: variant.key,
                         presentationId: presentation.key,
                       ),
@@ -2113,8 +2116,8 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
     final selected = _selectedPriceKeys.contains(price.key);
     final hiddenByStateFilter =
         (_filter == PriceFilter.pending && price.isReady) ||
-        (_filter == PriceFilter.quote &&
-            price.configuration != PriceConfigurationType.quote);
+            (_filter == PriceFilter.quote &&
+                price.configuration != PriceConfigurationType.quote);
 
     if (hiddenByStateFilter) {
       return Container(
@@ -2157,8 +2160,8 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color:
-                              price.configuration ==
-                                  PriceConfigurationType.unconfigured
+                          price.configuration ==
+                              PriceConfigurationType.unconfigured
                               ? _danger
                               : _ink,
                           fontSize: 12,
@@ -2282,14 +2285,14 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
           if (_editorConfiguration == PriceConfigurationType.quote)
             _buildInlineNote(
               'El producto podrá agregarse al pedido, pero su precio '
-              'deberá completarse posteriormente. El total general '
-              'se mostrará como “Pendiente de cotización”, nunca como cero.',
+                  'deberá completarse posteriormente. El total general '
+                  'se mostrará como “Pendiente de cotización”, nunca como cero.',
               icon: Icons.request_quote_outlined,
             ),
           if (_editorConfiguration == PriceConfigurationType.unconfigured)
             _buildInlineNote(
               'Esta combinación quedará pendiente. Puede guardarse en '
-              'el borrador, pero impedirá activar el producto en el paso 7.',
+                  'el borrador, pero impedirá activar el producto en el paso 7.',
               icon: Icons.pending_actions_outlined,
             ),
           const SizedBox(height: 20),
@@ -2411,8 +2414,8 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
             reference == null
                 ? 'Referencia por unidad base: —'
                 : 'Referencia: $symbol '
-                      '${reference.toStringAsFixed(3)} por '
-                      '${source.baseUnit}',
+                '${reference.toStringAsFixed(3)} por '
+                '${source.baseUnit}',
             style: const TextStyle(
               color: _ink,
               fontSize: 12,
@@ -2432,14 +2435,14 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
       children: [
         Text(
           'Los rangos se expresan en cantidades de '
-          '${source.presentationLabel}. El rango alcanzado aplica a '
-          'toda la cantidad pedida.',
+              '${source.presentationLabel}. El rango alcanzado aplica a '
+              'toda la cantidad pedida.',
           style: const TextStyle(color: _muted, fontSize: 12, height: 1.4),
         ),
         const SizedBox(height: 12),
         ...List.generate(
           _editableRanges.length,
-          (index) =>
+              (index) =>
               _buildQuantityRangeRow(index, symbol, source.presentationLabel),
         ),
         const SizedBox(height: 4),
@@ -2455,8 +2458,8 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
         const SizedBox(height: 10),
         const Text(
           'El primer rango debe iniciar en el pedido mínimo; no se '
-          'permiten vacíos, repeticiones, cruces ni superposiciones. '
-          'El último debe quedar sin límite.',
+              'permiten vacíos, repeticiones, cruces ni superposiciones. '
+              'El último debe quedar sin límite.',
           style: TextStyle(color: _muted, fontSize: 11, height: 1.35),
         ),
       ],
@@ -2610,9 +2613,9 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
   }
 
   String _priceDetail(
-    ProductPriceDraft price,
-    SellablePriceCombination source,
-  ) {
+      ProductPriceDraft price,
+      SellablePriceCombination source,
+      ) {
     final symbol = _currencySymbol(_selectedList.currencyCode);
 
     switch (price.configuration) {
@@ -2620,12 +2623,12 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
         return price.fixedPrice == null
             ? '—'
             : '$symbol ${price.fixedPrice!.toStringAsFixed(2)} '
-                  'por ${source.presentationLabel}';
+            'por ${source.presentationLabel}';
       case PriceConfigurationType.quantity:
         return price.ranges.isEmpty
             ? '—'
             : '${price.ranges.length} '
-                  '${price.ranges.length == 1 ? 'rango' : 'rangos'}';
+            '${price.ranges.length == 1 ? 'rango' : 'rangos'}';
       case PriceConfigurationType.quote:
         return 'Se define en el pedido';
       case PriceConfigurationType.unconfigured:
@@ -2645,7 +2648,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
         return price.ranges.isEmpty
             ? 'Pendiente'
             : '${price.ranges.length} '
-                  '${price.ranges.length == 1 ? 'rango' : 'rangos'}';
+            '${price.ranges.length == 1 ? 'rango' : 'rangos'}';
       case PriceConfigurationType.quote:
         return 'Por cotizar';
       case PriceConfigurationType.unconfigured:
@@ -2665,13 +2668,13 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
         builder: (context, constraints) {
           const rule = Text(
             'Un campo vacío queda pendiente. Un valor de 0.00 '
-            'significa gratuito y requiere confirmación.',
+                'significa gratuito y requiere confirmación.',
             style: TextStyle(color: _muted, fontSize: 12, height: 1.35),
           );
 
           final summary = Text(
             '$_readyCount de ${_activeListRows.length} combinaciones '
-            'listas · $_pendingCount pendientes',
+                'listas · $_pendingCount pendientes',
             style: TextStyle(
               color: _pendingCount == 0 ? _success : _ink,
               fontSize: 12,
@@ -2800,7 +2803,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
           SizedBox(height: 5),
           Text(
             'Regresa al paso 4 y asigna al menos una presentación '
-            'de venta a una variante.',
+                'de venta a una variante.',
             textAlign: TextAlign.center,
             style: TextStyle(color: _muted, fontSize: 12),
           ),
@@ -2810,9 +2813,9 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
   }
 
   Widget _buildInlineNote(
-    String message, {
-    IconData icon = Icons.info_outline,
-  }) {
+      String message, {
+        IconData icon = Icons.info_outline,
+      }) {
     return Container(
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
@@ -2836,11 +2839,11 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
   }
 
   InputDecoration _inputDecoration(
-    String label, {
-    String? prefixText,
-    String? hintText,
-    String? helperText,
-  }) {
+      String label, {
+        String? prefixText,
+        String? hintText,
+        String? helperText,
+      }) {
     return InputDecoration(
       labelText: label,
       prefixText: prefixText,
@@ -2949,7 +2952,7 @@ PricingStep5Draft? step5PricingDraftFromMap(Map<String, dynamic>? map) {
 
   PriceConfigurationType configurationFrom(Object? value) {
     return PriceConfigurationType.values.firstWhere(
-      (item) => item.name == value?.toString(),
+          (item) => item.name == value?.toString(),
       orElse: () => PriceConfigurationType.unconfigured,
     );
   }
@@ -2957,74 +2960,74 @@ PricingStep5Draft? step5PricingDraftFromMap(Map<String, dynamic>? map) {
   final lists = (map['lists'] as List? ?? const [])
       .whereType<Map>()
       .map((raw) {
-        final item = Map<String, dynamic>.from(raw);
-        return PriceListDraft(
-          id: item['id']?.toString() ?? '',
-          name: item['name']?.toString() ?? '',
-          currencyCode: item['currency_code']?.toString() ?? 'USD',
-          includesIgv: item['includes_igv'] as bool? ?? true,
-          validFrom: safeDate(item['valid_from']),
-          validUntil: item['valid_until'] == null
-              ? null
-              : DateTime.tryParse(item['valid_until'].toString()),
-        );
-      })
+    final item = Map<String, dynamic>.from(raw);
+    return PriceListDraft(
+      id: item['id']?.toString() ?? '',
+      name: item['name']?.toString() ?? '',
+      currencyCode: item['currency_code']?.toString() ?? 'USD',
+      includesIgv: item['includes_igv'] as bool? ?? true,
+      validFrom: safeDate(item['valid_from']),
+      validUntil: item['valid_until'] == null
+          ? null
+          : DateTime.tryParse(item['valid_until'].toString()),
+    );
+  })
       .where((item) => item.id.isNotEmpty)
       .toList();
 
   final prices = (map['prices'] as List? ?? const [])
       .whereType<Map>()
       .map((raw) {
-        final item = Map<String, dynamic>.from(raw);
-        final ranges = (item['ranges'] as List? ?? const [])
-            .whereType<Map>()
-            .map((rawRange) {
-              final range = Map<String, dynamic>.from(rawRange);
-              return QuantityPriceRange(
-                from: (range['from'] as num?)?.toDouble() ?? 0,
-                until: (range['until'] as num?)?.toDouble(),
-                pricePerPresentation:
-                    (range['price_per_presentation'] as num?)?.toDouble() ?? 0,
-              );
-            })
-            .toList();
-        return ProductPriceDraft(
-          listId: item['list_id']?.toString() ?? '',
-          variantId: item['variant_id']?.toString() ?? '',
-          presentationId: item['presentation_id']?.toString() ?? '',
-          configuration: configurationFrom(item['configuration']),
-          fixedPrice: (item['fixed_price'] as num?)?.toDouble(),
-          ranges: ranges,
-        );
-      })
+    final item = Map<String, dynamic>.from(raw);
+    final ranges = (item['ranges'] as List? ?? const [])
+        .whereType<Map>()
+        .map((rawRange) {
+      final range = Map<String, dynamic>.from(rawRange);
+      return QuantityPriceRange(
+        from: (range['from'] as num?)?.toDouble() ?? 0,
+        until: (range['until'] as num?)?.toDouble(),
+        pricePerPresentation:
+        (range['price_per_presentation'] as num?)?.toDouble() ?? 0,
+      );
+    })
+        .toList();
+    return ProductPriceDraft(
+      listId: item['list_id']?.toString() ?? '',
+      variantId: item['variant_id']?.toString() ?? '',
+      presentationId: item['presentation_id']?.toString() ?? '',
+      configuration: configurationFrom(item['configuration']),
+      fixedPrice: (item['fixed_price'] as num?)?.toDouble(),
+      ranges: ranges,
+    );
+  })
       .where(
         (item) =>
-            item.listId.isNotEmpty &&
-            item.variantId.isNotEmpty &&
-            item.presentationId.isNotEmpty,
-      )
+    item.listId.isNotEmpty &&
+        item.variantId.isNotEmpty &&
+        item.presentationId.isNotEmpty,
+  )
       .toList();
 
   final combinations = (map['sellable_combinations'] as List? ?? const [])
       .whereType<Map>()
       .map((raw) {
-        final item = Map<String, dynamic>.from(raw);
-        return SellablePriceCombination(
-          variantId: item['variant_id']?.toString() ?? '',
-          variantLabel: item['variant_label']?.toString() ?? '',
-          presentationId: item['presentation_id']?.toString() ?? '',
-          presentationLabel: item['presentation_label']?.toString() ?? '',
-          baseUnit: item['base_unit']?.toString() ?? 'PZA',
-          equivalentToBaseUnit:
-              (item['equivalent_to_base_unit'] as num?)?.toDouble() ?? 1,
-          minimumOrder: (item['minimum_order'] as num?)?.toDouble() ?? 1,
-          purchaseIncrement:
-              (item['purchase_increment'] as num?)?.toDouble() ?? 1,
-        );
-      })
+    final item = Map<String, dynamic>.from(raw);
+    return SellablePriceCombination(
+      variantId: item['variant_id']?.toString() ?? '',
+      variantLabel: item['variant_label']?.toString() ?? '',
+      presentationId: item['presentation_id']?.toString() ?? '',
+      presentationLabel: item['presentation_label']?.toString() ?? '',
+      baseUnit: item['base_unit']?.toString() ?? 'PZA',
+      equivalentToBaseUnit:
+      (item['equivalent_to_base_unit'] as num?)?.toDouble() ?? 1,
+      minimumOrder: (item['minimum_order'] as num?)?.toDouble() ?? 1,
+      purchaseIncrement:
+      (item['purchase_increment'] as num?)?.toDouble() ?? 1,
+    );
+  })
       .where(
         (item) => item.variantId.isNotEmpty && item.presentationId.isNotEmpty,
-      )
+  )
       .toList();
 
   if (lists.isEmpty && prices.isEmpty && combinations.isEmpty) {

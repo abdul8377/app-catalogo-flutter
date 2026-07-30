@@ -1888,7 +1888,6 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildMatrixTextField(
-          fieldKey: const Key('matriz_sku'),
           label: 'Código / SKU',
           controller: _matrixSkuController,
           hint: 'PER-384',
@@ -1896,7 +1895,6 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
         ),
         const SizedBox(height: 14),
         _buildMatrixTextField(
-          fieldKey: const Key('matriz_nombre'),
           label: 'Nombre generado',
           controller: _matrixNameController,
           hint: 'Perno hexagonal UNC 304 3/8″ × 4″',
@@ -2025,7 +2023,6 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
   );
 
   Widget _buildMatrixTextField({
-    Key? fieldKey,
     required String label,
     required TextEditingController controller,
     required String hint,
@@ -2044,7 +2041,6 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
       ),
       const SizedBox(height: 6),
       TextFormField(
-        key: fieldKey,
         controller: controller,
         validator: validator,
         maxLines: maxLines,

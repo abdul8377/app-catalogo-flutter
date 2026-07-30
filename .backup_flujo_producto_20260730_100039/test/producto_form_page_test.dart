@@ -18,7 +18,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('el indicador usa seis pasos y permite navegar por número', (
+  testWidgets('el indicador permanece visible y permite navegar por número', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1000, 900));
@@ -35,13 +35,14 @@ void main() {
     final bloc = tester.element(find.byType(Scaffold)).read<ProductoFormBloc>();
 
     expect(find.byKey(const ValueKey('paso_flujo_1')), findsOneWidget);
-    expect(find.byKey(const ValueKey('paso_flujo_6')), findsOneWidget);
-    expect(find.byKey(const ValueKey('paso_flujo_7')), findsNothing);
+    expect(find.byKey(const ValueKey('paso_flujo_7')), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('paso_flujo_3')));
+    await tester.tap(find.byKey(const ValueKey('paso_flujo_4')));
     await tester.pumpAndSettle();
 
     expect(bloc.state.paso, 3);
+    expect(find.byKey(const ValueKey('paso_flujo_1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('paso_flujo_7')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('paso_flujo_2')));
     await tester.pumpAndSettle();
@@ -50,7 +51,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('el paso 2 combina tipo, familia y variantes', (tester) async {
+  testWidgets('los pasos 1 y 2 conservan el nuevo diseño y su flujo', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(1000, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -63,6 +66,10 @@ void main() {
     await tester.pumpAndSettle();
 
     final bloc = tester.element(find.byType(Scaffold)).read<ProductoFormBloc>();
+    expect(find.text('Empresa *'), findsOneWidget);
+    expect(find.text('Marca *'), findsOneWidget);
+    expect(find.text('Categoría *'), findsOneWidget);
+    expect(find.text('Subcategoría'), findsOneWidget);
 
     Future<void> selectDropdown(int index, String value) async {
       await tester.tap(find.byType(DropdownButtonFormField<String>).at(index));
@@ -75,28 +82,40 @@ void main() {
     await selectDropdown(1, 'DINA');
     await selectDropdown(2, 'Pernería');
     await selectDropdown(3, 'Pernos métricos');
+    expect(bloc.state.pasoValido, isTrue);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
     await tester.pumpAndSettle();
-
     expect(bloc.state.paso, 1);
-    expect(find.text('¿Cómo se organiza este producto?'), findsOneWidget);
-    expect(find.text('Atributos de la categoría'), findsNothing);
-
-    await tester.tap(find.text('Lista de variantes'));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('familia_nombre')), findsOneWidget);
-    expect(find.text('Variantes creadas'), findsOneWidget);
+    expect(find.text('Información general'), findsOneWidget);
+    expect(find.text('Atributos de la categoría'), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const Key('familia_nombre')),
       'Familia de prueba',
     );
-    await tester.pump();
-
+    await tester.enterText(
+      find.byKey(const Key('familia_descripcion')),
+      'Descripción de prueba',
+    );
+    await tester.tap(find.text('Lista de variantes'));
+    await tester.pumpAndSettle();
     expect(bloc.state.nombre, 'Familia de prueba');
+    expect(bloc.state.descripcion, 'Descripción de prueba');
     expect(bloc.state.tipoRegistro, 'variantes');
+
+    await tester.tap(find.widgetWithText(OutlinedButton, '+ Añadir atributo'));
+    await tester.pumpAndSettle();
+    expect(
+      find.widgetWithText(TextFormField, 'Ej. Peso, Material'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byIcon(Icons.close).last);
+    await tester.pumpAndSettle();
+    expect(
+      find.widgetWithText(TextFormField, 'Ej. Peso, Material'),
+      findsNothing,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -132,7 +151,7 @@ void main() {
         )
         ..add(const ProductoFormFamiliaCambiada(nombre: 'Perno hexagonal'))
         ..add(const ProductoFormTipoCambiado('matriz'))
-        ..add(const ProductoFormPasoSeleccionado(1));
+        ..add(const ProductoFormPasoSeleccionado(2));
       await tester.pumpAndSettle();
 
       expect(find.text('Matriz de variantes'), findsWidgets);
@@ -163,14 +182,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(bloc.state.variantes, hasLength(14));
 
-      await tester.enterText(
-        find.byKey(const Key('matriz_sku')),
-        'MATRIX-EDITADO',
-      );
-      await tester.enterText(
-        find.byKey(const Key('matriz_nombre')),
-        'Perno hexagonal editado',
-      );
+      final matrixFields = find.byType(TextFormField);
+      await tester.enterText(matrixFields.at(0), 'MATRIX-EDITADO');
+      await tester.enterText(matrixFields.at(1), 'Perno hexagonal editado');
       await tester.pump();
       expect(bloc.state.edicionVariantePendiente, isTrue);
       await tester.ensureVisible(
@@ -250,7 +264,7 @@ void main() {
       )
       ..add(const ProductoFormFamiliaCambiada(nombre: 'Perno hexagonal'))
       ..add(const ProductoFormTipoCambiado('matriz'))
-      ..add(const ProductoFormPasoSeleccionado(1));
+      ..add(const ProductoFormPasoSeleccionado(2));
     await tester.pumpAndSettle();
 
     expect(find.text('Combinaciones generadas'), findsOneWidget);
@@ -291,7 +305,7 @@ void main() {
         )
         ..add(const ProductoFormFamiliaCambiada(nombre: 'Perno hexagonal'))
         ..add(const ProductoFormTipoCambiado('unico'))
-        ..add(const ProductoFormPasoSeleccionado(1));
+        ..add(const ProductoFormPasoSeleccionado(2));
       await tester.pumpAndSettle();
 
       expect(find.text('Producto único'), findsWidgets);
@@ -310,11 +324,8 @@ void main() {
       );
       tester.widget<FilledButton>(siguiente).onPressed?.call();
       await tester.pumpAndSettle();
-      expect(bloc.state.paso, 1);
-      expect(
-        find.textContaining('Ingresa el nombre comercial'),
-        findsOneWidget,
-      );
+      expect(bloc.state.paso, 2);
+      expect(find.text('Ingresa el nombre comercial.'), findsOneWidget);
 
       await tester.enterText(
         find.byKey(const Key('producto_unico_nombre')),
@@ -376,7 +387,7 @@ void main() {
       )
       ..add(const ProductoFormFamiliaCambiada(nombre: 'Perno hexagonal'))
       ..add(const ProductoFormTipoCambiado('unico'))
-      ..add(const ProductoFormPasoSeleccionado(1));
+      ..add(const ProductoFormPasoSeleccionado(2));
     await tester.pumpAndSettle();
 
     expect(find.text('Producto vendible'), findsOneWidget);
@@ -458,7 +469,7 @@ void main() {
             ),
           ),
         )
-        ..add(const ProductoFormPasoSeleccionado(1));
+        ..add(const ProductoFormPasoSeleccionado(2));
       await tester.pumpAndSettle();
 
       expect(find.text('2 registradas · 2 activas'), findsOneWidget);
@@ -613,14 +624,14 @@ void main() {
         ),
       );
       await tester.pump();
-      for (var i = 0; i < 2; i++) {
+      for (var i = 0; i < 3; i++) {
         bloc.add(const ProductoFormPasoSiguiente());
         await tester.pumpAndSettle();
       }
       expect(bloc.state.paso, 3);
 
       expect(
-        find.text('Paso 3 · Venta, logística y contenido'),
+        find.text('Paso 4 · Venta, logística y contenido'),
         findsOneWidget,
       );
       expect(find.text('Presentaciones de venta'), findsOneWidget);
@@ -723,7 +734,7 @@ void main() {
 
       bloc.add(const ProductoFormPasoSeleccionado(4));
       await tester.pumpAndSettle();
-      expect(find.text('Paso 4 · Precios'), findsOneWidget);
+      expect(find.text('Paso 5 · Precios'), findsOneWidget);
       expect(
         find.text(
           'Un campo vacío queda pendiente. Un valor de 0.00 '
@@ -782,7 +793,7 @@ void main() {
           ?.call();
       await tester.pumpAndSettle();
       expect(bloc.state.paso, 5);
-      expect(find.text('Paso 5 · Imágenes'), findsOneWidget);
+      expect(find.text('Paso 6 · Imágenes'), findsOneWidget);
       expect(find.text('Galería de la familia'), findsOneWidget);
       expect(find.text('Siguiente: revisar y activar'), findsOneWidget);
       expect(find.text('Excepciones por variante'), findsNothing);
@@ -1534,7 +1545,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Paso 5 · Imágenes'), findsOneWidget);
+      expect(find.text('Paso 6 · Imágenes'), findsOneWidget);
       expect(find.text('Galería de la familia'), findsOneWidget);
       expect(find.text('Excepciones por variante'), findsOneWidget);
       expect(find.text('Buscar por medida o SKU'), findsOneWidget);
@@ -1853,44 +1864,7 @@ class _FakeCatalogoRepository implements CatalogoRepository {
         subcategorias: {
           'Pernería': ['Pernos métricos'],
         },
-        atributos: {
-          'Pernería': [
-            AtributoDef(
-              nombre: 'Diámetro',
-              tipo: 'numero_unidad',
-              esVariante: true,
-              requerido: true,
-              unidades: ['mm', 'in', '″'],
-              unidadPredeterminada: 'mm',
-            ),
-            AtributoDef(
-              nombre: 'Largo',
-              tipo: 'numero_unidad',
-              esVariante: true,
-              requerido: true,
-              unidades: ['mm', 'cm', 'in', '″'],
-              unidadPredeterminada: 'mm',
-            ),
-          ],
-          'Pernos métricos': [
-            AtributoDef(
-              nombre: 'Diámetro',
-              tipo: 'numero_unidad',
-              esVariante: true,
-              requerido: true,
-              unidades: ['mm'],
-              unidadPredeterminada: 'mm',
-            ),
-            AtributoDef(
-              nombre: 'Largo',
-              tipo: 'numero_unidad',
-              esVariante: true,
-              requerido: true,
-              unidades: ['mm'],
-              unidadPredeterminada: 'mm',
-            ),
-          ],
-        },
+        atributos: {'Pernería': []},
         marcasPorEmpresa: {
           'DINA': ['DINA'],
         },

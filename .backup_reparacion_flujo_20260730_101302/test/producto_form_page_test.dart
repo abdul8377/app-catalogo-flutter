@@ -163,14 +163,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(bloc.state.variantes, hasLength(14));
 
-      await tester.enterText(
-        find.byKey(const Key('matriz_sku')),
-        'MATRIX-EDITADO',
-      );
-      await tester.enterText(
-        find.byKey(const Key('matriz_nombre')),
-        'Perno hexagonal editado',
-      );
+      final matrixFields = find.byType(TextFormField);
+      await tester.enterText(matrixFields.at(0), 'MATRIX-EDITADO');
+      await tester.enterText(matrixFields.at(1), 'Perno hexagonal editado');
       await tester.pump();
       expect(bloc.state.edicionVariantePendiente, isTrue);
       await tester.ensureVisible(
@@ -311,10 +306,7 @@ void main() {
       tester.widget<FilledButton>(siguiente).onPressed?.call();
       await tester.pumpAndSettle();
       expect(bloc.state.paso, 1);
-      expect(
-        find.textContaining('Ingresa el nombre comercial'),
-        findsOneWidget,
-      );
+      expect(find.text('Ingresa el nombre comercial.'), findsOneWidget);
 
       await tester.enterText(
         find.byKey(const Key('producto_unico_nombre')),
@@ -1853,44 +1845,7 @@ class _FakeCatalogoRepository implements CatalogoRepository {
         subcategorias: {
           'Pernería': ['Pernos métricos'],
         },
-        atributos: {
-          'Pernería': [
-            AtributoDef(
-              nombre: 'Diámetro',
-              tipo: 'numero_unidad',
-              esVariante: true,
-              requerido: true,
-              unidades: ['mm', 'in', '″'],
-              unidadPredeterminada: 'mm',
-            ),
-            AtributoDef(
-              nombre: 'Largo',
-              tipo: 'numero_unidad',
-              esVariante: true,
-              requerido: true,
-              unidades: ['mm', 'cm', 'in', '″'],
-              unidadPredeterminada: 'mm',
-            ),
-          ],
-          'Pernos métricos': [
-            AtributoDef(
-              nombre: 'Diámetro',
-              tipo: 'numero_unidad',
-              esVariante: true,
-              requerido: true,
-              unidades: ['mm'],
-              unidadPredeterminada: 'mm',
-            ),
-            AtributoDef(
-              nombre: 'Largo',
-              tipo: 'numero_unidad',
-              esVariante: true,
-              requerido: true,
-              unidades: ['mm'],
-              unidadPredeterminada: 'mm',
-            ),
-          ],
-        },
+        atributos: {'Pernería': []},
         marcasPorEmpresa: {
           'DINA': ['DINA'],
         },

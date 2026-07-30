@@ -106,19 +106,8 @@ class ProductoFormState extends Equatable {
   }
 
   List<AtributoDef> get atributosDisponibles {
-    final formData = datos;
-    if (formData == null) return const [];
-
-    final subcategory = subcategoria;
-    if (subcategory != null) {
-      final values = formData.atributos[subcategory];
-      if (values != null && values.isNotEmpty) return values;
-    }
-
-    final category = categoria;
-    return category == null
-        ? const []
-        : formData.atributos[category] ?? const [];
+    final key = subcategoria ?? categoria;
+    return key == null ? const [] : datos?.atributos[key] ?? const [];
   }
 
   bool get subcategoriaRequerida => subcategorias.isNotEmpty;
@@ -159,7 +148,7 @@ class ProductoFormState extends Equatable {
     0 => 'Completa la empresa, marca, categoría y subcategoría requeridas.',
     1 when nombre.trim().isEmpty =>
       tipoRegistro == 'unico'
-          ? 'Ingresa el nombre comercial.'
+          ? 'Ingresa el nombre comercial del producto.'
           : 'Ingresa el nombre general del producto.',
     1 when edicionVariantePendiente =>
       'Guarda o cancela los cambios de la variante antes de continuar.',

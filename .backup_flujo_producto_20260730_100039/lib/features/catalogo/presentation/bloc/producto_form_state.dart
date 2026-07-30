@@ -106,19 +106,8 @@ class ProductoFormState extends Equatable {
   }
 
   List<AtributoDef> get atributosDisponibles {
-    final formData = datos;
-    if (formData == null) return const [];
-
-    final subcategory = subcategoria;
-    if (subcategory != null) {
-      final values = formData.atributos[subcategory];
-      if (values != null && values.isNotEmpty) return values;
-    }
-
-    final category = categoria;
-    return category == null
-        ? const []
-        : formData.atributos[category] ?? const [];
+    final key = subcategoria ?? categoria;
+    return key == null ? const [] : datos?.atributos[key] ?? const [];
   }
 
   bool get subcategoriaRequerida => subcategorias.isNotEmpty;
@@ -149,7 +138,7 @@ class ProductoFormState extends Equatable {
           marca != null &&
           categoria != null &&
           (!subcategoriaRequerida || subcategoria != null),
-    1 => nombre.trim().isNotEmpty && variantesValidas,
+    1 => nombre.trim().isNotEmpty,
     2 => variantesValidas,
     3 => presentaciones.isNotEmpty,
     _ => true,
@@ -157,33 +146,16 @@ class ProductoFormState extends Equatable {
 
   String get mensajePasoInvalido => switch (paso) {
     0 => 'Completa la empresa, marca, categoría y subcategoría requeridas.',
-    1 when nombre.trim().isEmpty =>
-      tipoRegistro == 'unico'
-          ? 'Ingresa el nombre comercial.'
-          : 'Ingresa el nombre general del producto.',
-    1 when edicionVariantePendiente =>
-      'Guarda o cancela los cambios de la variante antes de continuar.',
-    1 when variantes.isEmpty =>
-      tipoRegistro == 'unico'
-          ? 'Completa los datos del producto único.'
-          : 'Agrega al menos una variante para continuar.',
-    1 when !variantes.any((variante) => variante.activa) =>
-      'Activa al menos una variante para continuar.',
-    1 when !variantesCompletas =>
-      'Completa el código interno y el nombre de todas las variantes.',
-    1 when !variantesConSkuUnico =>
-      'Corrige los códigos internos duplicados antes de continuar.',
-    1 when tipoRegistro == 'unico' && variantes.length != 1 =>
-      'Un producto único debe tener exactamente una variante.',
+    1 => 'Ingresa el nombre de la familia antes de continuar.',
     2 when edicionVariantePendiente =>
       'Guarda o cancela los cambios de la variante antes de continuar.',
     2 when variantes.isEmpty => 'Agrega al menos una variante para continuar.',
     2 when !variantes.any((variante) => variante.activa) =>
       'Activa al menos una variante para continuar.',
     2 when !variantesCompletas =>
-      'Completa el código interno y el nombre de todas las variantes.',
+      'Completa el SKU y el nombre de todas las variantes.',
     2 when !variantesConSkuUnico =>
-      'Corrige los códigos internos duplicados antes de continuar.',
+      'Corrige los SKU duplicados antes de continuar.',
     2 when tipoRegistro == 'unico' && variantes.length != 1 =>
       'Un producto único debe tener exactamente una variante.',
     3 => 'Agrega al menos una presentación para continuar.',
@@ -206,7 +178,8 @@ class ProductoFormState extends Equatable {
         (subcategoriaRequerida && subcategoria == null)) {
       return 0;
     }
-    if (nombre.trim().isEmpty || !variantesValidas) return 1;
+    if (nombre.trim().isEmpty) return editando ? 0 : 1;
+    if (!variantesValidas) return editando ? 1 : 2;
     if (presentaciones.isEmpty) return 3;
     return paso;
   }

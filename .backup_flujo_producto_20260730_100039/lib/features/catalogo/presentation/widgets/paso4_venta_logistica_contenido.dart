@@ -13,11 +13,22 @@ import 'package:flutter/material.dart';
 // - El alcance variante + presentación alimenta automáticamente el paso 5.
 // ============================================================================
 
-enum Step4VariantLayout { single, list, matrix }
+enum Step4VariantLayout {
+  single,
+  list,
+  matrix,
+}
 
-enum Step4Section { salesPresentations, logisticsPackages, productContent }
+enum Step4Section {
+  salesPresentations,
+  logisticsPackages,
+  productContent,
+}
 
-enum PackageContentKind { baseUnit, salesPresentation }
+enum PackageContentKind {
+  baseUnit,
+  salesPresentation,
+}
 
 @immutable
 class Step4VariantOption {
@@ -38,7 +49,10 @@ class Step4VariantOption {
 
 @immutable
 class CatalogVariantOption {
-  const CatalogVariantOption({required this.id, required this.label});
+  const CatalogVariantOption({
+    required this.id,
+    required this.label,
+  });
 
   final String id;
   final String label;
@@ -97,11 +111,14 @@ class SalesPresentationDraft {
       minimumOrder: minimumOrder ?? this.minimumOrder,
       purchaseIncrement: purchaseIncrement ?? this.purchaseIncrement,
       allowsDecimals: allowsDecimals ?? this.allowsDecimals,
-      assignedVariantIds: assignedVariantIds ?? this.assignedVariantIds,
-      defaultVariantIds: defaultVariantIds ?? this.defaultVariantIds,
+      assignedVariantIds:
+          assignedVariantIds ?? this.assignedVariantIds,
+      defaultVariantIds:
+          defaultVariantIds ?? this.defaultVariantIds,
       linkedLogisticsPackageId: clearLinkedLogisticsPackageId
           ? null
-          : linkedLogisticsPackageId ?? this.linkedLogisticsPackageId,
+          : linkedLogisticsPackageId ??
+              this.linkedLogisticsPackageId,
     );
   }
 }
@@ -155,15 +172,18 @@ class LogisticsPackageDraft {
       name: name ?? this.name,
       contains: contains ?? this.contains,
       contentKind: contentKind ?? this.contentKind,
-      contentReferenceId: contentReferenceId ?? this.contentReferenceId,
+      contentReferenceId:
+          contentReferenceId ?? this.contentReferenceId,
       totalBaseUnits: totalBaseUnits ?? this.totalBaseUnits,
       baseUnit: baseUnit ?? this.baseUnit,
-      assignedVariantIds: assignedVariantIds ?? this.assignedVariantIds,
+      assignedVariantIds:
+          assignedVariantIds ?? this.assignedVariantIds,
       supplierCode: supplierCode ?? this.supplierCode,
       description: description ?? this.description,
       linkedSalesPresentationId: clearLinkedSalesPresentationId
           ? null
-          : linkedSalesPresentationId ?? this.linkedSalesPresentationId,
+          : linkedSalesPresentationId ??
+              this.linkedSalesPresentationId,
     );
   }
 }
@@ -204,7 +224,8 @@ class ProductContentItemDraft {
       unit: unit ?? this.unit,
       relatedCatalogVariantId: clearRelatedCatalogVariantId
           ? null
-          : relatedCatalogVariantId ?? this.relatedCatalogVariantId,
+          : relatedCatalogVariantId ??
+              this.relatedCatalogVariantId,
     );
   }
 }
@@ -258,11 +279,14 @@ class Step4SalesLogisticsContentPanel extends StatefulWidget {
       'L',
     ],
     this.onChanged,
-  }) : assert(variants.length > 0, 'El paso 4 necesita al menos una variante.'),
-       assert(
-         baseUnits.length > 0,
-         'El paso 4 necesita al menos una unidad de medida.',
-       );
+  }) : assert(
+          variants.length > 0,
+          'El paso 4 necesita al menos una variante.',
+        ),
+        assert(
+          baseUnits.length > 0,
+          'El paso 4 necesita al menos una unidad de medida.',
+        );
 
   final String familyName;
   final Step4VariantLayout variantLayout;
@@ -309,7 +333,8 @@ class _Step4SalesLogisticsContentPanelState
   // Editor de presentaciones
   // --------------------------------------------------------------------------
 
-  final GlobalKey<FormState> _presentationFormKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _presentationFormKey =
+      GlobalKey<FormState>();
   final TextEditingController _presentationNameController =
       TextEditingController();
   final TextEditingController _presentationEquivalentController =
@@ -330,8 +355,10 @@ class _Step4SalesLogisticsContentPanelState
   // Editor de empaques
   // --------------------------------------------------------------------------
 
-  final GlobalKey<FormState> _packageFormKey = GlobalKey<FormState>();
-  final TextEditingController _packageNameController = TextEditingController();
+  final GlobalKey<FormState> _packageFormKey =
+      GlobalKey<FormState>();
+  final TextEditingController _packageNameController =
+      TextEditingController();
   final TextEditingController _packageContainsController =
       TextEditingController(text: '1');
   final TextEditingController _packageSupplierCodeController =
@@ -340,7 +367,8 @@ class _Step4SalesLogisticsContentPanelState
       TextEditingController();
 
   int? _editingPackageIndex;
-  PackageContentKind _packageContentKind = PackageContentKind.salesPresentation;
+  PackageContentKind _packageContentKind =
+      PackageContentKind.salesPresentation;
   String? _packageContentReferenceId;
   bool _packageForAllVariants = true;
   Set<String> _packageVariantIds = <String>{};
@@ -349,12 +377,14 @@ class _Step4SalesLogisticsContentPanelState
   // Editor de contenido
   // --------------------------------------------------------------------------
 
-  final GlobalKey<FormState> _contentFormKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _contentFormKey =
+      GlobalKey<FormState>();
   final TextEditingController _componentNameController =
       TextEditingController();
   final TextEditingController _componentQuantityController =
       TextEditingController(text: '1');
-  final ScrollController _contentTableScrollController = ScrollController();
+  final ScrollController _contentTableScrollController =
+      ScrollController();
 
   String _componentUnit = 'PZA';
   String? _relatedCatalogVariantId;
@@ -381,11 +411,9 @@ class _Step4SalesLogisticsContentPanelState
     _presentations = [...widget.initialPresentations];
     _packages = [...widget.initialLogisticsPackages];
     _contentItems = [...widget.initialContentItems];
-    _usesPackages =
-        widget.initialUsesLogisticsPackages ??
+    _usesPackages = widget.initialUsesLogisticsPackages ??
         (widget.initialLogisticsPackages.isNotEmpty ? true : null);
-    _hasContent =
-        widget.initialHasProductContent ??
+    _hasContent = widget.initialHasProductContent ??
         (widget.initialContentItems.isNotEmpty ? true : null);
     _selectedContentVariantId = widget.variants.first.id;
 
@@ -429,7 +457,10 @@ class _Step4SalesLogisticsContentPanelState
     widget.onChanged?.call(_draft);
   }
 
-  void _showMessage(String message, {bool error = false}) {
+  void _showMessage(
+    String message, {
+    bool error = false,
+  }) {
     if (!mounted) {
       return;
     }
@@ -449,7 +480,9 @@ class _Step4SalesLogisticsContentPanelState
   // LÓGICA · PRESENTACIONES
   // ==========================================================================
 
-  void _startNewPresentation({bool rebuild = true}) {
+  void _startNewPresentation({
+    bool rebuild = true,
+  }) {
     _editingPresentationIndex = null;
     _presentationNameController.clear();
     _presentationEquivalentController.text = '1';
@@ -468,26 +501,29 @@ class _Step4SalesLogisticsContentPanelState
     }
   }
 
-  void _loadPresentation(int index, {bool rebuild = true}) {
+  void _loadPresentation(
+    int index, {
+    bool rebuild = true,
+  }) {
     final presentation = _presentations[index];
     _editingPresentationIndex = index;
     _presentationNameController.text = presentation.name;
-    _presentationEquivalentController.text = _step4PlainNumber(
-      presentation.equivalentTo,
-    );
-    _presentationMinimumController.text = _step4PlainNumber(
-      presentation.minimumOrder,
-    );
-    _presentationIncrementController.text = _step4PlainNumber(
-      presentation.purchaseIncrement,
-    );
+    _presentationEquivalentController.text =
+        _step4PlainNumber(presentation.equivalentTo);
+    _presentationMinimumController.text =
+        _step4PlainNumber(presentation.minimumOrder);
+    _presentationIncrementController.text =
+        _step4PlainNumber(presentation.purchaseIncrement);
     _presentationBaseUnit = presentation.baseUnit;
     _presentationAllowsDecimals = presentation.allowsDecimals;
-    _presentationIsDefault = presentation.defaultVariantIds.isNotEmpty;
-    _presentationVariantIds = {...presentation.assignedVariantIds};
+    _presentationIsDefault =
+        presentation.defaultVariantIds.isNotEmpty;
+    _presentationVariantIds = {
+      ...presentation.assignedVariantIds,
+    };
     _presentationForAllVariants =
         _presentationVariantIds.length == _allVariantIds.length &&
-        _presentationVariantIds.containsAll(_allVariantIds);
+            _presentationVariantIds.containsAll(_allVariantIds);
 
     if (rebuild && mounted) {
       setState(() {});
@@ -509,11 +545,12 @@ class _Step4SalesLogisticsContentPanelState
       return;
     }
 
-    final assignedIds = widget.variantLayout == Step4VariantLayout.single
+    final assignedIds = widget.variantLayout ==
+            Step4VariantLayout.single
         ? <String>{widget.variants.first.id}
         : _presentationForAllVariants
-        ? {..._allVariantIds}
-        : {..._presentationVariantIds};
+            ? {..._allVariantIds}
+            : {..._presentationVariantIds};
 
     if (assignedIds.isEmpty) {
       _showMessage(
@@ -523,11 +560,16 @@ class _Step4SalesLogisticsContentPanelState
       return;
     }
 
-    final equivalent = _parsePositive(_presentationEquivalentController.text);
-    final minimum = _parsePositive(_presentationMinimumController.text);
-    final increment = _parsePositive(_presentationIncrementController.text);
+    final equivalent =
+        _parsePositive(_presentationEquivalentController.text);
+    final minimum =
+        _parsePositive(_presentationMinimumController.text);
+    final increment =
+        _parsePositive(_presentationIncrementController.text);
 
-    if (equivalent == null || minimum == null || increment == null) {
+    if (equivalent == null ||
+        minimum == null ||
+        increment == null) {
       _showMessage(
         'Equivalencia, pedido mínimo e incremento deben ser mayores que cero.',
         error: true,
@@ -542,9 +584,12 @@ class _Step4SalesLogisticsContentPanelState
 
     final linkedPackageId = existingIndex == null
         ? null
-        : _presentations[existingIndex].linkedLogisticsPackageId;
+        : _presentations[existingIndex]
+            .linkedLogisticsPackageId;
 
-    final defaults = _presentationIsDefault ? {...assignedIds} : <String>{};
+    final defaults = _presentationIsDefault
+        ? {...assignedIds}
+        : <String>{};
 
     if (_presentationIsDefault) {
       _presentations = _presentations.map((item) {
@@ -553,7 +598,8 @@ class _Step4SalesLogisticsContentPanelState
         }
 
         return item.copyWith(
-          defaultVariantIds: item.defaultVariantIds.difference(assignedIds),
+          defaultVariantIds: item.defaultVariantIds
+              .difference(assignedIds),
         );
       }).toList();
     }
@@ -595,14 +641,16 @@ class _Step4SalesLogisticsContentPanelState
     var changed = false;
 
     _packages = _packages.map((item) {
-      if (item.contentKind != PackageContentKind.salesPresentation ||
+      if (item.contentKind !=
+              PackageContentKind.salesPresentation ||
           item.contentReferenceId != presentation.id) {
         return item;
       }
 
       changed = true;
       return item.copyWith(
-        totalBaseUnits: item.contains * presentation.equivalentTo,
+        totalBaseUnits:
+            item.contains * presentation.equivalentTo,
         baseUnit: presentation.baseUnit,
       );
     }).toList();
@@ -616,7 +664,8 @@ class _Step4SalesLogisticsContentPanelState
     final presentation = _presentations[index];
     final usedByPackage = _packages.any(
       (item) =>
-          item.contentKind == PackageContentKind.salesPresentation &&
+          item.contentKind ==
+              PackageContentKind.salesPresentation &&
           item.contentReferenceId == presentation.id,
     );
 
@@ -654,7 +703,10 @@ class _Step4SalesLogisticsContentPanelState
 
   bool _validatePresentationsForNext() {
     if (_presentations.isEmpty) {
-      _showMessage('Agrega al menos una presentación de venta.', error: true);
+      _showMessage(
+        'Agrega al menos una presentación de venta.',
+        error: true,
+      );
       return false;
     }
 
@@ -674,9 +726,9 @@ class _Step4SalesLogisticsContentPanelState
     }
 
     final withoutDefault = widget.variants.where((variant) {
-      final count = _presentations
-          .where((item) => item.defaultVariantIds.contains(variant.id))
-          .length;
+      final count = _presentations.where(
+        (item) => item.defaultVariantIds.contains(variant.id),
+      ).length;
       return count != 1;
     }).toList();
 
@@ -695,7 +747,9 @@ class _Step4SalesLogisticsContentPanelState
   // LÓGICA · EMPAQUES
   // ==========================================================================
 
-  void _startNewPackage({bool rebuild = true}) {
+  void _startNewPackage({
+    bool rebuild = true,
+  }) {
     _editingPackageIndex = null;
     _packageNameController.clear();
     _packageContainsController.text = '1';
@@ -715,19 +769,25 @@ class _Step4SalesLogisticsContentPanelState
     }
   }
 
-  void _loadPackage(int index, {bool rebuild = true}) {
+  void _loadPackage(
+    int index, {
+    bool rebuild = true,
+  }) {
     final package = _packages[index];
     _editingPackageIndex = index;
     _packageNameController.text = package.name;
-    _packageContainsController.text = _step4PlainNumber(package.contains);
-    _packageSupplierCodeController.text = package.supplierCode ?? '';
-    _packageDescriptionController.text = package.description ?? '';
+    _packageContainsController.text =
+        _step4PlainNumber(package.contains);
+    _packageSupplierCodeController.text =
+        package.supplierCode ?? '';
+    _packageDescriptionController.text =
+        package.description ?? '';
     _packageContentKind = package.contentKind;
     _packageContentReferenceId = package.contentReferenceId;
     _packageVariantIds = {...package.assignedVariantIds};
     _packageForAllVariants =
         _packageVariantIds.length == _allVariantIds.length &&
-        _packageVariantIds.containsAll(_allVariantIds);
+            _packageVariantIds.containsAll(_allVariantIds);
 
     if (rebuild && mounted) {
       setState(() {});
@@ -750,11 +810,15 @@ class _Step4SalesLogisticsContentPanelState
 
       final packageIds = _packages.map((item) => item.id).toSet();
       _presentations = _presentations.map((item) {
-        if (!packageIds.contains(item.linkedLogisticsPackageId)) {
+        if (!packageIds.contains(
+          item.linkedLogisticsPackageId,
+        )) {
           return item;
         }
 
-        return item.copyWith(clearLinkedLogisticsPackageId: true);
+        return item.copyWith(
+          clearLinkedLogisticsPackageId: true,
+        );
       }).toList();
       _packages.clear();
     }
@@ -768,8 +832,10 @@ class _Step4SalesLogisticsContentPanelState
     _emitChanged();
   }
 
-  ({double total, String baseUnit})? get _currentPackageEquivalence {
-    final contains = _parsePositive(_packageContainsController.text);
+  ({double total, String baseUnit})?
+      get _currentPackageEquivalence {
+    final contains =
+        _parsePositive(_packageContainsController.text);
     final referenceId = _packageContentReferenceId;
 
     if (contains == null || referenceId == null) {
@@ -806,11 +872,12 @@ class _Step4SalesLogisticsContentPanelState
       return;
     }
 
-    final assignedIds = widget.variantLayout == Step4VariantLayout.single
+    final assignedIds = widget.variantLayout ==
+            Step4VariantLayout.single
         ? <String>{widget.variants.first.id}
         : _packageForAllVariants
-        ? {..._allVariantIds}
-        : {..._packageVariantIds};
+            ? {..._allVariantIds}
+            : {..._packageVariantIds};
 
     if (assignedIds.isEmpty) {
       _showMessage(
@@ -820,11 +887,14 @@ class _Step4SalesLogisticsContentPanelState
       return;
     }
 
-    final contains = _parsePositive(_packageContainsController.text);
+    final contains =
+        _parsePositive(_packageContainsController.text);
     final equivalence = _currentPackageEquivalence;
     final referenceId = _packageContentReferenceId;
 
-    if (contains == null || equivalence == null || referenceId == null) {
+    if (contains == null ||
+        equivalence == null ||
+        referenceId == null) {
       _showMessage(
         'Completa correctamente el contenido del empaque.',
         error: true,
@@ -838,7 +908,8 @@ class _Step4SalesLogisticsContentPanelState
         : _packages[existingIndex].id;
     final linkedPresentationId = existingIndex == null
         ? null
-        : _packages[existingIndex].linkedSalesPresentationId;
+        : _packages[existingIndex]
+            .linkedSalesPresentationId;
 
     final saved = LogisticsPackageDraft(
       id: id,
@@ -849,8 +920,10 @@ class _Step4SalesLogisticsContentPanelState
       totalBaseUnits: equivalence.total,
       baseUnit: equivalence.baseUnit,
       assignedVariantIds: assignedIds,
-      supplierCode: _nullIfEmpty(_packageSupplierCodeController.text),
-      description: _nullIfEmpty(_packageDescriptionController.text),
+      supplierCode:
+          _nullIfEmpty(_packageSupplierCodeController.text),
+      description:
+          _nullIfEmpty(_packageDescriptionController.text),
       linkedSalesPresentationId: linkedPresentationId,
     );
 
@@ -880,27 +953,32 @@ class _Step4SalesLogisticsContentPanelState
       return;
     }
 
-    final index = _presentations.indexWhere((item) => item.id == linkedId);
+    final index = _presentations.indexWhere(
+      (item) => item.id == linkedId,
+    );
     if (index == -1) {
       return;
     }
 
     final current = _presentations[index];
     _presentations[index] = current.copyWith(
-      name: '${package.name} x${_step4PlainNumber(package.totalBaseUnits)}',
+      name:
+          '${package.name} x${_step4PlainNumber(package.totalBaseUnits)}',
       baseUnit: package.baseUnit,
       equivalentTo: package.totalBaseUnits,
       assignedVariantIds: package.assignedVariantIds,
-      defaultVariantIds: current.defaultVariantIds.intersection(
-        package.assignedVariantIds,
-      ),
+      defaultVariantIds: current.defaultVariantIds
+          .intersection(package.assignedVariantIds),
     );
   }
 
   void _openOrCreateLinkedPresentation() {
     final packageIndex = _editingPackageIndex;
     if (packageIndex == null) {
-      _showMessage('Guarda primero el empaque logístico.', error: true);
+      _showMessage(
+        'Guarda primero el empaque logístico.',
+        error: true,
+      );
       return;
     }
 
@@ -915,7 +993,10 @@ class _Step4SalesLogisticsContentPanelState
       if (presentationIndex != -1) {
         setState(() {
           _section = Step4Section.salesPresentations;
-          _loadPresentation(presentationIndex, rebuild: false);
+          _loadPresentation(
+            presentationIndex,
+            rebuild: false,
+          );
         });
         return;
       }
@@ -924,7 +1005,8 @@ class _Step4SalesLogisticsContentPanelState
     final presentationId = _newId('presentation');
     final presentation = SalesPresentationDraft(
       id: presentationId,
-      name: '${package.name} x${_step4PlainNumber(package.totalBaseUnits)}',
+      name:
+          '${package.name} x${_step4PlainNumber(package.totalBaseUnits)}',
       baseUnit: package.baseUnit,
       equivalentTo: package.totalBaseUnits,
       minimumOrder: 1,
@@ -941,7 +1023,10 @@ class _Step4SalesLogisticsContentPanelState
         linkedSalesPresentationId: presentationId,
       );
       _section = Step4Section.salesPresentations;
-      _loadPresentation(_presentations.length - 1, rebuild: false);
+      _loadPresentation(
+        _presentations.length - 1,
+        rebuild: false,
+      );
     });
 
     _emitChanged();
@@ -971,8 +1056,10 @@ class _Step4SalesLogisticsContentPanelState
           (item) => item.id == linkedId,
         );
         if (presentationIndex != -1) {
-          _presentations[presentationIndex] = _presentations[presentationIndex]
-              .copyWith(clearLinkedLogisticsPackageId: true);
+          _presentations[presentationIndex] =
+              _presentations[presentationIndex].copyWith(
+            clearLinkedLogisticsPackageId: true,
+          );
         }
       }
 
@@ -991,7 +1078,9 @@ class _Step4SalesLogisticsContentPanelState
   // LÓGICA · CONTENIDO
   // ==========================================================================
 
-  void _startNewContentItem({bool rebuild = true}) {
+  void _startNewContentItem({
+    bool rebuild = true,
+  }) {
     _editingContentIndex = null;
     _componentNameController.clear();
     _componentQuantityController.text = '1';
@@ -1005,12 +1094,16 @@ class _Step4SalesLogisticsContentPanelState
     }
   }
 
-  void _loadContentItem(int globalIndex, {bool rebuild = true}) {
+  void _loadContentItem(
+    int globalIndex, {
+    bool rebuild = true,
+  }) {
     final item = _contentItems[globalIndex];
     _editingContentIndex = globalIndex;
     _selectedContentVariantId = item.ownerVariantId;
     _componentNameController.text = item.componentName;
-    _componentQuantityController.text = _step4PlainNumber(item.quantity);
+    _componentQuantityController.text =
+        _step4PlainNumber(item.quantity);
     _componentUnit = item.unit;
     _relatedCatalogVariantId = item.relatedCatalogVariantId;
 
@@ -1053,10 +1146,14 @@ class _Step4SalesLogisticsContentPanelState
 
     final ownerVariantId =
         _selectedContentVariantId ?? widget.variants.first.id;
-    final quantity = _parsePositive(_componentQuantityController.text);
+    final quantity =
+        _parsePositive(_componentQuantityController.text);
 
     if (quantity == null) {
-      _showMessage('La cantidad debe ser mayor que cero.', error: true);
+      _showMessage(
+        'La cantidad debe ser mayor que cero.',
+        error: true,
+      );
       return;
     }
 
@@ -1117,7 +1214,9 @@ class _Step4SalesLogisticsContentPanelState
         return StatefulBuilder(
           builder: (context, setDialogState) {
             final options = widget.catalogVariants.where((item) {
-              return item.label.toLowerCase().contains(query.toLowerCase());
+              return item.label
+                  .toLowerCase()
+                  .contains(query.toLowerCase());
             }).toList();
 
             return AlertDialog(
@@ -1164,8 +1263,10 @@ class _Step4SalesLogisticsContentPanelState
                                     Icons.inventory_2_outlined,
                                   ),
                                   title: Text(option.label),
-                                  onTap: () =>
-                                      Navigator.pop(context, option.id),
+                                  onTap: () => Navigator.pop(
+                                    context,
+                                    option.id,
+                                  ),
                                 );
                               },
                             ),
@@ -1190,12 +1291,14 @@ class _Step4SalesLogisticsContentPanelState
     }
 
     setState(() {
-      _relatedCatalogVariantId = result.isEmpty ? null : result;
+      _relatedCatalogVariantId =
+          result.isEmpty ? null : result;
     });
   }
 
   Future<void> _copyContentToOtherVariants() async {
-    final sourceId = _selectedContentVariantId ?? widget.variants.first.id;
+    final sourceId =
+        _selectedContentVariantId ?? widget.variants.first.id;
     final sourceItems = _contentItems
         .where((item) => item.ownerVariantId == sourceId)
         .toList();
@@ -1213,7 +1316,9 @@ class _Step4SalesLogisticsContentPanelState
         .toList();
 
     if (candidates.isEmpty) {
-      _showMessage('No existen otras variantes a las cuales copiar.');
+      _showMessage(
+        'No existen otras variantes a las cuales copiar.',
+      );
       return;
     }
 
@@ -1239,15 +1344,19 @@ class _Step4SalesLogisticsContentPanelState
                     ),
                     const SizedBox(height: 10),
                     ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 280),
+                      constraints: const BoxConstraints(
+                        maxHeight: 280,
+                      ),
                       child: ListView(
                         shrinkWrap: true,
                         children: candidates.map((variant) {
-                          final checked = selected.contains(variant.id);
+                          final checked =
+                              selected.contains(variant.id);
                           return CheckboxListTile(
                             value: checked,
                             title: Text(variant.label),
-                            controlAffinity: ListTileControlAffinity.leading,
+                            controlAffinity:
+                                ListTileControlAffinity.leading,
                             onChanged: (value) {
                               setDialogState(() {
                                 if (value ?? false) {
@@ -1265,11 +1374,14 @@ class _Step4SalesLogisticsContentPanelState
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
                       value: replaceExisting,
-                      title: const Text('Reemplazar el contenido existente'),
+                      title: const Text(
+                        'Reemplazar el contenido existente',
+                      ),
                       subtitle: const Text(
                         'Si no se activa, los componentes se agregarán a la lista actual.',
                       ),
-                      controlAffinity: ListTileControlAffinity.leading,
+                      controlAffinity:
+                          ListTileControlAffinity.leading,
                       onChanged: (value) {
                         setDialogState(() {
                           replaceExisting = value ?? false;
@@ -1321,7 +1433,8 @@ class _Step4SalesLogisticsContentPanelState
               componentName: source.componentName,
               quantity: source.quantity,
               unit: source.unit,
-              relatedCatalogVariantId: source.relatedCatalogVariantId,
+              relatedCatalogVariantId:
+                  source.relatedCatalogVariantId,
             ),
           );
         }
@@ -1336,14 +1449,17 @@ class _Step4SalesLogisticsContentPanelState
   // ALCANCE DE VARIANTES
   // ==========================================================================
 
-  Future<Set<String>?> _selectVariants(Set<String> initialSelection) {
+  Future<Set<String>?> _selectVariants(
+    Set<String> initialSelection,
+  ) {
     if (widget.variantLayout == Step4VariantLayout.single) {
       return Future.value({..._allVariantIds});
     }
 
     if (widget.variantLayout == Step4VariantLayout.matrix &&
         widget.variants.every(
-          (item) => item.rowValue != null && item.columnValue != null,
+          (item) =>
+              item.rowValue != null && item.columnValue != null,
         )) {
       return _showMatrixVariantSelector(initialSelection);
     }
@@ -1351,7 +1467,9 @@ class _Step4SalesLogisticsContentPanelState
     return _showListVariantSelector(initialSelection);
   }
 
-  Future<Set<String>?> _showListVariantSelector(Set<String> initialSelection) {
+  Future<Set<String>?> _showListVariantSelector(
+    Set<String> initialSelection,
+  ) {
     final selected = {...initialSelection};
 
     return showDialog<Set<String>>(
@@ -1370,15 +1488,15 @@ class _Step4SalesLogisticsContentPanelState
                       value: selected.isEmpty
                           ? false
                           : selected.length == widget.variants.length
-                          ? true
-                          : null,
-                      tristate:
-                          selected.isNotEmpty &&
+                              ? true
+                              : null,
+                      tristate: selected.isNotEmpty &&
                           selected.length != widget.variants.length,
                       title: Text(
                         'Seleccionar todas (${widget.variants.length})',
                       ),
-                      controlAffinity: ListTileControlAffinity.leading,
+                      controlAffinity:
+                          ListTileControlAffinity.leading,
                       onChanged: (value) {
                         setDialogState(() {
                           if (value ?? false) {
@@ -1400,7 +1518,8 @@ class _Step4SalesLogisticsContentPanelState
                           return CheckboxListTile(
                             value: selected.contains(variant.id),
                             title: Text(variant.label),
-                            controlAffinity: ListTileControlAffinity.leading,
+                            controlAffinity:
+                                ListTileControlAffinity.leading,
                             onChanged: (value) {
                               setDialogState(() {
                                 if (value ?? false) {
@@ -1425,12 +1544,17 @@ class _Step4SalesLogisticsContentPanelState
                 FilledButton(
                   onPressed: selected.isEmpty
                       ? null
-                      : () => Navigator.pop(context, {...selected}),
+                      : () => Navigator.pop(
+                            context,
+                            {...selected},
+                          ),
                   style: FilledButton.styleFrom(
                     backgroundColor: _primary,
                     foregroundColor: _ink,
                   ),
-                  child: Text('Aplicar selección (${selected.length})'),
+                  child: Text(
+                    'Aplicar selección (${selected.length})',
+                  ),
                 ),
               ],
             );
@@ -1445,7 +1569,10 @@ class _Step4SalesLogisticsContentPanelState
   ) async {
     final selected = {...initialSelection};
     final matrixScrollController = ScrollController();
-    final rows = widget.variants.map((item) => item.rowValue!).toSet().toList();
+    final rows = widget.variants
+        .map((item) => item.rowValue!)
+        .toSet()
+        .toList();
     final columns = widget.variants
         .map((item) => item.columnValue!)
         .toSet()
@@ -1453,7 +1580,8 @@ class _Step4SalesLogisticsContentPanelState
 
     Step4VariantOption? cell(String row, String column) {
       for (final variant in widget.variants) {
-        if (variant.rowValue == row && variant.columnValue == column) {
+        if (variant.rowValue == row &&
+            variant.columnValue == column) {
           return variant;
         }
       }
@@ -1505,233 +1633,251 @@ class _Step4SalesLogisticsContentPanelState
           return StatefulBuilder(
             builder: (context, setDialogState) {
               return AlertDialog(
-                title: const Text('Seleccionar en la matriz'),
-                content: SizedBox(
-                  width: 880,
-                  height: 520,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: selected.isEmpty
-                                ? false
-                                : selected.length == widget.variants.length
-                                ? true
-                                : null,
-                            tristate:
-                                selected.isNotEmpty &&
-                                selected.length != widget.variants.length,
-                            onChanged: (value) {
-                              setDialogState(() {
-                                if (value ?? false) {
-                                  selected
-                                    ..clear()
-                                    ..addAll(_allVariantIds);
-                                } else {
-                                  selected.clear();
-                                }
-                              });
-                            },
-                          ),
-                          Expanded(
-                            child: Text(
-                              'Toda la matriz · ${selected.length} de ${widget.variants.length} seleccionadas',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                              ),
+              title: const Text('Seleccionar en la matriz'),
+              content: SizedBox(
+                width: 880,
+                height: 520,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: selected.isEmpty
+                              ? false
+                              : selected.length ==
+                                      widget.variants.length
+                                  ? true
+                                  : null,
+                          tristate: selected.isNotEmpty &&
+                              selected.length !=
+                                  widget.variants.length,
+                          onChanged: (value) {
+                            setDialogState(() {
+                              if (value ?? false) {
+                                selected
+                                  ..clear()
+                                  ..addAll(_allVariantIds);
+                              } else {
+                                selected.clear();
+                              }
+                            });
+                          },
+                        ),
+                        Expanded(
+                          child: Text(
+                            'Toda la matriz · ${selected.length} de ${widget.variants.length} seleccionadas',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Expanded(
-                        child: Scrollbar(
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: Scrollbar(
+                        controller: matrixScrollController,
+                        thumbVisibility: true,
+                        child: SingleChildScrollView(
                           controller: matrixScrollController,
-                          thumbVisibility: true,
+                          scrollDirection: Axis.horizontal,
                           child: SingleChildScrollView(
-                            controller: matrixScrollController,
-                            scrollDirection: Axis.horizontal,
-                            child: SingleChildScrollView(
-                              child: Table(
-                                defaultColumnWidth: const FixedColumnWidth(138),
-                                border: TableBorder.all(color: _border),
-                                children: [
-                                  TableRow(
-                                    decoration: const BoxDecoration(
-                                      color: _soft,
+                            child: Table(
+                              defaultColumnWidth:
+                                  const FixedColumnWidth(138),
+                              border: TableBorder.all(
+                                color: _border,
+                              ),
+                              children: [
+                                TableRow(
+                                  decoration:
+                                      const BoxDecoration(color: _soft),
+                                  children: [
+                                    const Padding(
+                                      padding: EdgeInsets.all(12),
+                                      child: Text(
+                                        'Fila ↓ / Columna →',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 12,
+                                        ),
+                                      ),
                                     ),
+                                    ...columns.map((column) {
+                                      return InkWell(
+                                        onTap: () {
+                                          setDialogState(() {
+                                            toggleColumn(
+                                              column,
+                                              !columnSelected(column),
+                                            );
+                                          });
+                                        },
+                                        child: Padding(
+                                          padding:
+                                              const EdgeInsets.all(8),
+                                          child: Row(
+                                            children: [
+                                              Checkbox(
+                                                value: columnSelected(
+                                                  column,
+                                                ),
+                                                onChanged: (value) {
+                                                  setDialogState(() {
+                                                    toggleColumn(
+                                                      column,
+                                                      value ?? false,
+                                                    );
+                                                  });
+                                                },
+                                              ),
+                                              Flexible(
+                                                child: Text(
+                                                  column,
+                                                  style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                ),
+                                ...rows.map((row) {
+                                  return TableRow(
                                     children: [
-                                      const Padding(
-                                        padding: EdgeInsets.all(12),
-                                        child: Text(
-                                          'Fila ↓ / Columna →',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w800,
-                                            fontSize: 12,
+                                      InkWell(
+                                        onTap: () {
+                                          setDialogState(() {
+                                            toggleRow(
+                                              row,
+                                              !rowSelected(row),
+                                            );
+                                          });
+                                        },
+                                        child: Padding(
+                                          padding:
+                                              const EdgeInsets.all(8),
+                                          child: Row(
+                                            children: [
+                                              Checkbox(
+                                                value: rowSelected(row),
+                                                onChanged: (value) {
+                                                  setDialogState(() {
+                                                    toggleRow(
+                                                      row,
+                                                      value ?? false,
+                                                    );
+                                                  });
+                                                },
+                                              ),
+                                              Flexible(
+                                                child: Text(
+                                                  row,
+                                                  style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ),
                                       ...columns.map((column) {
+                                        final variant =
+                                            cell(row, column);
+                                        if (variant == null) {
+                                          return const SizedBox(
+                                            height: 58,
+                                            child: Center(
+                                              child: Text(
+                                                'No existe',
+                                                style: TextStyle(
+                                                  color: _muted,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }
+
+                                        final checked = selected.contains(
+                                          variant.id,
+                                        );
                                         return InkWell(
                                           onTap: () {
                                             setDialogState(() {
-                                              toggleColumn(
-                                                column,
-                                                !columnSelected(column),
-                                              );
+                                              checked
+                                                  ? selected.remove(
+                                                      variant.id,
+                                                    )
+                                                  : selected.add(
+                                                      variant.id,
+                                                    );
                                             });
                                           },
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(8),
-                                            child: Row(
-                                              children: [
-                                                Checkbox(
-                                                  value: columnSelected(column),
-                                                  onChanged: (value) {
-                                                    setDialogState(() {
-                                                      toggleColumn(
-                                                        column,
-                                                        value ?? false,
+                                          child: SizedBox(
+                                            height: 58,
+                                            child: Center(
+                                              child: Checkbox(
+                                                value: checked,
+                                                onChanged: (value) {
+                                                  setDialogState(() {
+                                                    if (value ?? false) {
+                                                      selected.add(
+                                                        variant.id,
                                                       );
-                                                    });
-                                                  },
-                                                ),
-                                                Flexible(
-                                                  child: Text(
-                                                    column,
-                                                    style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
+                                                    } else {
+                                                      selected.remove(
+                                                        variant.id,
+                                                      );
+                                                    }
+                                                  });
+                                                },
+                                              ),
                                             ),
                                           ),
                                         );
                                       }),
                                     ],
-                                  ),
-                                  ...rows.map((row) {
-                                    return TableRow(
-                                      children: [
-                                        InkWell(
-                                          onTap: () {
-                                            setDialogState(() {
-                                              toggleRow(row, !rowSelected(row));
-                                            });
-                                          },
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(8),
-                                            child: Row(
-                                              children: [
-                                                Checkbox(
-                                                  value: rowSelected(row),
-                                                  onChanged: (value) {
-                                                    setDialogState(() {
-                                                      toggleRow(
-                                                        row,
-                                                        value ?? false,
-                                                      );
-                                                    });
-                                                  },
-                                                ),
-                                                Flexible(
-                                                  child: Text(
-                                                    row,
-                                                    style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                        ...columns.map((column) {
-                                          final variant = cell(row, column);
-                                          if (variant == null) {
-                                            return const SizedBox(
-                                              height: 58,
-                                              child: Center(
-                                                child: Text(
-                                                  'No existe',
-                                                  style: TextStyle(
-                                                    color: _muted,
-                                                    fontSize: 11,
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          }
-
-                                          final checked = selected.contains(
-                                            variant.id,
-                                          );
-                                          return InkWell(
-                                            onTap: () {
-                                              setDialogState(() {
-                                                checked
-                                                    ? selected.remove(
-                                                        variant.id,
-                                                      )
-                                                    : selected.add(variant.id);
-                                              });
-                                            },
-                                            child: SizedBox(
-                                              height: 58,
-                                              child: Center(
-                                                child: Checkbox(
-                                                  value: checked,
-                                                  onChanged: (value) {
-                                                    setDialogState(() {
-                                                      if (value ?? false) {
-                                                        selected.add(
-                                                          variant.id,
-                                                        );
-                                                      } else {
-                                                        selected.remove(
-                                                          variant.id,
-                                                        );
-                                                      }
-                                                    });
-                                                  },
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        }),
-                                      ],
-                                    );
-                                  }),
-                                ],
-                              ),
+                                  );
+                                }),
+                              ],
                             ),
                           ),
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: selected.isEmpty
+                      ? null
+                      : () => Navigator.pop(
+                            context,
+                            {...selected},
+                          ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _primary,
+                    foregroundColor: _ink,
+                  ),
+                  child: Text(
+                    'Aplicar selección (${selected.length})',
                   ),
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancelar'),
-                  ),
-                  FilledButton(
-                    onPressed: selected.isEmpty
-                        ? null
-                        : () => Navigator.pop(context, {...selected}),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _primary,
-                      foregroundColor: _ink,
-                    ),
-                    child: Text('Aplicar selección (${selected.length})'),
-                  ),
-                ],
+              ],
               );
             },
           );
@@ -1830,7 +1976,9 @@ class _Step4SalesLogisticsContentPanelState
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1480),
+                  constraints: const BoxConstraints(
+                    maxWidth: 1480,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -1865,7 +2013,7 @@ class _Step4SalesLogisticsContentPanelState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Paso 3 · Venta, logística y contenido',
+              'Paso 4 · Venta, logística y contenido',
               style: TextStyle(
                 color: _ink,
                 fontSize: 25,
@@ -1876,13 +2024,20 @@ class _Step4SalesLogisticsContentPanelState
             const SizedBox(height: 7),
             const Text(
               'Define cómo compra el cliente y, cuando corresponda, cómo se transporta el producto o qué incluye.',
-              style: TextStyle(color: _muted, fontSize: 13, height: 1.4),
+              style: TextStyle(
+                color: _muted,
+                fontSize: 13,
+                height: 1.4,
+              ),
             ),
           ],
         );
 
         final familyBadge = Container(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 22,
+            vertical: 10,
+          ),
           decoration: BoxDecoration(
             color: const Color(0xFFFFF4C7),
             borderRadius: BorderRadius.circular(999),
@@ -1906,7 +2061,10 @@ class _Step4SalesLogisticsContentPanelState
             children: [
               title,
               const SizedBox(height: 14),
-              Align(alignment: Alignment.centerLeft, child: familyBadge),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: familyBadge,
+              ),
             ],
           );
         }
@@ -1951,8 +2109,8 @@ class _Step4SalesLogisticsContentPanelState
               status: _usesPackages == false
                   ? 'Opcional · No aplica'
                   : _usesPackages == true
-                  ? 'Opcional · ${_packages.length} ${_packages.length == 1 ? 'registrado' : 'registrados'}'
-                  : 'Opcional · Sin definir',
+                      ? 'Opcional · ${_packages.length} ${_packages.length == 1 ? 'registrado' : 'registrados'}'
+                      : 'Opcional · Sin definir',
             ),
           ),
           Expanded(
@@ -1962,8 +2120,8 @@ class _Step4SalesLogisticsContentPanelState
               status: _hasContent == false
                   ? 'Opcional · No aplica'
                   : _hasContent == true
-                  ? 'Opcional · ${_contentItems.length} ${_contentItems.length == 1 ? 'componente' : 'componentes'}'
-                  : 'Opcional · Sin definir',
+                      ? 'Opcional · ${_contentItems.length} ${_contentItems.length == 1 ? 'componente' : 'componentes'}'
+                      : 'Opcional · Sin definir',
             ),
           ),
         ],
@@ -1985,7 +2143,10 @@ class _Step4SalesLogisticsContentPanelState
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
         constraints: const BoxConstraints(minHeight: 66),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 8,
+        ),
         decoration: BoxDecoration(
           color: selected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
@@ -2010,7 +2171,8 @@ class _Step4SalesLogisticsContentPanelState
               style: TextStyle(
                 color: selected ? _ink : _muted,
                 fontSize: 12,
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                fontWeight:
+                    selected ? FontWeight.w800 : FontWeight.w600,
               ),
             ),
             const SizedBox(height: 3),
@@ -2063,16 +2225,26 @@ class _Step4SalesLogisticsContentPanelState
         if (constraints.maxWidth < 960) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [left, const SizedBox(height: 18), right],
+            children: [
+              left,
+              const SizedBox(height: 18),
+              right,
+            ],
           );
         }
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(flex: leftFlex.round(), child: left),
+            Expanded(
+              flex: leftFlex.round(),
+              child: left,
+            ),
             const SizedBox(width: 18),
-            Expanded(flex: rightFlex.round(), child: right),
+            Expanded(
+              flex: rightFlex.round(),
+              child: right,
+            ),
           ],
         );
       },
@@ -2169,10 +2341,11 @@ class _Step4SalesLogisticsContentPanelState
   Widget _buildPresentationCard(int index) {
     final item = _presentations[index];
     final selected = _editingPresentationIndex == index;
-    final allDefault =
-        item.defaultVariantIds.isNotEmpty &&
-        item.defaultVariantIds.length == item.assignedVariantIds.length;
-    final partialDefault = item.defaultVariantIds.isNotEmpty && !allDefault;
+    final allDefault = item.defaultVariantIds.isNotEmpty &&
+        item.defaultVariantIds.length ==
+            item.assignedVariantIds.length;
+    final partialDefault = item.defaultVariantIds.isNotEmpty &&
+        !allDefault;
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -2181,7 +2354,9 @@ class _Step4SalesLogisticsContentPanelState
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFFFFBEB) : _canvas,
+          color: selected
+              ? const Color(0xFFFFFBEB)
+              : _canvas,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selected ? _primary : _border,
@@ -2214,8 +2389,14 @@ class _Step4SalesLogisticsContentPanelState
                     }
                   },
                   itemBuilder: (context) => const [
-                    PopupMenuItem(value: 'edit', child: Text('Editar')),
-                    PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Text('Editar'),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Eliminar'),
+                    ),
                   ],
                 ),
               ],
@@ -2225,7 +2406,11 @@ class _Step4SalesLogisticsContentPanelState
               '${_step4PlainNumber(item.equivalentTo)} ${item.baseUnit}'
               ' · Pedido mínimo: ${_step4PlainNumber(item.minimumOrder)}'
               ' · Incremento: ${_step4PlainNumber(item.purchaseIncrement)}',
-              style: const TextStyle(color: _muted, fontSize: 12, height: 1.4),
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 12,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 11),
             Wrap(
@@ -2250,7 +2435,9 @@ class _Step4SalesLogisticsContentPanelState
                   background: const Color(0xFFEEF1F5),
                 ),
                 _statusPill(
-                  item.allowsDecimals ? 'Cantidad decimal' : 'Cantidad entera',
+                  item.allowsDecimals
+                      ? 'Cantidad decimal'
+                      : 'Cantidad entera',
                   color: _muted,
                   background: const Color(0xFFEEF1F5),
                 ),
@@ -2273,7 +2460,9 @@ class _Step4SalesLogisticsContentPanelState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              editing ? 'Editar presentación' : 'Nueva presentación',
+              editing
+                  ? 'Editar presentación'
+                  : 'Nueva presentación',
               style: const TextStyle(
                 color: _ink,
                 fontSize: 16,
@@ -2286,7 +2475,9 @@ class _Step4SalesLogisticsContentPanelState
               child: TextFormField(
                 controller: _presentationNameController,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: _inputDecoration(hint: 'Ej. Ciento o Caja x500'),
+                decoration: _inputDecoration(
+                  hint: 'Ej. Ciento o Caja x500',
+                ),
                 validator: _requiredText,
               ),
             ),
@@ -2298,7 +2489,10 @@ class _Step4SalesLogisticsContentPanelState
                 isExpanded: true,
                 decoration: _inputDecoration(),
                 items: widget.baseUnits.map((unit) {
-                  return DropdownMenuItem(value: unit, child: Text(unit));
+                  return DropdownMenuItem(
+                    value: unit,
+                    child: Text(unit),
+                  );
                 }).toList(),
                 onChanged: (value) {
                   if (value == null) {
@@ -2318,8 +2512,10 @@ class _Step4SalesLogisticsContentPanelState
                   _labeledField(
                     label: 'Equivale a *',
                     child: TextFormField(
-                      controller: _presentationEquivalentController,
-                      keyboardType: const TextInputType.numberWithOptions(
+                      controller:
+                          _presentationEquivalentController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
                       decoration: _inputDecoration(
@@ -2332,7 +2528,8 @@ class _Step4SalesLogisticsContentPanelState
                     label: 'Pedido mínimo *',
                     child: TextFormField(
                       controller: _presentationMinimumController,
-                      keyboardType: const TextInputType.numberWithOptions(
+                      keyboardType:
+                          const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
                       decoration: _inputDecoration(),
@@ -2342,8 +2539,10 @@ class _Step4SalesLogisticsContentPanelState
                   _labeledField(
                     label: 'Se puede pedir en múltiplos de *',
                     child: TextFormField(
-                      controller: _presentationIncrementController,
-                      keyboardType: const TextInputType.numberWithOptions(
+                      controller:
+                          _presentationIncrementController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
                       decoration: _inputDecoration(),
@@ -2416,7 +2615,10 @@ class _Step4SalesLogisticsContentPanelState
               ),
               subtitle: const Text(
                 'Solo puede existir una predeterminada para cada variante.',
-                style: TextStyle(color: _muted, fontSize: 11),
+                style: TextStyle(
+                  color: _muted,
+                  fontSize: 11,
+                ),
               ),
               onChanged: (value) {
                 setState(() {
@@ -2433,12 +2635,16 @@ class _Step4SalesLogisticsContentPanelState
                 setState(() {
                   _presentationForAllVariants = value;
                   if (value) {
-                    _presentationVariantIds = {..._allVariantIds};
+                    _presentationVariantIds = {
+                      ..._allVariantIds,
+                    };
                   }
                 });
               },
               onChangeSelection: () async {
-                final result = await _selectVariants(_presentationVariantIds);
+                final result = await _selectVariants(
+                  _presentationVariantIds,
+                );
                 if (result == null || !mounted) {
                   return;
                 }
@@ -2446,7 +2652,7 @@ class _Step4SalesLogisticsContentPanelState
                   _presentationVariantIds = result;
                   _presentationForAllVariants =
                       result.length == _allVariantIds.length &&
-                      result.containsAll(_allVariantIds);
+                          result.containsAll(_allVariantIds);
                 });
               },
             ),
@@ -2462,7 +2668,9 @@ class _Step4SalesLogisticsContentPanelState
                   onPressed: _savePresentation,
                   style: _primaryButtonStyle(),
                   child: Text(
-                    editing ? 'Guardar cambios' : 'Guardar presentación',
+                    editing
+                        ? 'Guardar cambios'
+                        : 'Guardar presentación',
                   ),
                 );
                 if (constraints.maxWidth < 430) {
@@ -2476,7 +2684,11 @@ class _Step4SalesLogisticsContentPanelState
                   );
                 }
                 return Row(
-                  children: [cancelButton, const Spacer(), saveButton],
+                  children: [
+                    cancelButton,
+                    const Spacer(),
+                    saveButton,
+                  ],
                 );
               },
             ),
@@ -2591,7 +2803,8 @@ class _Step4SalesLogisticsContentPanelState
   Widget _buildPackageCard(int index) {
     final item = _packages[index];
     final selected = _editingPackageIndex == index;
-    final containedLabel = _packageContainedLabel(item);
+    final containedLabel =
+        _packageContainedLabel(item);
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -2600,7 +2813,9 @@ class _Step4SalesLogisticsContentPanelState
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFFFFBEB) : _canvas,
+          color: selected
+              ? const Color(0xFFFFFBEB)
+              : _canvas,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selected ? _primary : _border,
@@ -2638,8 +2853,14 @@ class _Step4SalesLogisticsContentPanelState
                     }
                   },
                   itemBuilder: (context) => const [
-                    PopupMenuItem(value: 'edit', child: Text('Editar')),
-                    PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Text('Editar'),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Eliminar'),
+                    ),
                   ],
                 ),
               ],
@@ -2647,7 +2868,10 @@ class _Step4SalesLogisticsContentPanelState
             const SizedBox(height: 5),
             Text(
               'Contiene ${_step4PlainNumber(item.contains)} × $containedLabel',
-              style: const TextStyle(color: _muted, fontSize: 12),
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 12,
+              ),
             ),
             const SizedBox(height: 9),
             Text(
@@ -2687,7 +2911,8 @@ class _Step4SalesLogisticsContentPanelState
     final editing = _editingPackageIndex != null;
     final equivalence = _currentPackageEquivalence;
     final linkedId = editing
-        ? _packages[_editingPackageIndex!].linkedSalesPresentationId
+        ? _packages[_editingPackageIndex!]
+            .linkedSalesPresentationId
         : null;
 
     return _panel(
@@ -2714,8 +2939,11 @@ class _Step4SalesLogisticsContentPanelState
                   label: 'Nombre del empaque *',
                   child: TextFormField(
                     controller: _packageNameController,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: _inputDecoration(hint: 'Ej. Caja máster'),
+                    textCapitalization:
+                        TextCapitalization.sentences,
+                    decoration: _inputDecoration(
+                      hint: 'Ej. Caja máster',
+                    ),
                     validator: _requiredText,
                   ),
                 );
@@ -2723,7 +2951,8 @@ class _Step4SalesLogisticsContentPanelState
                   label: 'Contiene *',
                   child: TextFormField(
                     controller: _packageContainsController,
-                    keyboardType: const TextInputType.numberWithOptions(
+                    keyboardType:
+                        const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                     onChanged: (_) => setState(() {}),
@@ -2734,7 +2963,11 @@ class _Step4SalesLogisticsContentPanelState
 
                 if (narrow) {
                   return Column(
-                    children: [name, const SizedBox(height: 14), contains],
+                    children: [
+                      name,
+                      const SizedBox(height: 14),
+                      contains,
+                    ],
                   );
                 }
 
@@ -2774,10 +3007,10 @@ class _Step4SalesLogisticsContentPanelState
                     _packageContentKind = value;
                     _packageContentReferenceId =
                         value == PackageContentKind.baseUnit
-                        ? widget.baseUnits.first
-                        : _presentations.isEmpty
-                        ? null
-                        : _presentations.first.id;
+                            ? widget.baseUnits.first
+                            : _presentations.isEmpty
+                                ? null
+                                : _presentations.first.id;
                   });
                 },
               ),
@@ -2825,8 +3058,8 @@ class _Step4SalesLogisticsContentPanelState
                           equivalence == null
                               ? 'Completa el contenido'
                               : 'Equivalencia total: '
-                                    '${_step4PlainNumber(equivalence.total)} '
-                                    '${equivalence.baseUnit}',
+                                  '${_step4PlainNumber(equivalence.total)} '
+                                  '${equivalence.baseUnit}',
                           style: const TextStyle(
                             color: _ink,
                             fontSize: 14,
@@ -2844,7 +3077,9 @@ class _Step4SalesLogisticsContentPanelState
               label: 'Código del proveedor (opcional)',
               child: TextFormField(
                 controller: _packageSupplierCodeController,
-                decoration: _inputDecoration(hint: 'Ej. CM-PER-1000'),
+                decoration: _inputDecoration(
+                  hint: 'Ej. CM-PER-1000',
+                ),
               ),
             ),
             const SizedBox(height: 14),
@@ -2856,7 +3091,8 @@ class _Step4SalesLogisticsContentPanelState
                 maxLines: 4,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: _inputDecoration(
-                  hint: 'Detalles de almacenamiento o transporte.',
+                  hint:
+                      'Detalles de almacenamiento o transporte.',
                 ),
               ),
             ),
@@ -2874,7 +3110,8 @@ class _Step4SalesLogisticsContentPanelState
                 });
               },
               onChangeSelection: () async {
-                final result = await _selectVariants(_packageVariantIds);
+                final result =
+                    await _selectVariants(_packageVariantIds);
                 if (result == null || !mounted) {
                   return;
                 }
@@ -2882,7 +3119,7 @@ class _Step4SalesLogisticsContentPanelState
                   _packageVariantIds = result;
                   _packageForAllVariants =
                       result.length == _allVariantIds.length &&
-                      result.containsAll(_allVariantIds);
+                          result.containsAll(_allVariantIds);
                 });
               },
             ),
@@ -2908,13 +3145,21 @@ class _Step4SalesLogisticsContentPanelState
                   const SizedBox(height: 5),
                   const Text(
                     'Se creará una presentación de venta separada y vinculada. El precio se asignará en el paso 5.',
-                    style: TextStyle(color: _muted, fontSize: 11, height: 1.4),
+                    style: TextStyle(
+                      color: _muted,
+                      fontSize: 11,
+                      height: 1.4,
+                    ),
                   ),
                   const SizedBox(height: 11),
                   OutlinedButton.icon(
-                    onPressed: editing ? _openOrCreateLinkedPresentation : null,
+                    onPressed: editing
+                        ? _openOrCreateLinkedPresentation
+                        : null,
                     icon: Icon(
-                      linkedId == null ? Icons.add_link : Icons.open_in_new,
+                      linkedId == null
+                          ? Icons.add_link
+                          : Icons.open_in_new,
                       size: 18,
                     ),
                     label: Text(
@@ -2928,7 +3173,10 @@ class _Step4SalesLogisticsContentPanelState
                     const SizedBox(height: 6),
                     const Text(
                       'Guarda primero el empaque.',
-                      style: TextStyle(color: _muted, fontSize: 10),
+                      style: TextStyle(
+                        color: _muted,
+                        fontSize: 10,
+                      ),
                     ),
                   ],
                 ],
@@ -2945,7 +3193,11 @@ class _Step4SalesLogisticsContentPanelState
                 final saveButton = FilledButton(
                   onPressed: _savePackage,
                   style: _primaryButtonStyle(),
-                  child: Text(editing ? 'Guardar cambios' : 'Guardar empaque'),
+                  child: Text(
+                    editing
+                        ? 'Guardar cambios'
+                        : 'Guardar empaque',
+                  ),
                 );
                 if (constraints.maxWidth < 430) {
                   return Column(
@@ -2958,7 +3210,11 @@ class _Step4SalesLogisticsContentPanelState
                   );
                 }
                 return Row(
-                  children: [cancelButton, const Spacer(), saveButton],
+                  children: [
+                    cancelButton,
+                    const Spacer(),
+                    saveButton,
+                  ],
                 );
               },
             ),
@@ -2973,13 +3229,18 @@ class _Step4SalesLogisticsContentPanelState
       return _labeledField(
         label: 'Unidad contenida *',
         child: DropdownButtonFormField<String>(
-          value: widget.baseUnits.contains(_packageContentReferenceId)
+          value: widget.baseUnits.contains(
+            _packageContentReferenceId,
+          )
               ? _packageContentReferenceId
               : widget.baseUnits.first,
           isExpanded: true,
           decoration: _inputDecoration(),
           items: widget.baseUnits.map((unit) {
-            return DropdownMenuItem(value: unit, child: Text(unit));
+            return DropdownMenuItem(
+              value: unit,
+              child: Text(unit),
+            );
           }).toList(),
           onChanged: (value) {
             setState(() {
@@ -2993,8 +3254,9 @@ class _Step4SalesLogisticsContentPanelState
     return _labeledField(
       label: 'Presentación contenida *',
       child: DropdownButtonFormField<String>(
-        value:
-            _presentations.any((item) => item.id == _packageContentReferenceId)
+        value: _presentations.any(
+          (item) => item.id == _packageContentReferenceId,
+        )
             ? _packageContentReferenceId
             : null,
         isExpanded: true,
@@ -3019,7 +3281,8 @@ class _Step4SalesLogisticsContentPanelState
                 });
               },
         validator: (value) {
-          if (_packageContentKind == PackageContentKind.salesPresentation &&
+          if (_packageContentKind ==
+                  PackageContentKind.salesPresentation &&
               value == null) {
             return 'Selecciona la presentación contenida.';
           }
@@ -3087,7 +3350,10 @@ class _Step4SalesLogisticsContentPanelState
 
   Widget _buildContentVariantToolbar() {
     return _panel(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 12,
+      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final selector = Row(
@@ -3105,7 +3371,9 @@ class _Step4SalesLogisticsContentPanelState
                 child: DropdownButtonFormField<String>(
                   value: _selectedContentVariantId,
                   isExpanded: true,
-                  decoration: _inputDecoration(dense: true),
+                  decoration: _inputDecoration(
+                    dense: true,
+                  ),
                   items: widget.variants.map((variant) {
                     return DropdownMenuItem(
                       value: variant.id,
@@ -3136,7 +3404,11 @@ class _Step4SalesLogisticsContentPanelState
           if (constraints.maxWidth < 720) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [selector, const SizedBox(height: 10), copyButton],
+              children: [
+                selector,
+                const SizedBox(height: 10),
+                copyButton,
+              ],
             );
           }
 
@@ -3152,9 +3424,12 @@ class _Step4SalesLogisticsContentPanelState
     );
   }
 
-  List<MapEntry<int, ProductContentItemDraft>> get _visibleContentEntries {
-    final variantId = _selectedContentVariantId ?? widget.variants.first.id;
-    final entries = <MapEntry<int, ProductContentItemDraft>>[];
+  List<MapEntry<int, ProductContentItemDraft>>
+      get _visibleContentEntries {
+    final variantId =
+        _selectedContentVariantId ?? widget.variants.first.id;
+    final entries =
+        <MapEntry<int, ProductContentItemDraft>>[];
 
     for (var index = 0; index < _contentItems.length; index++) {
       final item = _contentItems[index];
@@ -3215,12 +3490,17 @@ class _Step4SalesLogisticsContentPanelState
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
-                      headingRowColor: MaterialStateProperty.all(_soft),
+                      headingRowColor:
+                          MaterialStateProperty.all(_soft),
                       columns: const [
-                        DataColumn(label: Text('Elemento incluido')),
+                        DataColumn(
+                          label: Text('Elemento incluido'),
+                        ),
                         DataColumn(label: Text('Cantidad')),
                         DataColumn(label: Text('Unidad')),
-                        DataColumn(label: Text('Producto relacionado')),
+                        DataColumn(
+                          label: Text('Producto relacionado'),
+                        ),
                         DataColumn(label: Text('Acciones')),
                       ],
                       rows: entries.map((entry) {
@@ -3238,7 +3518,9 @@ class _Step4SalesLogisticsContentPanelState
                                 ),
                               ),
                             ),
-                            DataCell(Text(_step4PlainNumber(item.quantity))),
+                            DataCell(
+                              Text(_step4PlainNumber(item.quantity)),
+                            ),
                             DataCell(Text(item.unit)),
                             DataCell(
                               SizedBox(
@@ -3264,7 +3546,8 @@ class _Step4SalesLogisticsContentPanelState
                                     onPressed: () =>
                                         _deleteContentItem(entry.key),
                                     style: TextButton.styleFrom(
-                                      foregroundColor: Colors.red.shade700,
+                                      foregroundColor:
+                                          Colors.red.shade700,
                                     ),
                                     child: const Text('Eliminar'),
                                   ),
@@ -3291,7 +3574,8 @@ class _Step4SalesLogisticsContentPanelState
 
   Widget _buildContentEditor() {
     final editing = _editingContentIndex != null;
-    final relatedLabel = _catalogVariantLabel(_relatedCatalogVariantId);
+    final relatedLabel =
+        _catalogVariantLabel(_relatedCatalogVariantId);
 
     return _panel(
       background: _canvas,
@@ -3314,7 +3598,9 @@ class _Step4SalesLogisticsContentPanelState
               child: TextFormField(
                 controller: _componentNameController,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: _inputDecoration(hint: 'Ej. Broca 3 mm'),
+                decoration: _inputDecoration(
+                  hint: 'Ej. Broca 3 mm',
+                ),
                 validator: _requiredText,
               ),
             ),
@@ -3325,7 +3611,8 @@ class _Step4SalesLogisticsContentPanelState
                   label: 'Cantidad *',
                   child: TextFormField(
                     controller: _componentQuantityController,
-                    keyboardType: const TextInputType.numberWithOptions(
+                    keyboardType:
+                        const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                     decoration: _inputDecoration(),
@@ -3339,7 +3626,10 @@ class _Step4SalesLogisticsContentPanelState
                     isExpanded: true,
                     decoration: _inputDecoration(),
                     items: widget.baseUnits.map((item) {
-                      return DropdownMenuItem(value: item, child: Text(item));
+                      return DropdownMenuItem(
+                        value: item,
+                        child: Text(item),
+                      );
                     }).toList(),
                     onChanged: (value) {
                       if (value == null) {
@@ -3354,7 +3644,11 @@ class _Step4SalesLogisticsContentPanelState
 
                 if (constraints.maxWidth < 420) {
                   return Column(
-                    children: [quantity, const SizedBox(height: 14), unit],
+                    children: [
+                      quantity,
+                      const SizedBox(height: 14),
+                      unit,
+                    ],
                   );
                 }
 
@@ -3370,16 +3664,20 @@ class _Step4SalesLogisticsContentPanelState
             ),
             const SizedBox(height: 14),
             _labeledField(
-              label: 'Producto o variante relacionada (opcional)',
+              label:
+                  'Producto o variante relacionada (opcional)',
               child: InkWell(
                 borderRadius: BorderRadius.circular(10),
                 onTap: _pickCatalogVariant,
                 child: InputDecorator(
-                  decoration: _inputDecoration(suffixIcon: Icons.search),
+                  decoration: _inputDecoration(
+                    suffixIcon: Icons.search,
+                  ),
                   child: Text(
                     relatedLabel ?? 'Buscar en el catálogo',
                     style: TextStyle(
-                      color: relatedLabel == null ? _muted : _ink,
+                      color:
+                          relatedLabel == null ? _muted : _ink,
                     ),
                   ),
                 ),
@@ -3388,7 +3686,11 @@ class _Step4SalesLogisticsContentPanelState
             const SizedBox(height: 7),
             const Text(
               'El nombre puede guardarse aunque el componente no exista en el catálogo.',
-              style: TextStyle(color: _muted, fontSize: 10, height: 1.35),
+              style: TextStyle(
+                color: _muted,
+                fontSize: 10,
+                height: 1.35,
+              ),
             ),
             const SizedBox(height: 20),
             LayoutBuilder(
@@ -3402,7 +3704,9 @@ class _Step4SalesLogisticsContentPanelState
                   onPressed: _saveContentItem,
                   style: _primaryButtonStyle(),
                   child: Text(
-                    editing ? 'Guardar cambios' : 'Agregar componente',
+                    editing
+                        ? 'Guardar cambios'
+                        : 'Agregar componente',
                   ),
                 );
                 if (constraints.maxWidth < 430) {
@@ -3416,7 +3720,11 @@ class _Step4SalesLogisticsContentPanelState
                   );
                 }
                 return Row(
-                  children: [cancelButton, const Spacer(), saveButton],
+                  children: [
+                    cancelButton,
+                    const Spacer(),
+                    saveButton,
+                  ],
                 );
               },
             ),
@@ -3483,7 +3791,11 @@ class _Step4SalesLogisticsContentPanelState
           if (constraints.maxWidth < 850) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [text, const SizedBox(height: 14), trailing],
+              children: [
+                text,
+                const SizedBox(height: 14),
+                trailing,
+              ],
             );
           }
 
@@ -3521,8 +3833,12 @@ class _Step4SalesLogisticsContentPanelState
             fontWeight: FontWeight.w700,
             fontSize: 12,
           ),
-          side: BorderSide(color: currentValue == false ? _ink : _border),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+          side: BorderSide(
+            color: currentValue == false ? _ink : _border,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(9),
+          ),
         ),
         ChoiceChip(
           selected: currentValue == true,
@@ -3535,8 +3851,12 @@ class _Step4SalesLogisticsContentPanelState
             fontWeight: FontWeight.w700,
             fontSize: 12,
           ),
-          side: BorderSide(color: currentValue == true ? _primary : _border),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+          side: BorderSide(
+            color: currentValue == true ? _primary : _border,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(9),
+          ),
         ),
       ],
     );
@@ -3571,7 +3891,11 @@ class _Step4SalesLogisticsContentPanelState
             ),
             child: Row(
               children: [
-                const Icon(Icons.check_circle, color: _success, size: 20),
+                const Icon(
+                  Icons.check_circle,
+                  color: _success,
+                  size: 20,
+                ),
                 const SizedBox(width: 9),
                 Expanded(
                   child: Text(
@@ -3610,7 +3934,8 @@ class _Step4SalesLogisticsContentPanelState
         const SizedBox(height: 7),
         _radioOption(
           selected: !allSelected,
-          title: 'Variantes seleccionadas (${selectedIds.length})',
+          title:
+              'Variantes seleccionadas (${selectedIds.length})',
           onTap: () => onAllChanged(false),
         ),
         if (!allSelected) ...[
@@ -3621,7 +3946,9 @@ class _Step4SalesLogisticsContentPanelState
               onPressed: onChangeSelection,
               icon: const Icon(Icons.tune, size: 17),
               label: const Text('Cambiar selección'),
-              style: _outlinedButtonStyle(compact: true),
+              style: _outlinedButtonStyle(
+                compact: true,
+              ),
             ),
           ),
         ],
@@ -3638,11 +3965,18 @@ class _Step4SalesLogisticsContentPanelState
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 11,
+          vertical: 9,
+        ),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFFFFBEB) : Colors.white,
+          color: selected
+              ? const Color(0xFFFFFBEB)
+              : Colors.white,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: selected ? _primary : _border),
+          border: Border.all(
+            color: selected ? _primary : _border,
+          ),
         ),
         child: Row(
           children: [
@@ -3740,7 +4074,11 @@ class _Step4SalesLogisticsContentPanelState
             Text(
               description,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _muted, fontSize: 12, height: 1.45),
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 12,
+                height: 1.45,
+              ),
             ),
             const SizedBox(height: 16),
             OutlinedButton(
@@ -3761,7 +4099,10 @@ class _Step4SalesLogisticsContentPanelState
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 28),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 18,
+        vertical: 28,
+      ),
       decoration: BoxDecoration(
         color: _soft,
         borderRadius: BorderRadius.circular(11),
@@ -3783,14 +4124,21 @@ class _Step4SalesLogisticsContentPanelState
           Text(
             description,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: _muted, fontSize: 11, height: 1.4),
+            style: const TextStyle(
+              color: _muted,
+              fontSize: 11,
+              height: 1.4,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _neutralNote(String message, {required IconData icon}) {
+  Widget _neutralNote(
+    String message, {
+    required IconData icon,
+  }) {
     return Container(
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
@@ -3805,7 +4153,11 @@ class _Step4SalesLogisticsContentPanelState
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(color: _muted, fontSize: 11, height: 1.4),
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 11,
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -3824,7 +4176,10 @@ class _Step4SalesLogisticsContentPanelState
         borderRadius: BorderRadius.circular(14),
         side: const BorderSide(color: _border),
       ),
-      child: Padding(padding: padding, child: child),
+      child: Padding(
+        padding: padding,
+        child: child,
+      ),
     );
   }
 
@@ -3834,7 +4189,10 @@ class _Step4SalesLogisticsContentPanelState
     required Color background,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 7,
+      ),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(999),
@@ -3850,7 +4208,10 @@ class _Step4SalesLogisticsContentPanelState
     );
   }
 
-  Widget _labeledField({required String label, required Widget child}) {
+  Widget _labeledField({
+    required String label,
+    required Widget child,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -3886,7 +4247,9 @@ class _Step4SalesLogisticsContentPanelState
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: _border)),
+        border: Border(
+          top: BorderSide(color: _border),
+        ),
       ),
       child: SafeArea(
         top: false,
@@ -3905,7 +4268,10 @@ class _Step4SalesLogisticsContentPanelState
             const progress = Text(
               'Paso 4 de 7',
               textAlign: TextAlign.center,
-              style: TextStyle(color: _muted, fontSize: 12),
+              style: TextStyle(
+                color: _muted,
+                fontSize: 12,
+              ),
             );
             if (constraints.maxWidth < 520) {
               return Column(
@@ -3966,7 +4332,10 @@ class _Step4SalesLogisticsContentPanelState
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: _primary, width: 2),
+        borderSide: const BorderSide(
+          color: _primary,
+          width: 2,
+        ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -3974,7 +4343,10 @@ class _Step4SalesLogisticsContentPanelState
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.red.shade600, width: 2),
+        borderSide: BorderSide(
+          color: Colors.red.shade600,
+          width: 2,
+        ),
       ),
     );
   }
@@ -3985,13 +4357,20 @@ class _Step4SalesLogisticsContentPanelState
       foregroundColor: _ink,
       disabledBackgroundColor: const Color(0xFFE6E8EC),
       disabledForegroundColor: _muted,
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 22,
+        vertical: 15,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
       textStyle: const TextStyle(fontWeight: FontWeight.w800),
     );
   }
 
-  ButtonStyle _outlinedButtonStyle({bool compact = false}) {
+  ButtonStyle _outlinedButtonStyle({
+    bool compact = false,
+  }) {
     return OutlinedButton.styleFrom(
       foregroundColor: _ink,
       side: const BorderSide(color: Color(0xFFBAC4D2)),
@@ -3999,7 +4378,9 @@ class _Step4SalesLogisticsContentPanelState
         horizontal: compact ? 13 : 18,
         vertical: compact ? 10 : 14,
       ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
       textStyle: const TextStyle(fontWeight: FontWeight.w700),
     );
   }
@@ -4039,7 +4420,9 @@ class _Step4SalesLogisticsContentPanelState
     return null;
   }
 
-  String _contentCounterLabel(List<ProductContentItemDraft> items) {
+  String _contentCounterLabel(
+    List<ProductContentItemDraft> items,
+  ) {
     if (items.isEmpty) {
       return '0 componentes';
     }
@@ -4047,7 +4430,10 @@ class _Step4SalesLogisticsContentPanelState
     final units = items.map((item) => item.unit).toSet();
     if (units.length == 1) {
       final unit = units.first;
-      final total = items.fold<double>(0, (sum, item) => sum + item.quantity);
+      final total = items.fold<double>(
+        0,
+        (sum, item) => sum + item.quantity,
+      );
 
       if (unit == 'PZA') {
         return '${_step4PlainNumber(total)} '
@@ -4109,8 +4495,10 @@ class _Step4SalesLogisticsContentPanelState
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
               style: FilledButton.styleFrom(
-                backgroundColor: destructive ? Colors.red.shade700 : _primary,
-                foregroundColor: destructive ? Colors.white : _ink,
+                backgroundColor:
+                    destructive ? Colors.red.shade700 : _primary,
+                foregroundColor:
+                    destructive ? Colors.white : _ink,
               ),
               child: Text(confirmLabel),
             ),
@@ -4175,7 +4563,9 @@ Step4SalesDraft? step4SalesDraftFromMap(Map<String, dynamic>? map) {
   }
 
   Set<String> stringSet(Object? source) {
-    return source is List ? source.whereType<String>().toSet() : <String>{};
+    return source is List
+        ? source.whereType<String>().toSet()
+        : <String>{};
   }
 
   final presentations = (map['presentations'] as List? ?? const [])
@@ -4186,8 +4576,10 @@ Step4SalesDraft? step4SalesDraftFromMap(Map<String, dynamic>? map) {
           id: item['id']?.toString() ?? '',
           name: item['name']?.toString() ?? '',
           baseUnit: item['base_unit']?.toString() ?? 'PZA',
-          equivalentTo: (item['equivalent_to'] as num?)?.toDouble() ?? 1,
-          minimumOrder: (item['minimum_order'] as num?)?.toDouble() ?? 1,
+          equivalentTo:
+              (item['equivalent_to'] as num?)?.toDouble() ?? 1,
+          minimumOrder:
+              (item['minimum_order'] as num?)?.toDouble() ?? 1,
           purchaseIncrement:
               (item['purchase_increment'] as num?)?.toDouble() ?? 1,
           allowsDecimals: item['allows_decimals'] as bool? ?? false,
@@ -4209,8 +4601,10 @@ Step4SalesDraft? step4SalesDraftFromMap(Map<String, dynamic>? map) {
           contentKind: item['content_kind'] == PackageContentKind.baseUnit.name
               ? PackageContentKind.baseUnit
               : PackageContentKind.salesPresentation,
-          contentReferenceId: item['content_reference_id']?.toString() ?? '',
-          totalBaseUnits: (item['total_base_units'] as num?)?.toDouble() ?? 1,
+          contentReferenceId:
+              item['content_reference_id']?.toString() ?? '',
+          totalBaseUnits:
+              (item['total_base_units'] as num?)?.toDouble() ?? 1,
           baseUnit: item['base_unit']?.toString() ?? 'PZA',
           assignedVariantIds: stringSet(item['assigned_variant_ids']),
           supplierCode: item['supplier_code'] as String?,

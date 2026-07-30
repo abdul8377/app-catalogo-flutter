@@ -728,7 +728,7 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
                       ? [
                           TextInputFormatter.withFunction((oldValue, newValue) {
                             return RegExp(
-                                  r'^[0-9\s/.,]*$',
+                                  r'^\d*(?:[.,]\d*)?$',
                                 ).hasMatch(newValue.text)
                                 ? newValue
                                 : oldValue;
@@ -1100,29 +1100,11 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
       return spec.required ? 'Ingresa ${spec.nombre.toLowerCase()}.' : null;
     }
     if (!spec.numeric) return null;
-    final number = _parseVariantNumber(value);
+    final number = double.tryParse(value.replaceAll(',', '.'));
     if (number == null || number <= 0) {
-      return '${spec.nombre} debe ser un número, fracción o número mixto válido.';
+      return '${spec.nombre} debe ser mayor que cero.';
     }
     return null;
-  }
-
-  double? _parseVariantNumber(String raw) {
-    final value = raw.trim().replaceAll(',', '.');
-    final mixed = RegExp(r'^(\d+)\s+(\d+)\s*/\s*(\d+)$').firstMatch(value);
-    if (mixed != null) {
-      final whole = double.parse(mixed.group(1)!);
-      final numerator = double.parse(mixed.group(2)!);
-      final denominator = double.parse(mixed.group(3)!);
-      return denominator == 0 ? null : whole + numerator / denominator;
-    }
-    final fraction = RegExp(r'^(\d+)\s*/\s*(\d+)$').firstMatch(value);
-    if (fraction != null) {
-      final numerator = double.parse(fraction.group(1)!);
-      final denominator = double.parse(fraction.group(2)!);
-      return denominator == 0 ? null : numerator / denominator;
-    }
-    return double.tryParse(value);
   }
 
   void _notificarPendiente(bool value) {

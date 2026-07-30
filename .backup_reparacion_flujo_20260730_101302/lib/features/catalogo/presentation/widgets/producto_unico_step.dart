@@ -1067,7 +1067,7 @@ class _ProductoUnicoStepState extends State<ProductoUnicoStep> {
                   SizedBox(height: 3),
                   Text(
                     'Esta variante se mostrará cuando el producto sea '
-                    'activado en el paso 6.',
+                    'activado en el paso 7.',
                     style: TextStyle(
                       color: _singleMuted,
                       fontSize: 11,
@@ -1094,6 +1094,96 @@ class _ProductoUnicoStepState extends State<ProductoUnicoStep> {
         ),
       ),
     ],
+  );
+
+  Widget _buildSingleInformationPanel() => Card(
+    margin: EdgeInsets.zero,
+    elevation: 0,
+    color: _singleCanvas,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: const BorderSide(color: _singleBorder),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Se define en este paso',
+            style: TextStyle(
+              color: _singleInk,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 15),
+          _buildSingleInformationRow(
+            Icons.badge_outlined,
+            'Identificación del artículo.',
+          ),
+          _buildSingleInformationRow(
+            Icons.notes_outlined,
+            'Descripción comercial.',
+          ),
+          _buildSingleInformationRow(Icons.tune, 'Atributos técnicos.'),
+          _buildSingleInformationRow(
+            Icons.visibility_outlined,
+            'Disponibilidad inicial.',
+          ),
+          const SizedBox(height: 13),
+          const Divider(color: _singleBorder),
+          const SizedBox(height: 13),
+          const Text(
+            'Se configura después',
+            style: TextStyle(
+              color: _singleMuted,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 14),
+          _buildSingleLaterRow(
+            Icons.inventory_2_outlined,
+            'Venta y empaques',
+            'Paso 4',
+          ),
+          _buildSingleLaterRow(Icons.sell_outlined, 'Precios', 'Paso 5'),
+          _buildSingleLaterRow(Icons.image_outlined, 'Imágenes', 'Paso 6'),
+          _buildSingleLaterRow(
+            Icons.task_alt,
+            'Revisión y activación',
+            'Paso 7',
+          ),
+          const SizedBox(height: 17),
+          Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF8DE),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, size: 21, color: Color(0xFF9A7200)),
+                SizedBox(width: 11),
+                Expanded(
+                  child: Text(
+                    '“Unidad”, “caja” y “ciento” son presentaciones de '
+                    'venta, no variantes. Se configurarán en el paso 4.',
+                    style: TextStyle(
+                      color: _singleMuted,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
   );
 
   Widget _buildSingleSectionTitle({
@@ -1123,6 +1213,63 @@ class _ProductoUnicoStepState extends State<ProductoUnicoStep> {
       ),
     ],
   );
+
+  Widget _buildSingleInformationRow(IconData icon, String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 19, color: _singleInk),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: _singleInk,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              height: 1.35,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildSingleLaterRow(IconData icon, String label, String step) =>
+      Container(
+        margin: const EdgeInsets.only(bottom: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(11),
+          border: Border.all(color: _singleBorder),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: _singleMuted),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: _singleInk,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Text(
+              step,
+              style: const TextStyle(
+                color: _singleMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _buildSingleTextField({
     Key? fieldKey,
