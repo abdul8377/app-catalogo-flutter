@@ -1,53 +1,23 @@
 import 'package:equatable/equatable.dart';
 
-import '../services/valor_tecnico_parser.dart';
-
 class AtributoProductoVariante extends Equatable {
   const AtributoProductoVariante({
     required this.nombre,
     required this.valor,
     this.unidad = '',
-    this.valorNormalizado,
-    this.valorMaximo,
-    this.valores = const [],
   });
 
   final String nombre;
-
-  /// Texto original capturado. Conserva fracciones, rangos y valores
-  /// compuestos exactamente como fueron ingresados.
   final String valor;
-
   final String unidad;
 
-  /// Extremo inferior o valor único convertido a número cuando corresponde.
-  final double? valorNormalizado;
-
-  /// Extremo superior para rangos o segundo valor para datos compuestos.
-  final double? valorMaximo;
-
-  /// Opciones seleccionadas cuando el atributo es de selección múltiple.
-  final List<String> valores;
-
-  String get texto {
-    if (valores.isNotEmpty) return valores.join(' · ');
-    return unidad.trim().isEmpty
-        ? valor.trim()
-        : '${valor.trim()} ${unidad.trim()}';
-  }
-
-  bool get esRango =>
-      valorNormalizado != null &&
-      valorMaximo != null &&
-      valorNormalizado != valorMaximo;
+  String get texto =>
+      unidad.trim().isEmpty ? valor.trim() : '${valor.trim()} ${unidad.trim()}';
 
   Map<String, dynamic> toMap() => {
     'nombre': nombre,
     'valor': valor,
     'unidad': unidad,
-    'valor_normalizado': valorNormalizado,
-    'valor_maximo': valorMaximo,
-    'valores': valores,
   };
 
   factory AtributoProductoVariante.fromMap(Map<String, dynamic> map) =>
@@ -55,41 +25,22 @@ class AtributoProductoVariante extends Equatable {
         nombre: map['nombre'] as String? ?? '',
         valor: map['valor']?.toString() ?? '',
         unidad: map['unidad'] as String? ?? '',
-        valorNormalizado: (map['valor_normalizado'] as num?)?.toDouble(),
-        valorMaximo: (map['valor_maximo'] as num?)?.toDouble(),
-        valores:
-            (map['valores'] as List?)
-                ?.map((item) => item.toString())
-                .where((item) => item.trim().isNotEmpty)
-                .toList() ??
-            const [],
       );
 
   factory AtributoProductoVariante.fromText(String nombre, String texto) {
-    final separated = ValorTecnicoParser.separarValorUnidad(texto);
-    final parsed = ValorTecnicoParser.parse(
-      separated.valor,
-      unidad: separated.unidad,
-    );
-
+    final value = texto.trim();
+    final match = RegExp(
+      r'^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*([^\d\s].*)$',
+    ).firstMatch(value);
     return AtributoProductoVariante(
       nombre: nombre,
-      valor: separated.valor,
-      unidad: separated.unidad,
-      valorNormalizado: parsed.minimo,
-      valorMaximo: parsed.tieneDosExtremos ? parsed.maximo : null,
+      valor: match?.group(1)?.replaceAll(',', '.') ?? value,
+      unidad: match?.group(2)?.trim() ?? '',
     );
   }
 
   @override
-  List<Object?> get props => [
-    nombre,
-    valor,
-    unidad,
-    valorNormalizado,
-    valorMaximo,
-    valores,
-  ];
+  List<Object?> get props => [nombre, valor, unidad];
 }
 
 class ProductoVariante extends Equatable {
@@ -127,17 +78,12 @@ class ProductoVariante extends Equatable {
   String get combinacionNormalizada {
     final values =
         atributos
-            .where(
-              (atributo) =>
-                  atributo.valor.trim().isNotEmpty ||
-                  atributo.valores.isNotEmpty,
-            )
+            .where((atributo) => atributo.valor.trim().isNotEmpty)
             .map(
               (atributo) =>
                   '${atributo.nombre.trim().toLowerCase()}:'
                   '${atributo.valor.trim().toLowerCase()}:'
-                  '${atributo.unidad.trim().toLowerCase()}:'
-                  '${atributo.valores.map((item) => item.toLowerCase()).join(",")}',
+                  '${atributo.unidad.trim().toLowerCase()}',
             )
             .toList()
           ..sort();

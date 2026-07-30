@@ -12,7 +12,6 @@ import '../../domain/entities/nuevo_producto.dart';
 import '../../domain/entities/producto_resumen.dart';
 import '../../domain/entities/producto_detalle.dart';
 import '../../domain/entities/producto_variante.dart';
-import '../../domain/services/valor_tecnico_parser.dart';
 
 class CatalogoLocalDatasource {
   const CatalogoLocalDatasource(this._appDatabase);
@@ -214,11 +213,6 @@ class CatalogoLocalDatasource {
               .toList(),
           unidades: unitRows.map((unit) => unit['simbolo'] as String).toList(),
           unidadPredeterminada: defaultUnit,
-          minimo: (row['minimo'] as num?)?.toDouble(),
-          maximo: (row['maximo'] as num?)?.toDouble(),
-          decimales: row['decimales'] as int? ?? 0,
-          maximoSelecciones: row['maximo_selecciones'] as int?,
-          magnitud: row['magnitud'] as String?,
         ),
       );
     }
@@ -607,52 +601,40 @@ class CatalogoLocalDatasource {
     switch (type) {
       case 'numero':
       case 'numero_unidad':
-        final parsed = ValorTecnicoParser.parse(trimmed, unidad: unitCode);
-        if (!parsed.esNumerico) {
+        final number = double.tryParse(trimmed.replaceAll(',', '.'));
+        if (number == null) {
           throw StateError(
-            'El valor de ${definition['nombre']} debe ser numérico, '
-            'una fracción, un rango o un valor compuesto válido.',
+            'El valor de ${definition['nombre']} debe ser numérico.',
           );
         }
-
-        final lower = parsed.minimo!;
-        final upper = parsed.maximo!;
         final minimum = (definition['minimo'] as num?)?.toDouble();
         final maximum = (definition['maximo'] as num?)?.toDouble();
-
-        if ((minimum != null && lower < minimum) ||
-            (maximum != null && upper > maximum)) {
+        if ((minimum != null && number < minimum) ||
+            (maximum != null && number > maximum)) {
           throw StateError(
             'El valor de ${definition['nombre']} está fuera del rango permitido.',
           );
         }
-
-        values['tipo_valor'] = parsed.tipo.name;
-        values['valor_texto'] = trimmed;
-        values['valor_numero'] = lower;
-        values['valor_numero_hasta'] = parsed.tieneDosExtremos ? upper : null;
-        values['valor_normalizado'] = lower;
-        values['valor_normalizado_hasta'] = parsed.tieneDosExtremos
-            ? upper
-            : null;
-
+        values['valor_numero'] = number;
+        values['valor_normalizado'] = number;
         if (type == 'numero_unidad') {
           final unitRows = await db.rawQuery(
-            'SELECT cu.id, cu.es_predeterminada, u.factor_a_base '
-            'FROM categoria_atributo_unidades cu '
-            'INNER JOIN unidades_medida u '
-            'ON u.id = cu.unidad_medida_id '
-            'WHERE cu.categoria_atributo_id = ? '
-            'AND cu.estado = 1 '
-            'AND ('
-            'LOWER(u.codigo) = LOWER(?) OR '
-            'LOWER(u.simbolo) = LOWER(?) OR '
-            "(? = '' AND cu.es_predeterminada = 1)"
-            ') '
-            'ORDER BY '
-            'CASE WHEN LOWER(u.codigo) = LOWER(?) THEN 0 ELSE 1 END, '
-            'cu.es_predeterminada DESC '
-            'LIMIT 1',
+            '''
+            SELECT cu.id, cu.es_predeterminada, u.factor_a_base
+            FROM categoria_atributo_unidades cu
+            INNER JOIN unidades_medida u ON u.id = cu.unidad_medida_id
+            WHERE cu.categoria_atributo_id = ?
+              AND cu.estado = 1
+              AND (
+                LOWER(u.codigo) = LOWER(?) OR
+                LOWER(u.simbolo) = LOWER(?) OR
+                (? = '' AND cu.es_predeterminada = 1)
+              )
+            ORDER BY
+              CASE WHEN LOWER(u.codigo) = LOWER(?) THEN 0 ELSE 1 END,
+              cu.es_predeterminada DESC
+            LIMIT 1
+          ''',
             [
               definitionId,
               unitCode.trim(),
@@ -666,13 +648,9 @@ class CatalogoLocalDatasource {
               'Selecciona una unidad válida para ${definition['nombre']}.',
             );
           }
-
-          final factor = (unitRows.first['factor_a_base'] as num).toDouble();
           values['categoria_atributo_unidad_id'] = unitRows.first['id'];
-          values['valor_normalizado'] = lower * factor;
-          values['valor_normalizado_hasta'] = parsed.tieneDosExtremos
-              ? upper * factor
-              : null;
+          values['valor_normalizado'] =
+              number * (unitRows.first['factor_a_base'] as num).toDouble();
         }
         break;
       case 'lista_unica':
@@ -708,7 +686,6 @@ class CatalogoLocalDatasource {
           }
           optionIds.add(rows.first['id'] as String);
         }
-        values['tipo_valor'] = type;
         values['valor_texto'] = selections.join(' · ');
         break;
       case 'si_no':
@@ -718,13 +695,11 @@ class CatalogoLocalDatasource {
             'El valor de ${definition['nombre']} debe ser Sí o No.',
           );
         }
-        values['tipo_valor'] = 'booleano';
         values['valor_booleano'] = {'si', 'true', '1'}.contains(normalized)
             ? 1
             : 0;
         break;
       default:
-        values['tipo_valor'] = 'texto';
         values['valor_texto'] = trimmed;
         break;
     }
@@ -740,8 +715,11 @@ class CatalogoLocalDatasource {
   }
 
   (String, String) _separarValorUnidad(String raw) {
-    final separated = ValorTecnicoParser.separarValorUnidad(raw);
-    return (separated.valor, separated.unidad);
+    final match = RegExp(
+      r'^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*([^\d\s].*)$',
+    ).firstMatch(raw.trim());
+    if (match == null) return (raw.trim(), '');
+    return (match.group(1)!.replaceAll(',', '.'), match.group(2)?.trim() ?? '');
   }
 
   String _normalizarNombreAtributo(String value) {

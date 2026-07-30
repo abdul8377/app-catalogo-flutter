@@ -341,13 +341,9 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       emit(state.copyWith(loading: true, productoId: event.productoId));
       final datos = await _repository.obtenerDatosFormulario();
       if (event.productoId == null) {
-        emit(
-          state.copyWith(
-            loading: false,
-            datos: datos,
-            codigo: CodigoInternoGenerator.nuevoProducto(),
-          ),
-        );
+        emit(state.copyWith(loading: false, datos: datos
+          codigo: CodigoInternoGenerator.nuevoProducto(),
+        ));
         return;
       }
       final producto = await _repository.obtenerDetalleProducto(

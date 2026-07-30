@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/catalogo_form_data.dart';
 import '../../domain/entities/nuevo_producto.dart';
 import '../../domain/entities/producto_variante.dart';
-import '../../domain/services/codigo_interno_generator.dart';
 import '../../domain/repositories/catalogo_repository.dart';
 import '../widgets/paso4_venta_logistica_contenido.dart';
 import '../widgets/paso5_precios_corregido.dart';
@@ -109,6 +108,7 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       emit(
         state.copyWith(
           tipoRegistro: event.tipo,
+          codigo: '',
           variantes: const [],
           edicionVariantePendiente: false,
           limpiarError: true,
@@ -135,6 +135,7 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       emit(
         state.copyWith(
           variantes: variantes,
+          codigo: variantes.first.sku,
           edicionVariantePendiente: false,
           limpiarError: true,
         ),
@@ -144,6 +145,7 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       emit(
         state.copyWith(
           variantes: event.variantes,
+          codigo: event.variantes.firstOrNull?.sku ?? '',
           edicionVariantePendiente: false,
           limpiarError: true,
         ),
@@ -156,6 +158,7 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       emit(
         state.copyWith(
           variantes: variantes,
+          codigo: variantes.firstOrNull?.sku ?? '',
           edicionVariantePendiente: false,
           limpiarError: true,
         ),
@@ -341,13 +344,7 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       emit(state.copyWith(loading: true, productoId: event.productoId));
       final datos = await _repository.obtenerDatosFormulario();
       if (event.productoId == null) {
-        emit(
-          state.copyWith(
-            loading: false,
-            datos: datos,
-            codigo: CodigoInternoGenerator.nuevoProducto(),
-          ),
-        );
+        emit(state.copyWith(loading: false, datos: datos));
         return;
       }
       final producto = await _repository.obtenerDetalleProducto(
@@ -533,9 +530,7 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
   }
 
   NuevoProducto _productoDesdeEstado({bool? activo}) => NuevoProducto(
-    codigo: state.codigo.trim().isEmpty
-        ? CodigoInternoGenerator.nuevoProducto()
-        : state.codigo.trim().toUpperCase(),
+    codigo: state.variantes.first.sku.trim().toUpperCase(),
     nombre: state.nombre.trim(),
     descripcion: state.descripcion.trim(),
     empresa: state.empresa!,

@@ -6,7 +6,6 @@ import 'package:uuid/uuid.dart';
 
 import '../../domain/entities/catalogo_form_data.dart';
 import '../../domain/entities/producto_variante.dart';
-import '../../domain/services/codigo_interno_generator.dart';
 import '../bloc/producto_form_bloc.dart';
 import '../bloc/producto_form_event.dart';
 import '../bloc/producto_form_state.dart';
@@ -28,7 +27,6 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
 
   final _formKey = GlobalKey<FormState>();
   final _sku = TextEditingController();
-  final _codigoProveedor = TextEditingController();
   final _nombre = TextEditingController();
   final Map<String, TextEditingController> _valores = {};
   final Map<String, String> _unidades = {};
@@ -72,7 +70,6 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
   @override
   void dispose() {
     _sku.dispose();
-    _codigoProveedor.dispose();
     _nombre.dispose();
     for (final controller in _valores.values) {
       controller.dispose();
@@ -94,7 +91,7 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
           runSpacing: 10,
           children: [
             Text(
-              'Cada variante recibe un código interno automático y puede conservar el código del proveedor.',
+              'Cada variante representa un artículo exacto con su propio SKU.',
               style: GoogleFonts.inter(color: _muted, fontSize: 14),
             ),
             _familiaChip(),
@@ -266,7 +263,7 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
                   Expanded(
                     child: Text(
                       'Lista flexible\n'
-                      'Úsala cuando cada artículo tiene medidas, modelos o características '
+                      'Úsala cuando cada artículo tiene SKU o características '
                       'diferentes y no forma una cuadrícula clara. Las '
                       'presentaciones se asignan en el siguiente paso.',
                       style: TextStyle(
@@ -301,8 +298,7 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
             columnSpacing: 22,
             headingRowColor: WidgetStateProperty.all(const Color(0xFFF1F4F8)),
             columns: const [
-              DataColumn(label: Text('Código interno')),
-              DataColumn(label: Text('Código proveedor')),
+              DataColumn(label: Text('Código')),
               DataColumn(label: Text('Nombre corto')),
               DataColumn(label: Text('Atributos principales')),
               DataColumn(label: Text('Estado')),
@@ -323,18 +319,6 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
                       child: Text(
                         variante.sku,
                         style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    SizedBox(
-                      width: 130,
-                      child: Text(
-                        variante.codigoProveedor.trim().isEmpty
-                            ? '—'
-                            : variante.codigoProveedor,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
@@ -428,7 +412,7 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
         ),
         SizedBox(height: 4),
         Text(
-          'Agrega el primer artículo; el código interno se generará automáticamente.',
+          'Agrega el primer artículo con su código y atributos.',
           textAlign: TextAlign.center,
           style: TextStyle(color: _muted, fontSize: 12),
         ),
@@ -583,20 +567,12 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
                 const SizedBox(height: 14),
               ],
               _field(
-                key: const Key('variante_codigo_interno'),
-                label: 'Código interno',
+                key: const Key('variante_sku'),
+                label: 'Código / SKU *',
                 controller: _sku,
-                hint: 'VAR-XXXXXXXXXX',
-                validator: _validarSku,
-                readOnly: true,
-              ),
-              const SizedBox(height: 15),
-              _field(
-                key: const Key('variante_codigo_proveedor'),
-                label: 'Código del proveedor (opcional)',
-                controller: _codigoProveedor,
                 hint: 'UY-BTR204',
                 capitalization: TextCapitalization.characters,
+                validator: _validarSku,
               ),
               const SizedBox(height: 15),
               _field(
@@ -807,7 +783,6 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
     required String hint,
     String? Function(String?)? validator,
     TextCapitalization capitalization = TextCapitalization.none,
-    bool readOnly = false,
   }) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -825,8 +800,7 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
         controller: controller,
         validator: validator,
         textCapitalization: capitalization,
-        readOnly: readOnly,
-        onChanged: readOnly ? null : (_) => _marcarPendiente(),
+        onChanged: (_) => _marcarPendiente(),
         style: GoogleFonts.inter(fontSize: 14),
         decoration: _inputDecoration(hint),
       ),
@@ -864,8 +838,7 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
     if (!_puedeCambiarSeleccion()) return;
     _sincronizandoCampos = true;
     _formKey.currentState?.reset();
-    _sku.text = CodigoInternoGenerator.nuevaVariante();
-    _codigoProveedor.clear();
+    _sku.clear();
     _nombre.clear();
     _prepararAtributos();
     _sincronizandoCampos = false;
@@ -893,7 +866,6 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
     _sincronizandoCampos = true;
     _formKey.currentState?.reset();
     _sku.text = variante.sku;
-    _codigoProveedor.text = variante.codigoProveedor;
     _nombre.text = variante.nombreCorto;
     _prepararAtributos(variante.atributos);
     _sincronizandoCampos = false;
@@ -999,7 +971,6 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
     final draft = ProductoVariante(
       id: _editandoId ?? const Uuid().v4(),
       sku: _sku.text.trim().toUpperCase(),
-      codigoProveedor: _codigoProveedor.text.trim().toUpperCase(),
       nombreCorto: _nombre.text.trim(),
       atributos: atributos,
       activa: _activa,
@@ -1035,8 +1006,7 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
     if (selected == null) return;
     final copy = selected.copyWith(
       id: const Uuid().v4(),
-      sku: CodigoInternoGenerator.nuevaVariante(),
-      codigoProveedor: '',
+      sku: _siguienteSkuCopia(selected.sku),
       nombreCorto: '${selected.nombreCorto} (copia)',
     );
     _cargarVariante(copy, notify: false);
@@ -1100,15 +1070,28 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
     );
   }
 
+  String _siguienteSkuCopia(String sku) {
+    var candidate = '$sku-COPIA';
+    var index = 2;
+    final usados = widget.state.variantes
+        .map((variante) => variante.sku.toUpperCase())
+        .toSet();
+    while (usados.contains(candidate.toUpperCase())) {
+      candidate = '$sku-COPIA-$index';
+      index++;
+    }
+    return candidate;
+  }
+
   String? _validarSku(String? value) {
     final sku = value?.trim().toUpperCase() ?? '';
-    if (sku.isEmpty) return 'No se pudo generar el código interno.';
+    if (sku.isEmpty) return 'Ingresa el código o SKU.';
     final duplicated = widget.state.variantes.any(
       (variante) =>
           variante.id != _editandoId &&
           variante.sku.trim().toUpperCase() == sku,
     );
-    return duplicated ? 'El código interno está duplicado.' : null;
+    return duplicated ? 'Este SKU ya existe en la familia.' : null;
   }
 
   String? _validarAtributo(_VariantAttributeSpec spec, String? raw) {

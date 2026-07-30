@@ -11,11 +11,6 @@ class AtributoDef extends Equatable {
     this.opciones = const [],
     this.unidades = const [],
     this.unidadPredeterminada,
-    this.minimo,
-    this.maximo,
-    this.decimales = 0,
-    this.maximoSelecciones,
-    this.magnitud,
   });
   final String nombre;
   final String tipo;
@@ -26,11 +21,6 @@ class AtributoDef extends Equatable {
   final List<String> opciones;
   final List<String> unidades;
   final String? unidadPredeterminada;
-  final double? minimo;
-  final double? maximo;
-  final int decimales;
-  final int? maximoSelecciones;
-  final String? magnitud;
   @override
   List<Object?> get props => [
     nombre,
@@ -42,11 +32,6 @@ class AtributoDef extends Equatable {
     opciones,
     unidades,
     unidadPredeterminada,
-    minimo,
-    maximo,
-    decimales,
-    maximoSelecciones,
-    magnitud,
   ];
 }
 

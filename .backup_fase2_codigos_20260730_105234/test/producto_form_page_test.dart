@@ -164,8 +164,8 @@ void main() {
       expect(bloc.state.variantes, hasLength(14));
 
       await tester.enterText(
-        find.byKey(const Key('matriz_codigo_proveedor')),
-        'MATRIX-PROV',
+        find.byKey(const Key('matriz_sku')),
+        'MATRIX-EDITADO',
       );
       await tester.enterText(
         find.byKey(const Key('matriz_nombre')),
@@ -182,7 +182,7 @@ void main() {
       expect(bloc.state.edicionVariantePendiente, isFalse);
       expect(
         bloc.state.variantes.any(
-          (variante) => variante.codigoProveedor == 'MATRIX-PROV',
+          (variante) => variante.sku == 'MATRIX-EDITADO',
         ),
         isTrue,
       );
@@ -301,9 +301,8 @@ void main() {
       expect(find.text('Se configura después'), findsNothing);
       expect(find.text('Diámetro'), findsOneWidget);
       expect(find.text('Largo'), findsOneWidget);
-      expect(bloc.state.codigo, startsWith('PRD-'));
       expect(bloc.state.variantes, hasLength(1));
-      expect(bloc.state.variantes.single.sku, startsWith('VAR-'));
+      expect(bloc.state.variantes.single.sku, startsWith('AUTO-SINGLE-'));
 
       final siguiente = find.widgetWithText(
         FilledButton,
@@ -317,10 +316,6 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.enterText(
-        find.byKey(const Key('producto_unico_codigo_proveedor')),
-        'DINA-PER-12',
-      );
       await tester.enterText(
         find.byKey(const Key('producto_unico_nombre')),
         'Perno hexagonal 1/2',
@@ -341,8 +336,7 @@ void main() {
       expect(find.text('Borrador guardado'), findsOneWidget);
       expect(bloc.state.variantes, hasLength(1));
       expect(bloc.state.variantes.single.nombreCorto, 'Perno hexagonal 1/2');
-      expect(bloc.state.variantes.single.sku, startsWith('VAR-'));
-      expect(bloc.state.variantes.single.codigoProveedor, 'DINA-PER-12');
+      expect(bloc.state.variantes.single.sku, startsWith('AUTO-SINGLE-'));
       expect(bloc.state.descripcion, 'Perno único para venta.');
 
       tester.widget<FilledButton>(siguiente).onPressed?.call();
@@ -392,7 +386,7 @@ void main() {
   });
 
   testWidgets(
-    'la lista genera códigos internos y conserva el código del proveedor',
+    'el paso 3 selecciona una variante y valida SKU y combinación duplicados',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1000, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -427,7 +421,6 @@ void main() {
             ProductoVariante(
               id: 'v1',
               sku: 'SKU-001',
-              codigoProveedor: 'PROV-001',
               nombreCorto: 'Perno 10 x 40',
               atributos: [
                 AtributoProductoVariante(
@@ -449,7 +442,6 @@ void main() {
             ProductoVariante(
               id: 'v2',
               sku: 'SKU-002',
-              codigoProveedor: 'PROV-002',
               nombreCorto: 'Perno 12 x 50',
               atributos: [
                 AtributoProductoVariante(
@@ -469,38 +461,24 @@ void main() {
         ..add(const ProductoFormPasoSeleccionado(1));
       await tester.pumpAndSettle();
 
+      expect(find.text('2 registradas · 2 activas'), findsOneWidget);
       await tester.ensureVisible(find.text('SKU-002').first);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('SKU-002').first);
       await tester.pumpAndSettle();
-
-      final internalField = tester.widget<TextFormField>(
-        find.byKey(const Key('variante_codigo_interno')),
+      final skuField = tester.widget<TextFormField>(
+        find.byKey(const Key('variante_sku')),
       );
-      expect(internalField.controller?.text, 'SKU-002');
-      final internalEditable = tester.widget<EditableText>(
-        find.descendant(
-          of: find.byKey(const Key('variante_codigo_interno')),
-          matching: find.byType(EditableText),
-        ),
-      );
-      expect(internalEditable.readOnly, isTrue);
+      expect(skuField.controller?.text, 'SKU-002');
 
       await tester.ensureVisible(find.byKey(const Key('agregar_variante')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('agregar_variante')));
       await tester.pumpAndSettle();
+      expect(find.text('Nueva variante'), findsOneWidget);
+      expect(find.byKey(const Key('cancelar_variante')), findsOneWidget);
 
-      final generatedInternal = tester
-          .widget<TextFormField>(
-            find.byKey(const Key('variante_codigo_interno')),
-          )
-          .controller
-          ?.text;
-      expect(generatedInternal, startsWith('VAR-'));
-
-      await tester.enterText(
-        find.byKey(const Key('variante_codigo_proveedor')),
-        'PROV-003',
-      );
+      await tester.enterText(find.byKey(const Key('variante_sku')), 'SKU-002');
       await tester.enterText(
         find.byKey(const Key('variante_nombre')),
         'Perno repetido',
@@ -508,18 +486,30 @@ void main() {
       await tester.enterText(find.byKey(const Key('atributo_Diámetro')), '12');
       await tester.enterText(find.byKey(const Key('atributo_Largo')), '50');
       await tester.ensureVisible(find.byKey(const Key('guardar_variante')));
+      await tester.pumpAndSettle();
       tester
           .widget<ElevatedButton>(find.byKey(const Key('guardar_variante')))
           .onPressed
           ?.call();
       await tester.pumpAndSettle();
+      expect(find.text('Este SKU ya existe en la familia.'), findsOneWidget);
 
+      await tester.enterText(find.byKey(const Key('variante_sku')), 'SKU-003');
+      await tester.ensureVisible(find.byKey(const Key('guardar_variante')));
+      await tester.pumpAndSettle();
+      tester
+          .widget<ElevatedButton>(find.byKey(const Key('guardar_variante')))
+          .onPressed
+          ?.call();
+      await tester.pumpAndSettle();
       expect(
         find.textContaining('Ya existe una variante con 12 mm · 50 mm'),
         findsOneWidget,
       );
 
       await tester.enterText(find.byKey(const Key('atributo_Largo')), '60');
+      await tester.ensureVisible(find.byKey(const Key('guardar_variante')));
+      await tester.pumpAndSettle();
       tester
           .widget<ElevatedButton>(find.byKey(const Key('guardar_variante')))
           .onPressed
@@ -527,10 +517,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(bloc.state.variantes, hasLength(3));
-      expect(bloc.state.variantes.last.sku, generatedInternal);
-      expect(bloc.state.variantes.last.codigoProveedor, 'PROV-003');
+      expect(bloc.state.variantes.last.sku, 'SKU-003');
+      expect(bloc.state.variantes.last.atributos.first.valor, '12');
+      expect(bloc.state.variantes.last.atributos.first.unidad, 'mm');
+      expect(bloc.state.edicionVariantePendiente, isFalse);
 
-      final originalInternal = bloc.state.variantes.last.sku;
       tester
           .widget<OutlinedButton>(
             find.byKey(const Key('duplicar_variante_lista')),
@@ -538,11 +529,29 @@ void main() {
           .onPressed
           ?.call();
       await tester.pumpAndSettle();
-
       expect(bloc.state.variantes, hasLength(4));
-      expect(bloc.state.variantes.last.sku, startsWith('VAR-'));
-      expect(bloc.state.variantes.last.sku, isNot(originalInternal));
-      expect(bloc.state.variantes.last.codigoProveedor, isEmpty);
+      expect(bloc.state.variantes.last.sku, 'SKU-003-COPIA');
+
+      tester
+          .widget<OutlinedButton>(
+            find.byKey(const Key('alternar_variante_lista')),
+          )
+          .onPressed
+          ?.call();
+      await tester.pumpAndSettle();
+      expect(bloc.state.variantes.last.activa, isFalse);
+
+      tester
+          .widget<OutlinedButton>(
+            find.byKey(const Key('eliminar_variante_lista')),
+          )
+          .onPressed
+          ?.call();
+      await tester.pumpAndSettle();
+      expect(find.text('Eliminar variante'), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, 'Eliminar'));
+      await tester.pumpAndSettle();
+      expect(bloc.state.variantes, hasLength(3));
       expect(tester.takeException(), isNull);
     },
   );
@@ -809,21 +818,6 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
-
-  test('serializa y restaura el código del proveedor', () {
-    const variante = ProductoVariante(
-      id: 'variante-1',
-      sku: 'VAR-1234567890',
-      codigoProveedor: 'UY-ITL02-202',
-      nombreCorto: 'Taladro 20 V',
-      atributos: [],
-    );
-
-    final restored = ProductoVariante.fromMap(variante.toMap());
-
-    expect(restored.sku, 'VAR-1234567890');
-    expect(restored.codigoProveedor, 'UY-ITL02-202');
-  });
 
   test('precarga y actualiza un producto existente', () async {
     final repository = _FakeCatalogoRepository();

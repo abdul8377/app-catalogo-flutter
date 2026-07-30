@@ -121,17 +121,6 @@ class _ProductoUnicoStepState extends State<ProductoUnicoStep> {
     'V',
     'Ah',
     'W',
-    'Hz',
-    'rpm',
-    'bpm',
-    'Nm',
-    'J',
-    'bar',
-    'psi',
-    'MPa',
-    'ml/min',
-    'DIN-s',
-    '°C',
     'un.',
   ];
 

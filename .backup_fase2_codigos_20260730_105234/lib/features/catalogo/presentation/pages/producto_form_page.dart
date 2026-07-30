@@ -1107,11 +1107,14 @@ class _PasoGeneralEdicion extends StatelessWidget {
       const SizedBox(height: 16),
       TextFormField(
         initialValue: state.codigo,
-        readOnly: true,
+        textCapitalization: TextCapitalization.characters,
+        onChanged: (value) => context.read<ProductoFormBloc>().add(
+          ProductoFormFamiliaCambiada(codigo: value),
+        ),
         decoration: _decoration(
-          'Código interno',
+          'Código único *',
           Icons.qr_code_2,
-          helperText: 'Se genera automáticamente y no cambia al renombrar.',
+          helperText: 'Debe ser único en todo el catálogo.',
         ),
       ),
       const SizedBox(height: 16),

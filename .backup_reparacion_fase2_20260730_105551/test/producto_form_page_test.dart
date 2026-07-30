@@ -477,13 +477,7 @@ void main() {
         find.byKey(const Key('variante_codigo_interno')),
       );
       expect(internalField.controller?.text, 'SKU-002');
-      final internalEditable = tester.widget<EditableText>(
-        find.descendant(
-          of: find.byKey(const Key('variante_codigo_interno')),
-          matching: find.byType(EditableText),
-        ),
-      );
-      expect(internalEditable.readOnly, isTrue);
+      expect(internalField.readOnly, isTrue);
 
       await tester.ensureVisible(find.byKey(const Key('agregar_variante')));
       await tester.tap(find.byKey(const Key('agregar_variante')));

@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/producto_variante.dart';
-import '../../domain/services/codigo_interno_generator.dart';
 import '../bloc/producto_form_bloc.dart';
 import '../bloc/producto_form_event.dart';
 import '../bloc/producto_form_state.dart';
 
-enum _MatrixGeneralAction { generateNames, applyAttribute }
+enum _MatrixGeneralAction { generateNames, generateSkus, applyAttribute }
 
 class _MatrixMeasureDraft {
   const _MatrixMeasureDraft({
@@ -37,7 +36,6 @@ class _MatrixCombinationDraft {
     required this.columnValue,
     required this.included,
     required this.sku,
-    required this.supplierCode,
     required this.generatedName,
     required this.initialActive,
     required this.attributes,
@@ -49,7 +47,6 @@ class _MatrixCombinationDraft {
   final String columnValue;
   final bool included;
   final String sku;
-  final String supplierCode;
   final String generatedName;
   final bool initialActive;
   final Map<String, String> attributes;
@@ -64,7 +61,6 @@ class _MatrixCombinationDraft {
   _MatrixCombinationDraft copyWith({
     bool? included,
     String? sku,
-    String? supplierCode,
     String? generatedName,
     bool? initialActive,
     Map<String, String>? attributes,
@@ -75,7 +71,6 @@ class _MatrixCombinationDraft {
     columnValue: columnValue,
     included: included ?? this.included,
     sku: sku ?? this.sku,
-    supplierCode: supplierCode ?? this.supplierCode,
     generatedName: generatedName ?? this.generatedName,
     initialActive: initialActive ?? this.initialActive,
     attributes: attributes ?? this.attributes,
@@ -127,7 +122,6 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
 
   final _matrixVariantFormKey = GlobalKey<FormState>();
   final _matrixSkuController = TextEditingController();
-  final _matrixSupplierCodeController = TextEditingController();
   final _matrixNameController = TextEditingController();
   final List<_MatrixAttributeFields> _matrixAttributeFields = [];
 
@@ -218,7 +212,6 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
   @override
   void dispose() {
     _matrixSkuController.dispose();
-    _matrixSupplierCodeController.dispose();
     _matrixNameController.dispose();
     for (final fields in _matrixAttributeFields) {
       fields.dispose();
@@ -261,7 +254,6 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
             : defaults.copyWith(
                 included: true,
                 sku: saved.sku,
-                supplierCode: saved.codigoProveedor,
                 generatedName: saved.nombreCorto,
                 initialActive: saved.activa,
                 attributes: {
@@ -307,18 +299,35 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
       rowValue: rowLabel,
       columnValue: columnLabel,
       included: included,
-      sku: CodigoInternoGenerator.nuevaVariante(),
-      supplierCode: '',
+      sku: _generateDefaultMatrixSku(columnLabel, rowLabel),
       generatedName: '$_matrixFamilyLabel $columnLabel × $rowLabel',
       initialActive: true,
       attributes: const {},
     );
   }
 
+  String _matrixCodeToken(String value) =>
+      value.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+
+  String _matrixFamilyPrefix() {
+    final firstWord = _matrixFamilyLabel
+        .trim()
+        .split(RegExp(r'\s+'))
+        .first
+        .toUpperCase()
+        .replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (firstWord.length >= 3) return firstWord.substring(0, 3);
+    return firstWord.padRight(3, 'X');
+  }
+
+  String _generateDefaultMatrixSku(String columnLabel, String rowLabel) =>
+      '${_matrixFamilyPrefix()}-'
+      '${_matrixCodeToken(columnLabel)}'
+      '${_matrixCodeToken(rowLabel)}';
+
   void _loadMatrixEditor(_MatrixCombinationDraft combination) {
     _matrixVariantFormKey.currentState?.reset();
     _matrixSkuController.text = combination.sku;
-    _matrixSupplierCodeController.text = combination.supplierCode;
     _matrixNameController.text = combination.generatedName;
     _matrixEditorInitialActive = combination.initialActive;
 
@@ -759,6 +768,8 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
     switch (action) {
       case _MatrixGeneralAction.generateNames:
         _generateMatrixNames();
+      case _MatrixGeneralAction.generateSkus:
+        await _showMatrixSkuPatternDialog();
       case _MatrixGeneralAction.applyAttribute:
         await _showApplyMatrixAttributeDialog();
     }
@@ -784,6 +795,99 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
     if (!_matrixMultiSelect && focused != null) _loadMatrixEditor(focused);
     _syncVariants();
     _showMatrixMessage('Nombres generados correctamente.');
+  }
+
+  Future<void> _showMatrixSkuPatternDialog() async {
+    final patternController = TextEditingController(
+      text: '${_matrixFamilyPrefix()}-{COL}{ROW}',
+    );
+    final pattern = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: const Text('Generar SKU mediante patrón'),
+        content: SizedBox(
+          width: 460,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: patternController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Patrón',
+                  hintText: 'PER-{COL}{ROW}',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Variables: {FAMILIA}, {COL}, {ROW} y {N}.',
+                style: TextStyle(color: _matrixMuted, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final value = patternController.text.trim();
+              if (value.isNotEmpty) Navigator.pop(dialogContext, value);
+            },
+            style: ElevatedButton.styleFrom(
+              elevation: 0,
+              backgroundColor: _matrixPrimary,
+              foregroundColor: Colors.black,
+            ),
+            child: const Text(
+              'Generar',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => patternController.dispose(),
+    );
+    if (pattern == null || !mounted) return;
+    final targets = _matrixCurrentTargets(allWhenNoSelection: true);
+    var sequence = 1;
+    setState(() {
+      _matrixCombinations = {
+        for (final entry in _matrixCombinations.entries)
+          entry.key: targets.contains(entry.key) && entry.value.included
+              ? entry.value.copyWith(
+                  sku: pattern
+                      .replaceAll('{FAMILIA}', _matrixFamilyPrefix())
+                      .replaceAll(
+                        '{COL}',
+                        _matrixCodeToken(entry.value.columnValue),
+                      )
+                      .replaceAll(
+                        '{ROW}',
+                        _matrixCodeToken(entry.value.rowValue),
+                      )
+                      .replaceAll('{N}', '${sequence++}')
+                      .toUpperCase(),
+                  wasEdited: true,
+                )
+              : entry.value,
+      };
+    });
+    final focused = _matrixFocusedCombination;
+    if (!_matrixMultiSelect && focused != null) _loadMatrixEditor(focused);
+    _syncVariants();
+    _showMatrixMessage(
+      _matrixDuplicateSkuCount == 0
+          ? 'SKU generados sin duplicados.'
+          : 'Se generaron SKU, pero debes corregir los duplicados.',
+    );
   }
 
   Future<void> _showApplyMatrixAttributeDialog() async {
@@ -896,12 +1000,12 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
 
   String? _validateMatrixSku(String? value) {
     final sku = value?.trim().toUpperCase() ?? '';
-    if (sku.isEmpty) return 'No se pudo generar el código interno.';
+    if (sku.isEmpty) return 'Ingresa el código o SKU.';
     final duplicated = _matrixIncludedCombinations.any(
       (item) =>
           item.key != _matrixFocusedKey && item.sku.trim().toUpperCase() == sku,
     );
-    return duplicated ? 'El código interno está duplicado.' : null;
+    return duplicated ? 'Este SKU ya está en uso.' : null;
   }
 
   void _addMatrixAttributeField() {
@@ -944,7 +1048,6 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
 
     final updated = focused.copyWith(
       sku: _matrixSkuController.text.trim().toUpperCase(),
-      supplierCode: _matrixSupplierCodeController.text.trim().toUpperCase(),
       generatedName: _matrixNameController.text.trim(),
       initialActive: _matrixEditorInitialActive,
       attributes: attributes,
@@ -980,7 +1083,6 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
     return ProductoVariante(
       id: 'matrix:${combination.key}',
       sku: combination.sku.trim().toUpperCase(),
-      codigoProveedor: combination.supplierCode.trim().toUpperCase(),
       nombreCorto: combination.generatedName.trim(),
       atributos: [
         AtributoProductoVariante(
@@ -1345,6 +1447,15 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
             ),
           ),
           PopupMenuItem(
+            value: _MatrixGeneralAction.generateSkus,
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.qr_code_2_outlined),
+              title: Text('Generar SKU mediante patrón'),
+            ),
+          ),
+          PopupMenuItem(
             value: _MatrixGeneralAction.applyAttribute,
             child: ListTile(
               dense: true,
@@ -1625,7 +1736,7 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
               _matrixAxesDirty
                   ? 'Actualiza la matriz para validar las variantes.'
                   : '$_matrixReadyCount variantes listas · '
-                        '$_matrixDuplicateSkuCount códigos internos duplicados',
+                        '$_matrixDuplicateSkuCount SKU duplicados',
               style: TextStyle(
                 color: ready
                     ? const Color(0xFF067647)
@@ -1777,19 +1888,11 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildMatrixTextField(
-          fieldKey: const Key('matriz_codigo_interno'),
-          label: 'Código interno',
+          fieldKey: const Key('matriz_sku'),
+          label: 'Código / SKU',
           controller: _matrixSkuController,
-          hint: 'VAR-XXXXXXXXXX',
-          validator: _validateMatrixSku,
-          readOnly: true,
-        ),
-        const SizedBox(height: 14),
-        _buildMatrixTextField(
-          fieldKey: const Key('matriz_codigo_proveedor'),
-          label: 'Código del proveedor (opcional)',
-          controller: _matrixSupplierCodeController,
           hint: 'PER-384',
+          validator: _validateMatrixSku,
         ),
         const SizedBox(height: 14),
         _buildMatrixTextField(
@@ -1928,7 +2031,6 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
     required String hint,
     String? Function(String?)? validator,
     int maxLines = 1,
-    bool readOnly = false,
   }) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -1946,8 +2048,7 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
         controller: controller,
         validator: validator,
         maxLines: maxLines,
-        readOnly: readOnly,
-        onChanged: readOnly ? null : (_) => _markMatrixEditorDirty(),
+        onChanged: (_) => _markMatrixEditorDirty(),
         decoration: _matrixInputDecoration(hint: hint),
       ),
     ],
