@@ -18,6 +18,39 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('el indicador permanece visible y permite navegar por número', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      RepositoryProvider<CatalogoRepository>.value(
+        value: _FakeCatalogoRepository(),
+        child: const MaterialApp(home: ProductoFormPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final bloc = tester.element(find.byType(Scaffold)).read<ProductoFormBloc>();
+
+    expect(find.byKey(const ValueKey('paso_flujo_1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('paso_flujo_7')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('paso_flujo_4')));
+    await tester.pumpAndSettle();
+
+    expect(bloc.state.paso, 3);
+    expect(find.byKey(const ValueKey('paso_flujo_1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('paso_flujo_7')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('paso_flujo_2')));
+    await tester.pumpAndSettle();
+
+    expect(bloc.state.paso, 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('los pasos 1 y 2 conservan el nuevo diseño y su flujo', (
     tester,
   ) async {
@@ -278,8 +311,8 @@ void main() {
       expect(find.text('Producto único'), findsWidgets);
       expect(find.text('Producto vendible'), findsOneWidget);
       expect(find.text('1 variante automática'), findsOneWidget);
-      expect(find.text('Se define en este paso'), findsOneWidget);
-      expect(find.text('Se configura después'), findsOneWidget);
+      expect(find.text('Se define en este paso'), findsNothing);
+      expect(find.text('Se configura después'), findsNothing);
       expect(find.text('Diámetro'), findsOneWidget);
       expect(find.text('Largo'), findsOneWidget);
       expect(bloc.state.variantes, hasLength(1));
@@ -646,28 +679,43 @@ void main() {
         ),
         findsOneWidget,
       );
-      await tester.tap(find.widgetWithText(ChoiceChip, 'No aplica'));
+      final noAplicaEmpaques = find.widgetWithText(ChoiceChip, 'No aplica');
+
+      await tester.ensureVisible(noAplicaEmpaques);
       await tester.pumpAndSettle();
+      await tester.tap(noAplicaEmpaques);
+      await tester.pumpAndSettle();
+
       tester
           .widget<FilledButton>(
             find.widgetWithText(FilledButton, 'Siguiente: contenido'),
           )
           .onPressed
           ?.call();
+
       await tester.pumpAndSettle();
+
       expect(
         find.text('¿El producto vendido contiene varios elementos?'),
         findsOneWidget,
       );
-      await tester.tap(find.widgetWithText(ChoiceChip, 'No aplica'));
+
+      final noAplicaContenido = find.widgetWithText(ChoiceChip, 'No aplica');
+
+      await tester.ensureVisible(noAplicaContenido);
       await tester.pumpAndSettle();
+      await tester.tap(noAplicaContenido);
+      await tester.pumpAndSettle();
+
       tester
           .widget<FilledButton>(
             find.widgetWithText(FilledButton, 'Siguiente: precios'),
           )
           .onPressed
           ?.call();
+
       await tester.pumpAndSettle();
+
       expect(bloc.state.paso, 4);
       expect(
         bloc.state.ventaLogisticaContenido?.usesLogisticsPackages,

@@ -33,7 +33,7 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
     });
     on<ProductoFormClasificacionCambiada>(_clasificacion);
     on<ProductoFormFamiliaCambiada>(
-      (event, emit) => emit(
+          (event, emit) => emit(
         state.copyWith(
           codigo: event.codigo,
           nombre: event.nombre,
@@ -43,7 +43,7 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       ),
     );
     on<ProductoFormImagenCambiada>(
-      (event, emit) => emit(
+          (event, emit) => emit(
         state.copyWith(
           imagenesPaths: event.path == null ? const [] : [event.path!],
           limpiarError: true,
@@ -102,10 +102,10 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       );
     });
     on<ProductoFormTipoCambiado>(
-      (event, emit) => emit(state.copyWith(tipoRegistro: event.tipo)),
+          (event, emit) => emit(state.copyWith(tipoRegistro: event.tipo)),
     );
     on<ProductoFormAtributoCambiado>(
-      (event, emit) => emit(
+          (event, emit) => emit(
         state.copyWith(
           atributos: {...state.atributos, event.nombre: event.valor},
         ),
@@ -114,7 +114,7 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
     on<ProductoFormVarianteGuardada>((event, emit) {
       final variantes = [...state.variantes];
       final index = variantes.indexWhere(
-        (variante) => variante.id == event.variante.id,
+            (variante) => variante.id == event.variante.id,
       );
       if (index < 0) {
         variantes.add(event.variante);
@@ -154,7 +154,7 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       );
     });
     on<ProductoFormEdicionVarianteCambiada>(
-      (event, emit) => emit(
+          (event, emit) => emit(
         state.copyWith(
           edicionVariantePendiente: event.pendiente,
           limpiarError: event.pendiente,
@@ -162,12 +162,12 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       ),
     );
     on<ProductoFormErrorLimpiado>(
-      (_, emit) => emit(state.copyWith(limpiarError: true)),
+          (_, emit) => emit(state.copyWith(limpiarError: true)),
     );
     on<ProductoFormPresentacionAgregada>((event, emit) {
       final nombre = event.presentacion.nombre.trim().toLowerCase();
       final repetida = state.presentaciones.any(
-        (item) => item.nombre.trim().toLowerCase() == nombre,
+            (item) => item.nombre.trim().toLowerCase() == nombre,
       );
       if (repetida) {
         emit(
@@ -194,10 +194,10 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       final presentaciones = event.draft.presentations
           .map(
             (item) => PresentacionProducto(
-              nombre: item.name,
-              unidad: '${_numeroPlano(item.equivalentTo)} ${item.baseUnit}',
-            ),
-          )
+          nombre: item.name,
+          unidad: '${_numeroPlano(item.equivalentTo)} ${item.baseUnit}',
+        ),
+      )
           .toList();
       final nombres = presentaciones.map((item) => item.nombre).toSet();
       final precios = state.precios
@@ -245,7 +245,7 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
           state.copyWith(
             activo: false,
             error:
-                'Completa los precios pendientes antes de activar el producto.',
+            'Completa los precios pendientes antes de activar el producto.',
           ),
         );
         return;
@@ -255,7 +255,7 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
           state.copyWith(
             activo: false,
             error:
-                'Agrega una imagen principal lista antes de activar el producto.',
+            'Agrega una imagen principal lista antes de activar el producto.',
           ),
         );
         return;
@@ -283,13 +283,13 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       final value = switch (price.configuration) {
         PriceConfigurationType.fixed => price.fixedPrice,
         PriceConfigurationType.quantity =>
-          price.ranges.firstOrNull?.pricePerPresentation,
+        price.ranges.firstOrNull?.pricePerPresentation,
         PriceConfigurationType.quote ||
         PriceConfigurationType.unconfigured => null,
       };
       if (value == null) continue;
       final source =
-          combinations['${price.variantId}::${price.presentationId}'];
+      combinations['${price.variantId}::${price.presentationId}'];
       result.add(
         PrecioProducto(
           presentacion: source?.presentationLabel ?? price.presentationId,
@@ -326,9 +326,9 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
 
   final CatalogoRepository _repository;
   Future<void> _started(
-    ProductoFormStarted event,
-    Emitter<ProductoFormState> emit,
-  ) async {
+      ProductoFormStarted event,
+      Emitter<ProductoFormState> emit,
+      ) async {
     try {
       emit(state.copyWith(loading: true, productoId: event.productoId));
       final datos = await _repository.obtenerDatosFormulario();
@@ -366,24 +366,24 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
           variantes: producto.variantes.isNotEmpty
               ? producto.variantes
               : [
-                  ProductoVariante(
-                    id: 'legacy-${producto.id}',
-                    sku: producto.codigo,
-                    nombreCorto: producto.nombre,
-                    atributos: producto.atributos.entries
-                        .map(
-                          (entry) => AtributoProductoVariante.fromText(
-                            entry.key,
-                            entry.value,
-                          ),
-                        )
-                        .toList(),
-                    activa: producto.activo,
-                    imagenPath:
-                        producto.imagenPath ??
-                        producto.imagenesPaths.firstOrNull,
-                  ),
-                ],
+            ProductoVariante(
+              id: 'legacy-${producto.id}',
+              sku: producto.codigo,
+              nombreCorto: producto.nombre,
+              atributos: producto.atributos.entries
+                  .map(
+                    (entry) => AtributoProductoVariante.fromText(
+                  entry.key,
+                  entry.value,
+                ),
+              )
+                  .toList(),
+              activa: producto.activo,
+              imagenPath:
+              producto.imagenPath ??
+                  producto.imagenesPaths.firstOrNull,
+            ),
+          ],
           presentaciones: producto.presentaciones,
           ventaLogisticaContenido: step4SalesDraftFromMap(
             producto.ventaLogisticaContenido,
@@ -415,9 +415,9 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
   }
 
   void _clasificacion(
-    ProductoFormClasificacionCambiada event,
-    Emitter<ProductoFormState> emit,
-  ) {
+      ProductoFormClasificacionCambiada event,
+      Emitter<ProductoFormState> emit,
+      ) {
     final cambioEmpresa =
         event.empresa != null && event.empresa != state.empresa;
     final cambioMarca = event.marca != null && event.marca != state.marca;
@@ -430,10 +430,10 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
         limpiarMarca: cambioEmpresa && event.marca == null,
         categoria: event.categoria,
         limpiarCategoria:
-            (cambioEmpresa || cambioMarca) && event.categoria == null,
+        (cambioEmpresa || cambioMarca) && event.categoria == null,
         subcategoria: event.subcategoria,
         limpiarSubcategoria:
-            (cambioEmpresa || cambioMarca || cambioCategoria) &&
+        (cambioEmpresa || cambioMarca || cambioCategoria) &&
             event.subcategoria == null,
         atributos: cambioEmpresa || cambioMarca || cambioCategoria ? {} : null,
         limpiarError: true,
@@ -442,15 +442,15 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
   }
 
   Future<void> _guardar(
-    ProductoFormGuardado event,
-    Emitter<ProductoFormState> emit,
-  ) async {
+      ProductoFormGuardado event,
+      Emitter<ProductoFormState> emit,
+      ) async {
     if (!state.formularioValido) {
       emit(
         state.copyWith(
           paso: state.primerPasoInvalido,
           error:
-              'Completa la información general y registra al menos una presentación.',
+          'Completa la información general y registra al menos una presentación.',
         ),
       );
       return;
@@ -474,9 +474,9 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
   }
 
   Future<void> _activarDesdeRevision(
-    ProductoFormActivadoDesdeRevision event,
-    Emitter<ProductoFormState> emit,
-  ) async {
+      ProductoFormActivadoDesdeRevision event,
+      Emitter<ProductoFormState> emit,
+      ) async {
     if (!event.request.confirmed || !event.request.validation.canActivate) {
       event.completer.completeError(
         StateError('Corrige los bloqueos antes de activar el producto.'),
@@ -495,7 +495,14 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
     emit(state.copyWith(saving: true, limpiarError: true));
     try {
       await _persistirProducto(_productoDesdeEstado(activo: true));
-      emit(state.copyWith(saving: false, activo: true, limpiarError: true));
+      emit(
+        state.copyWith(
+          saving: false,
+          activo: true,
+          guardado: true,
+          limpiarError: true,
+        ),
+      );
       event.completer.complete(
         const Step7ActivationResult(
           pendingSynchronization: true,

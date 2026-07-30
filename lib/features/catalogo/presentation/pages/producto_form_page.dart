@@ -70,11 +70,10 @@ class _RegistrarProductoScaffold extends StatelessWidget {
         ? const Center(child: CircularProgressIndicator())
         : Column(
             children: [
-              if (state.paso < 3)
-                _StepIndicator(
-                  paso: state.paso,
-                  tipoRegistro: state.tipoRegistro,
-                ),
+              _StepIndicator(
+                paso: state.paso,
+                tipoRegistro: state.tipoRegistro,
+              ),
               if (state.error != null)
                 MaterialBanner(
                   content: Text(state.error!),
@@ -424,83 +423,84 @@ class _StepIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
+      final horizontalPadding = constraints.maxWidth < 500 ? 16.0 : 28.0;
+
       return Container(
         width: double.infinity,
         padding: EdgeInsets.fromLTRB(
-          constraints.maxWidth < 500 ? 16 : 28,
+          horizontalPadding,
           14,
-          constraints.maxWidth < 500 ? 16 : 28,
+          horizontalPadding,
           16,
         ),
         color: Colors.white,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (constraints.maxWidth < 500) ...[
-              Text(
-                'Paso ${paso + 1} de 7',
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF667085),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 7),
-              LinearProgressIndicator(
-                value: (paso + 1) / 7,
-                minHeight: 5,
-                borderRadius: BorderRadius.circular(5),
-                backgroundColor: const Color(0xFFE0E0E0),
-                color: const Color(0xFFFFC500),
-              ),
-            ] else
-              Row(
-                children: List.generate(
-                  7,
-                  (index) => Expanded(
-                    child: Row(
-                      children: [
-                        if (index > 0)
-                          Expanded(
-                            child: Container(
-                              height: 2,
-                              color: index <= paso
-                                  ? const Color(0xFFFFC500)
-                                  : const Color(0xFFE0E0E0),
-                            ),
-                          ),
-                        Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: Row(
+                  children: [
+                    for (var index = 0; index < 7; index++) ...[
+                      if (index > 0)
+                        Expanded(
+                          child: Container(
+                            height: 2,
                             color: index <= paso
                                 ? const Color(0xFFFFC500)
-                                : Colors.white,
-                            border: Border.all(
-                              color: index <= paso
-                                  ? const Color(0xFFFFC500)
-                                  : const Color(0xFFD0D5DD),
-                              width: 2,
-                            ),
-                          ),
-                          child: Center(
-                            child: index < paso
-                                ? const Icon(Icons.check, size: 16)
-                                : Text(
-                                    '${index + 1}',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
+                                : const Color(0xFFE0E0E0),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
+                      Tooltip(
+                        message: 'Ir al paso ${index + 1}: ${_nombres[index]}',
+                        child: Semantics(
+                          button: true,
+                          selected: index == paso,
+                          label: 'Paso ${index + 1}: ${_nombres[index]}',
+                          child: Material(
+                            color: Colors.transparent,
+                            shape: const CircleBorder(),
+                            child: InkWell(
+                              key: ValueKey('paso_flujo_${index + 1}'),
+                              customBorder: const CircleBorder(),
+                              onTap: () => context.read<ProductoFormBloc>().add(
+                                ProductoFormPasoSeleccionado(index),
+                              ),
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: index <= paso
+                                      ? const Color(0xFFFFC500)
+                                      : Colors.white,
+                                  border: Border.all(
+                                    color: index <= paso
+                                        ? const Color(0xFFFFC500)
+                                        : const Color(0xFFD0D5DD),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Text(
+                                  '${index + 1}',
+                                  style: GoogleFonts.inter(
+                                    color: const Color(0xFF1A1A1A),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
+            ),
             SizedBox(height: constraints.maxWidth < 500 ? 12 : 16),
             Text(
               _nombreActual,

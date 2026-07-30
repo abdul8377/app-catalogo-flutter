@@ -786,29 +786,7 @@ class _ProductoUnicoStepState extends State<ProductoUnicoStep> {
           ],
         ),
         const SizedBox(height: 20),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 1020;
-            if (compact) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildSingleProductCard(),
-                  const SizedBox(height: 18),
-                  _buildSingleInformationPanel(),
-                ],
-              );
-            }
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 7, child: _buildSingleProductCard()),
-                const SizedBox(width: 20),
-                Expanded(flex: 3, child: _buildSingleInformationPanel()),
-              ],
-            );
-          },
-        ),
+        _buildSingleProductCard(),
       ],
     ),
   );
