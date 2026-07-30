@@ -60,6 +60,19 @@ class RelacionesCatalogoGuardadas extends EstructuraCatalogoEvent {
   List<Object?> get props => [marcaId, categoriaIds];
 }
 
+class AtributosCategoriaGuardados extends EstructuraCatalogoEvent {
+  const AtributosCategoriaGuardados({
+    required this.categoriaId,
+    required this.atributos,
+  });
+
+  final int categoriaId;
+  final List<AtributoCategoriaCatalogo> atributos;
+
+  @override
+  List<Object?> get props => [categoriaId, atributos];
+}
+
 class EstadoEstructuraCambiado extends EstructuraCatalogoEvent {
   const EstadoEstructuraCambiado({
     required this.tipo,

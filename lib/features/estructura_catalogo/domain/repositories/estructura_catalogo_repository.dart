@@ -17,6 +17,11 @@ abstract class EstructuraCatalogoRepository {
     required Set<int> categoriaIds,
   });
 
+  Future<void> guardarAtributosCategoria({
+    required int categoriaId,
+    required List<AtributoCategoriaCatalogo> atributos,
+  });
+
   Future<ImpactoEstructura> obtenerImpacto({
     required String tipo,
     required int id,

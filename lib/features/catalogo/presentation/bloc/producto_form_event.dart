@@ -1,6 +1,13 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 
 import '../../domain/entities/catalogo_form_data.dart';
+import '../../domain/entities/producto_variante.dart';
+import '../widgets/paso4_venta_logistica_contenido.dart';
+import '../widgets/paso5_precios_corregido.dart';
+import '../widgets/paso6_imagenes_corregido.dart';
+import '../widgets/paso7_revisar_activar_corregido.dart';
 
 sealed class ProductoFormEvent extends Equatable {
   const ProductoFormEvent();
@@ -107,6 +114,19 @@ class ProductoFormImagenReordenada extends ProductoFormEvent {
   List<Object?> get props => [desde, hasta];
 }
 
+class ProductoFormImagenesConfiguradasCambiadas extends ProductoFormEvent {
+  const ProductoFormImagenesConfiguradasCambiadas(
+    this.draft, {
+    this.continuar = false,
+  });
+
+  final Step6ImagesDraft draft;
+  final bool continuar;
+
+  @override
+  List<Object?> get props => [draft, continuar];
+}
+
 class ProductoFormTipoCambiado extends ProductoFormEvent {
   const ProductoFormTipoCambiado(this.tipo);
   final String tipo;
@@ -119,6 +139,42 @@ class ProductoFormAtributoCambiado extends ProductoFormEvent {
   final String nombre, valor;
   @override
   List<Object?> get props => [nombre, valor];
+}
+
+class ProductoFormVarianteGuardada extends ProductoFormEvent {
+  const ProductoFormVarianteGuardada(this.variante);
+  final ProductoVariante variante;
+
+  @override
+  List<Object?> get props => [variante];
+}
+
+class ProductoFormVariantesReemplazadas extends ProductoFormEvent {
+  const ProductoFormVariantesReemplazadas(this.variantes);
+  final List<ProductoVariante> variantes;
+
+  @override
+  List<Object?> get props => [variantes];
+}
+
+class ProductoFormVarianteEliminada extends ProductoFormEvent {
+  const ProductoFormVarianteEliminada(this.id);
+  final String id;
+
+  @override
+  List<Object?> get props => [id];
+}
+
+class ProductoFormEdicionVarianteCambiada extends ProductoFormEvent {
+  const ProductoFormEdicionVarianteCambiada(this.pendiente);
+  final bool pendiente;
+
+  @override
+  List<Object?> get props => [pendiente];
+}
+
+class ProductoFormErrorLimpiado extends ProductoFormEvent {
+  const ProductoFormErrorLimpiado();
 }
 
 class ProductoFormPresentacionAgregada extends ProductoFormEvent {
@@ -135,6 +191,19 @@ class ProductoFormPresentacionEliminada extends ProductoFormEvent {
   List<Object?> get props => [index];
 }
 
+class ProductoFormVentaLogisticaCambiada extends ProductoFormEvent {
+  const ProductoFormVentaLogisticaCambiada(
+    this.draft, {
+    this.continuar = false,
+  });
+
+  final Step4SalesDraft draft;
+  final bool continuar;
+
+  @override
+  List<Object?> get props => [draft, continuar];
+}
+
 class ProductoFormPrecioAgregado extends ProductoFormEvent {
   const ProductoFormPrecioAgregado(this.precio);
   final PrecioProducto precio;
@@ -149,6 +218,19 @@ class ProductoFormPrecioEliminado extends ProductoFormEvent {
   List<Object?> get props => [index];
 }
 
+class ProductoFormPreciosConfiguradosCambiados extends ProductoFormEvent {
+  const ProductoFormPreciosConfiguradosCambiados(
+    this.draft, {
+    this.continuar = false,
+  });
+
+  final PricingStep5Draft draft;
+  final bool continuar;
+
+  @override
+  List<Object?> get props => [draft, continuar];
+}
+
 class ProductoFormEstadoCambiado extends ProductoFormEvent {
   const ProductoFormEstadoCambiado(this.activo);
   final bool activo;
@@ -159,4 +241,17 @@ class ProductoFormEstadoCambiado extends ProductoFormEvent {
 
 class ProductoFormGuardado extends ProductoFormEvent {
   const ProductoFormGuardado();
+}
+
+class ProductoFormActivadoDesdeRevision extends ProductoFormEvent {
+  const ProductoFormActivadoDesdeRevision({
+    required this.request,
+    required this.completer,
+  });
+
+  final Step7ActivationRequest request;
+  final Completer<Step7ActivationResult> completer;
+
+  @override
+  List<Object?> get props => [request, completer];
 }

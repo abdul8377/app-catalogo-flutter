@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('la opción Editar del menú ejecuta su acción', (tester) async {
+  testWidgets('el botón Editar ejecuta su acción', (tester) async {
     var editarPresionado = false;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: SizedBox(
             width: 350,
-            height: 410,
+            height: 540,
             child: ProductoCard(
               producto: const ProductoResumen(
                 id: '1',
@@ -37,8 +37,6 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byTooltip('Más acciones'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('Editar'));
     await tester.pumpAndSettle();
 
@@ -46,16 +44,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('la tarjeta vendible solo muestra Ver detalles y Agregar', (
-    tester,
-  ) async {
+  testWidgets('la tarjeta vendible solo muestra Ver y Agregar', (tester) async {
     var agregado = false;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: SizedBox(
             width: 350,
-            height: 410,
+            height: 520,
             child: ProductoCard(
               producto: const ProductoResumen(
                 id: 'venta',
@@ -82,9 +78,49 @@ void main() {
 
     expect(find.text('Editar'), findsNothing);
     expect(find.text('Desactivar'), findsNothing);
-    expect(find.byTooltip('Más acciones'), findsNothing);
+    expect(find.text('SKU: PER-002'), findsOneWidget);
+    expect(find.text('Activo'), findsOneWidget);
     await tester.tap(find.text('Agregar'));
     expect(agregado, isTrue);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('la imagen ocupa el cuadro un 20% más alto', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 350,
+            height: 580,
+            child: ProductoCard(
+              producto: const ProductoResumen(
+                id: 'imagen',
+                codigo: 'IMG-001',
+                nombre: 'Producto con imagen',
+                empresa: 'DINA',
+                marca: 'DINA',
+                categoria: 'Pernería',
+                unidadVenta: 'Unidad',
+                precio: 10,
+                sinPrecio: false,
+                activo: true,
+                tipoRegistro: 'unico',
+                atributosClave: [],
+                imagenPath: 'imagen-no-disponible.jpg',
+              ),
+              isGrid: true,
+              onVerDetalle: () {},
+              onAgregar: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      tester.getSize(find.byKey(const Key('producto_imagen_imagen'))).height,
+      228,
+    );
+    expect(tester.widget<Image>(find.byType(Image)).fit, BoxFit.cover);
   });
 }

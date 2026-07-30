@@ -14,6 +14,7 @@ class EstructuraCatalogoBloc
     on<MarcaCatalogoGuardada>(_guardarMarca);
     on<CategoriaCatalogoGuardada>(_guardarCategoria);
     on<RelacionesCatalogoGuardadas>(_guardarRelaciones);
+    on<AtributosCategoriaGuardados>(_guardarAtributos);
     on<EstadoEstructuraCambiado>(_cambiarEstado);
     on<MensajeEstructuraConsumido>(
       (_, emit) =>
@@ -90,6 +91,18 @@ class EstructuraCatalogoBloc
       categoriaIds: event.categoriaIds,
     ),
     'Relaciones actualizadas correctamente.',
+  );
+
+  Future<void> _guardarAtributos(
+    AtributosCategoriaGuardados event,
+    Emitter<EstructuraCatalogoState> emit,
+  ) => _ejecutar(
+    emit,
+    () => _repository.guardarAtributosCategoria(
+      categoriaId: event.categoriaId,
+      atributos: event.atributos,
+    ),
+    'Atributos de la categoría actualizados correctamente.',
   );
 
   Future<void> _cambiarEstado(

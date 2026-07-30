@@ -11,6 +11,13 @@ import '../../domain/repositories/catalogo_repository.dart';
 import '../bloc/producto_form_bloc.dart';
 import '../bloc/producto_form_event.dart';
 import '../bloc/producto_form_state.dart';
+import '../widgets/producto_matriz_step.dart';
+import '../widgets/producto_imagenes_step.dart';
+import '../widgets/producto_precios_step.dart';
+import '../widgets/producto_revision_step.dart';
+import '../widgets/producto_unico_step.dart';
+import '../widgets/producto_venta_logistica_step.dart';
+import '../widgets/producto_variantes_step.dart';
 
 class ProductoFormPage extends StatelessWidget {
   const ProductoFormPage({this.productoId, super.key});
@@ -58,23 +65,26 @@ class _RegistrarProductoScaffold extends StatelessWidget {
       centerTitle: true,
       backgroundColor: Colors.white,
       foregroundColor: const Color(0xFF1A1A2E),
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(52),
-        child: _StepIndicator(paso: state.paso),
-      ),
     ),
     body: state.loading
         ? const Center(child: CircularProgressIndicator())
         : Column(
             children: [
+              if (state.paso < 3)
+                _StepIndicator(
+                  paso: state.paso,
+                  tipoRegistro: state.tipoRegistro,
+                ),
               if (state.error != null)
                 MaterialBanner(
                   content: Text(state.error!),
                   leading: const Icon(Icons.error_outline, color: Colors.red),
                   actions: [
                     TextButton(
-                      onPressed: () {},
-                      child: const Text('Revisa los datos'),
+                      onPressed: () => context.read<ProductoFormBloc>().add(
+                        const ProductoFormErrorLimpiado(),
+                      ),
+                      child: const Text('Entendido'),
                     ),
                   ],
                 ),
@@ -84,7 +94,7 @@ class _RegistrarProductoScaffold extends StatelessWidget {
                   child: _PasoActual(key: ValueKey(state.paso), state: state),
                 ),
               ),
-              _BottomNavigation(state: state),
+              if (state.paso < 3) _BottomNavigation(state: state),
             ],
           ),
   );
@@ -371,94 +381,144 @@ class _SeccionEdicionActual extends StatelessWidget {
 }
 
 class _StepIndicator extends StatelessWidget {
-  const _StepIndicator({required this.paso});
+  const _StepIndicator({required this.paso, required this.tipoRegistro});
   final int paso;
+  final String tipoRegistro;
   static const _nombres = [
-    'Clasificación',
-    'Familia',
-    'Tipo',
-    'Atributos',
-    'Venta',
-    'Imágenes',
-    'Estado',
+    'Empresa, marca y categoría',
+    'Define la familia y el tipo de registro',
+    'Lista de variantes',
+    'Presentaciones',
+    'Precios',
+    'Imágenes y archivos',
+    'Publicación y revisión',
   ];
+  static const _subtitulos = [
+    'Selecciona en este orden para evitar relaciones inválidas.',
+    'La familia contiene la información compartida por sus variantes.',
+    'Cada variante representa un artículo exacto con su propio SKU.',
+    'Configura las unidades de venta y sus equivalencias.',
+    'Asigna precios o deja presentaciones pendientes de cotización.',
+    'Adjunta fotografías y define la imagen principal.',
+    'Comprueba la disponibilidad antes de publicar el producto.',
+  ];
+
+  String get _nombreActual {
+    if (paso != 2) return _nombres[paso];
+    return switch (tipoRegistro) {
+      'matriz' => 'Matriz de variantes',
+      'unico' => 'Producto único',
+      _ => _nombres[paso],
+    };
+  }
+
+  String get _subtituloActual {
+    if (paso != 2) return _subtitulos[paso];
+    return switch (tipoRegistro) {
+      'matriz' => 'Combina dos atributos para generar artículos exactos.',
+      'unico' => 'Completa los datos del único artículo vendible.',
+      _ => _subtitulos[paso],
+    };
+  }
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      if (constraints.maxWidth < 460) {
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          color: Colors.white,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.fromLTRB(
+          constraints.maxWidth < 500 ? 16 : 28,
+          14,
+          constraints.maxWidth < 500 ? 16 : 28,
+          16,
+        ),
+        color: Colors.white,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (constraints.maxWidth < 500) ...[
               Text(
-                'Paso ${paso + 1} de 7 · ${_nombres[paso]}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
+                'Paso ${paso + 1} de 7',
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF667085),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 7),
               LinearProgressIndicator(
                 value: (paso + 1) / 7,
-                minHeight: 4,
-                borderRadius: BorderRadius.circular(4),
+                minHeight: 5,
+                borderRadius: BorderRadius.circular(5),
                 backgroundColor: const Color(0xFFE0E0E0),
                 color: const Color(0xFFFFC500),
               ),
-            ],
-          ),
-        );
-      }
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-        color: Colors.white,
-        child: Row(
-          children: List.generate(
-            7,
-            (index) => Expanded(
-              child: Row(
-                children: [
-                  if (index > 0)
-                    Expanded(
-                      child: Container(
-                        height: 2,
-                        color: index <= paso
-                            ? const Color(0xFFFFC500)
-                            : const Color(0xFFE0E0E0),
-                      ),
-                    ),
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: index <= paso
-                          ? const Color(0xFFFFC500)
-                          : Colors.transparent,
-                      border: Border.all(
-                        color: index <= paso
-                            ? const Color(0xFFFFC500)
-                            : const Color(0xFFE0E0E0),
-                        width: 2,
-                      ),
-                    ),
-                    child: Center(
-                      child: index < paso
-                          ? const Icon(Icons.check, size: 16)
-                          : Text(
-                              '${index + 1}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
+            ] else
+              Row(
+                children: List.generate(
+                  7,
+                  (index) => Expanded(
+                    child: Row(
+                      children: [
+                        if (index > 0)
+                          Expanded(
+                            child: Container(
+                              height: 2,
+                              color: index <= paso
+                                  ? const Color(0xFFFFC500)
+                                  : const Color(0xFFE0E0E0),
                             ),
+                          ),
+                        Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: index <= paso
+                                ? const Color(0xFFFFC500)
+                                : Colors.white,
+                            border: Border.all(
+                              color: index <= paso
+                                  ? const Color(0xFFFFC500)
+                                  : const Color(0xFFD0D5DD),
+                              width: 2,
+                            ),
+                          ),
+                          child: Center(
+                            child: index < paso
+                                ? const Icon(Icons.check, size: 16)
+                                : Text(
+                                    '${index + 1}',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
+              ),
+            SizedBox(height: constraints.maxWidth < 500 ? 12 : 16),
+            Text(
+              _nombreActual,
+              style: GoogleFonts.inter(
+                color: const Color(0xFF1A1A1A),
+                fontSize: constraints.maxWidth < 500 ? 18 : 20,
+                fontWeight: FontWeight.w800,
               ),
             ),
-          ),
+            const SizedBox(height: 4),
+            Text(
+              _subtituloActual,
+              style: GoogleFonts.inter(
+                color: const Color(0xFF667085),
+                fontSize: 14,
+              ),
+            ),
+          ],
         ),
       );
     },
@@ -468,135 +528,627 @@ class _StepIndicator extends StatelessWidget {
 class _PasoActual extends StatelessWidget {
   const _PasoActual({required this.state, super.key});
   final ProductoFormState state;
+
   @override
-  Widget build(BuildContext context) => Center(
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 820),
-      child: switch (state.paso) {
-        0 => _PasoClasificacion(state: state),
-        1 => _PasoFamilia(state: state),
-        2 => _PasoTipo(state: state),
-        3 => _PasoAtributos(state: state),
-        4 => _PasoPresentaciones(state: state),
-        5 => _PasoImagenes(state: state),
-        _ => _PasoEstado(state: state),
-      },
-    ),
-  );
+  Widget build(BuildContext context) {
+    if (state.paso == 3) {
+      return ProductoVentaLogisticaStep(state: state);
+    }
+    if (state.paso == 4) {
+      return ProductoPreciosStep(state: state);
+    }
+    if (state.paso == 5) {
+      return ProductoImagenesStep(state: state);
+    }
+    if (state.paso == 6) {
+      return ProductoRevisionStep(state: state);
+    }
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1280),
+        child: switch (state.paso) {
+          0 => _PasoClasificacion(state: state),
+          1 => _PasoFamiliaTipo(state: state),
+          2 => switch (state.tipoRegistro) {
+            'matriz' => ProductoMatrizStep(state: state),
+            'unico' => ProductoUnicoStep(state: state),
+            _ => ProductoVariantesStep(state: state),
+          },
+          _ => _PasoEstado(state: state),
+        },
+      ),
+    );
+  }
 }
 
 class _PasoClasificacion extends StatelessWidget {
   const _PasoClasificacion({required this.state});
   final ProductoFormState state;
+
   @override
-  Widget build(BuildContext context) => _StepCard(
-    title: 'Clasificación',
-    subtitle: 'Selecciona dónde estará organizado el producto.',
-    children: [
-      _dropdown(
-        context,
-        'Empresa *',
-        state.empresa,
-        state.datos!.empresas,
-        (value) => ProductoFormClasificacionCambiada(empresa: value),
-      ),
-      _dropdown(
-        context,
-        'Marca *',
-        state.marca,
-        state.marcasDisponibles,
-        (value) => ProductoFormClasificacionCambiada(marca: value),
-      ),
-      _dropdown(
-        context,
-        'Categoría *',
-        state.categoria,
-        state.categoriasDisponibles,
-        (value) => ProductoFormClasificacionCambiada(categoria: value),
-      ),
-      _dropdown(
-        context,
-        'Subcategoría *',
-        state.subcategoria,
-        state.subcategorias,
-        (value) => ProductoFormClasificacionCambiada(subcategoria: value),
-      ),
-    ],
-  );
-  Widget _dropdown(
-    BuildContext context,
-    String label,
-    String? value,
-    List<String> items,
-    ProductoFormEvent Function(String?) event,
-  ) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: DropdownButtonFormField<String>(
-      initialValue: items.contains(value) ? value : null,
-      isExpanded: true,
-      items: items
-          .map(
-            (item) => DropdownMenuItem(
-              value: item,
-              child: Text(item, overflow: TextOverflow.ellipsis),
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final contentWidth = constraints.maxWidth < 720
+          ? 680.0
+          : constraints.maxWidth - 40;
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: contentWidth,
+            child: Card(
+              elevation: 2,
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _dropdown(
+                            context,
+                            label: 'Empresa *',
+                            value: state.empresa,
+                            items: state.datos!.empresas,
+                            onChanged: (value) =>
+                                ProductoFormClasificacionCambiada(
+                                  empresa: value,
+                                ),
+                            icon: Icons.business_outlined,
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: _dropdown(
+                            context,
+                            label: 'Marca *',
+                            value: state.marca,
+                            items: state.marcasDisponibles,
+                            onChanged: (value) =>
+                                ProductoFormClasificacionCambiada(marca: value),
+                            icon: Icons.storefront_outlined,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _dropdown(
+                            context,
+                            label: 'Categoría *',
+                            value: state.categoria,
+                            items: state.categoriasDisponibles,
+                            onChanged: (value) =>
+                                ProductoFormClasificacionCambiada(
+                                  categoria: value,
+                                ),
+                            icon: Icons.category_outlined,
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: _dropdown(
+                            context,
+                            label: 'Subcategoría',
+                            value: state.subcategoria,
+                            items: state.subcategorias,
+                            onChanged: (value) =>
+                                ProductoFormClasificacionCambiada(
+                                  subcategoria: value,
+                                ),
+                            icon: Icons.layers_outlined,
+                            helperText:
+                                'Opcional si la categoría no tiene hijos.',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-          )
-          .toList(),
-      onChanged: items.isEmpty
-          ? null
-          : (value) => context.read<ProductoFormBloc>().add(event(value)),
-      decoration: _decoration(label, Icons.keyboard_arrow_down),
+          ),
+        ),
+      );
+    },
+  );
+
+  Widget _dropdown(
+    BuildContext context, {
+    required String label,
+    required String? value,
+    required List<String> items,
+    required ProductoFormEvent Function(String?) onChanged,
+    required IconData icon,
+    String? helperText,
+  }) => SizedBox(
+    height: helperText != null ? 115 : 85,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<String>(
+          key: ValueKey('$label-$value-${items.join('|')}'),
+          initialValue: items.contains(value) ? value : null,
+          isExpanded: true,
+          menuMaxHeight: 300,
+          dropdownColor: Colors.white,
+          decoration: InputDecoration(
+            labelText: label,
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1A1A1A),
+            ),
+            prefixIcon: Icon(icon, color: const Color(0xFFFFC500), size: 20),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFFFC500), width: 2),
+            ),
+            floatingLabelBehavior: FloatingLabelBehavior.always,
+          ),
+          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+          items: items
+              .map(
+                (item) => DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(
+                    item,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: items.isEmpty
+              ? null
+              : (value) =>
+                    context.read<ProductoFormBloc>().add(onChanged(value)),
+        ),
+        if (helperText != null) ...[
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.only(left: 12),
+            child: Text(
+              helperText,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+            ),
+          ),
+        ] else
+          const SizedBox(height: 20),
+      ],
     ),
   );
 }
 
-class _PasoFamilia extends StatelessWidget {
-  const _PasoFamilia({required this.state});
+class _PasoFamiliaTipo extends StatefulWidget {
+  const _PasoFamiliaTipo({required this.state});
+
   final ProductoFormState state;
+
   @override
-  Widget build(BuildContext context) => _StepCard(
-    title: 'Familia del producto',
-    subtitle: 'Define el código y la información principal.',
-    children: [
-      TextFormField(
-        initialValue: state.codigo,
-        textCapitalization: TextCapitalization.characters,
-        onChanged: (value) => context.read<ProductoFormBloc>().add(
-          ProductoFormFamiliaCambiada(codigo: value),
-        ),
-        decoration: _decoration(
-          'Código único *',
-          Icons.qr_code_2,
-          helperText: 'Debe ser único en todo el catálogo.',
+  State<_PasoFamiliaTipo> createState() => _PasoFamiliaTipoState();
+}
+
+class _PasoFamiliaTipoState extends State<_PasoFamiliaTipo> {
+  final List<TextEditingController> _attributeControllers = [];
+
+  ProductoFormState get state => widget.state;
+
+  @override
+  void dispose() {
+    for (final controller in _attributeControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _addAttribute() {
+    setState(() {
+      _attributeControllers.add(TextEditingController());
+    });
+  }
+
+  void _removeAttribute(int index) {
+    final controller = _attributeControllers.removeAt(index);
+    setState(() {});
+    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: SizedBox(
+          width: constraints.maxWidth - 40,
+          child: isLandscape
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 6, child: _general(context)),
+                    const SizedBox(width: 20),
+                    Expanded(flex: 4, child: _atributos(context)),
+                  ],
+                )
+              : Column(
+                  children: [
+                    _general(context),
+                    const SizedBox(height: 20),
+                    _atributos(context),
+                  ],
+                ),
         ),
       ),
-      const SizedBox(height: 16),
-      TextFormField(
-        initialValue: state.nombre,
-        onChanged: (value) => context.read<ProductoFormBloc>().add(
-          ProductoFormFamiliaCambiada(nombre: value),
-        ),
-        decoration: _decoration(
-          'Nombre de la familia *',
-          Icons.inventory_2_outlined,
-          helperText: 'Nombre visible para vendedores y clientes.',
+    );
+  }
+
+  Widget _general(BuildContext context) => SizedBox(
+    width: double.infinity,
+    child: Card(
+      elevation: 2,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Información general',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Nombre de la familia',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  key: const Key('familia_nombre'),
+                  initialValue: state.nombre,
+                  onChanged: (value) => context.read<ProductoFormBloc>().add(
+                    ProductoFormFamiliaCambiada(nombre: value),
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: 'Batería de ion-litio UYUSTOOLS',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'No incluyas aquí la medida exacta de una variante.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Descripción',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  key: const Key('familia_descripcion'),
+                  initialValue: state.descripcion,
+                  onChanged: (value) => context.read<ProductoFormBloc>().add(
+                    ProductoFormFamiliaCambiada(descripcion: value),
+                  ),
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    hintText:
+                        'Baterías recargables compatibles con el sistema UYUSTOOLS.',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Tipo de registro',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+            const SizedBox(height: 12),
+            LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: constraints.maxWidth < 660
+                      ? 660
+                      : constraints.maxWidth,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _tipo(
+                          context,
+                          'Producto único',
+                          'Un solo SKU',
+                          'unico',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _tipo(
+                          context,
+                          'Lista de variantes',
+                          'Varios códigos',
+                          'variantes',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _tipo(context, 'Matriz', 'Dos ejes', 'matriz'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-      const SizedBox(height: 16),
-      TextFormField(
-        initialValue: state.descripcion,
-        maxLines: 3,
-        onChanged: (value) => context.read<ProductoFormBloc>().add(
-          ProductoFormFamiliaCambiada(descripcion: value),
-        ),
-        decoration: _decoration(
-          'Descripción general',
-          Icons.notes,
-          helperText: 'Describe el uso o las características generales.',
-        ),
-      ),
-    ],
+    ),
   );
+
+  Widget _tipo(
+    BuildContext context,
+    String title,
+    String subtitle,
+    String value,
+  ) {
+    final selected = state.tipoRegistro == value;
+    return GestureDetector(
+      onTap: () =>
+          context.read<ProductoFormBloc>().add(ProductoFormTipoCambiado(value)),
+      child: Container(
+        height: 90,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFFFFC500).withValues(alpha: .1)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? const Color(0xFFFFC500) : Colors.grey.shade300,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                ),
+              ],
+            ),
+            if (selected)
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFC500),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'ACTIVO',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _atributos(BuildContext context) {
+    final attributes = state.atributosDisponibles
+        .where((attribute) => !attribute.esVariante)
+        .toList();
+
+    return SizedBox(
+      width: double.infinity,
+      child: Card(
+        elevation: 2,
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Atributos de la categoría',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Se sugieren según ${state.categoria ?? 'la categoría'}.',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 20),
+              for (var index = 0; index < attributes.length; index++) ...[
+                _attributeField(
+                  context,
+                  attributes[index].nombre,
+                  _attributeHint(attributes[index].nombre),
+                ),
+                if (index < attributes.length - 1) const SizedBox(height: 16),
+              ],
+              if (_attributeControllers.isNotEmpty)
+                Padding(
+                  padding: EdgeInsets.only(top: attributes.isEmpty ? 0 : 16),
+                  child: Column(
+                    children: List.generate(_attributeControllers.length, (
+                      index,
+                    ) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: _attributeControllers[index],
+                                decoration: const InputDecoration(
+                                  hintText: 'Ej. Peso, Material',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.grey),
+                              onPressed: () => _removeAttribute(index),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: _addAttribute,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFF1A1A1A)),
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  '+ Añadir atributo',
+                  style: TextStyle(
+                    color: Color(0xFF1A1A1A),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _attributeField(BuildContext context, String label, String hint) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1A1A1A),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            initialValue: state.atributos[label] ?? '',
+            onChanged: (value) => context.read<ProductoFormBloc>().add(
+              ProductoFormAtributoCambiado(label, value),
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              border: const OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+            ),
+          ),
+        ],
+      );
+
+  String _attributeHint(String label) => switch (label.toLowerCase()) {
+    'voltaje' => '20 V',
+    'tecnología' || 'tecnologia' => 'Ion-Litio',
+    'sistema compatible' => 'UYUSTOOLS 20 V',
+    _ => 'Ingresa ${label.toLowerCase()}',
+  };
 }
 
 class _PasoGeneralEdicion extends StatelessWidget {
@@ -888,6 +1440,12 @@ class _PasoPresentacionesState extends State<_PasoPresentaciones> {
       unidad = TextEditingController(),
       valor = TextEditingController();
   String? presentacionPrecio;
+
+  @override
+  void initState() {
+    super.initState();
+    presentacionPrecio = widget.state.presentaciones.firstOrNull?.nombre;
+  }
 
   @override
   void didUpdateWidget(covariant _PasoPresentaciones oldWidget) {
@@ -1573,7 +2131,9 @@ class _BottomNavigation extends StatelessWidget {
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 390;
         final anterior = TextButton.icon(
-          onPressed: state.paso == 0
+          onPressed:
+              state.paso == 0 ||
+                  (state.paso == 2 && state.edicionVariantePendiente)
               ? null
               : () => context.read<ProductoFormBloc>().add(
                   const ProductoFormPasoAnterior(),
@@ -1582,20 +2142,41 @@ class _BottomNavigation extends StatelessWidget {
           label: Text(compact ? 'Atrás' : 'Anterior'),
         );
         final siguiente = FilledButton.icon(
-          onPressed: !state.pasoValido || state.saving
+          onPressed: state.saving
               ? null
-              : () => context.read<ProductoFormBloc>().add(
-                  state.paso < 6
-                      ? const ProductoFormPasoSiguiente()
-                      : const ProductoFormGuardado(),
-                ),
+              : () {
+                  if (state.paso == 2 &&
+                      state.tipoRegistro == 'unico' &&
+                      !productoUnicoStepController.validateAndSave()) {
+                    return;
+                  }
+                  context.read<ProductoFormBloc>().add(
+                    state.paso < 6
+                        ? const ProductoFormPasoSiguiente()
+                        : const ProductoFormGuardado(),
+                  );
+                },
           icon: state.saving
               ? const SizedBox.square(
                   dimension: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : Icon(state.paso < 6 ? Icons.arrow_forward : Icons.check),
-          label: Text(state.paso < 6 ? 'Siguiente' : 'Guardar'),
+          label: Text(
+            state.paso == 6
+                ? 'Publicar'
+                : state.paso == 2 &&
+                      (state.tipoRegistro == 'matriz' ||
+                          state.tipoRegistro == 'unico')
+                ? compact
+                      ? 'Siguiente'
+                      : 'Siguiente: venta y empaques'
+                : state.paso == 1
+                ? compact
+                      ? 'Continuar'
+                      : 'Continuar: variantes'
+                : 'Continuar',
+          ),
           style: FilledButton.styleFrom(
             backgroundColor: const Color(0xFFFFC500),
             foregroundColor: Colors.black,

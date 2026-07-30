@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import 'catalogo_form_data.dart';
+import 'producto_variante.dart';
 
 class ProductoDetalle extends Equatable {
   const ProductoDetalle({
@@ -18,8 +19,12 @@ class ProductoDetalle extends Equatable {
     required this.precios,
     required this.activo,
     required this.creadoEn,
+    this.variantes = const [],
     this.imagenesPaths = const [],
     this.imagenPath,
+    this.ventaLogisticaContenido,
+    this.preciosConfigurados,
+    this.imagenesConfiguradas,
   });
 
   final String id;
@@ -36,8 +41,12 @@ class ProductoDetalle extends Equatable {
   final List<PrecioProducto> precios;
   final bool activo;
   final DateTime creadoEn;
+  final List<ProductoVariante> variantes;
   final List<String> imagenesPaths;
   final String? imagenPath;
+  final Map<String, dynamic>? ventaLogisticaContenido;
+  final Map<String, dynamic>? preciosConfigurados;
+  final Map<String, dynamic>? imagenesConfiguradas;
 
   bool get tienePrecio => precios.isNotEmpty;
   double? get precioBase => precios.isEmpty ? null : precios.first.valor;
@@ -58,7 +67,11 @@ class ProductoDetalle extends Equatable {
     precios,
     activo,
     creadoEn,
+    variantes,
     imagenesPaths,
     imagenPath,
+    ventaLogisticaContenido,
+    preciosConfigurados,
+    imagenesConfiguradas,
   ];
 }

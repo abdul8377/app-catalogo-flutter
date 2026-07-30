@@ -156,7 +156,7 @@ class _NuevoPedidoViewState extends State<_NuevoPedidoView> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
         gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: constraints.maxWidth < 500 ? 500 : 360,
-          mainAxisExtent: 410,
+          mainAxisExtent: constraints.maxWidth < 500 ? 560 : 580,
           crossAxisSpacing: 13,
           mainAxisSpacing: 13,
         ),

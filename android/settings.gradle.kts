@@ -23,4 +23,19 @@ plugins {
     id("org.jetbrains.kotlin.android") version "2.3.20" apply false
 }
 
+gradle.beforeProject {
+    buildscript.configurations.configureEach {
+        resolutionStrategy.eachDependency {
+            if (
+                requested.group == "com.android.tools.build" &&
+                    requested.name == "gradle" &&
+                    requested.version == "8.13.0"
+            ) {
+                useVersion("8.13.1")
+                because("Usa el parche compatible ya disponible para image_cropper")
+            }
+        }
+    }
+}
+
 include(":app")

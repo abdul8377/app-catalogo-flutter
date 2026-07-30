@@ -74,6 +74,11 @@ class EstructuraCatalogoLocalDatasource {
       '''),
       db.query('marca_categorias'),
     ]);
+    final atributos = await _obtenerAtributos(db);
+    final unidades = (await db.query(
+      'unidades_medida',
+      orderBy: 'magnitud COLLATE NOCASE, nombre COLLATE NOCASE',
+    )).map(_unidadFromMap).toList();
 
     return EstructuraCatalogoSnapshot(
       empresas: results[0].map(_empresaFromMap).toList(),
@@ -88,6 +93,8 @@ class EstructuraCatalogoLocalDatasource {
             ),
           )
           .toList(),
+      atributos: atributos,
+      unidades: unidades,
     );
   }
 
@@ -108,7 +115,7 @@ class EstructuraCatalogoLocalDatasource {
           'ruc': empresa.ruc.trim(),
           'telefono': empresa.telefono.trim(),
           'direccion': empresa.direccion.trim(),
-          'estado': 1,
+          'estado': empresa.activa ? 1 : 0,
           'actualizado_en': now,
         });
         await txn.insert('marcas', {
@@ -134,6 +141,7 @@ class EstructuraCatalogoLocalDatasource {
             'ruc': empresa.ruc.trim(),
             'telefono': empresa.telefono.trim(),
             'direccion': empresa.direccion.trim(),
+            'estado': empresa.activa ? 1 : 0,
             'actualizado_en': now,
           },
           where: 'id = ?',
@@ -200,7 +208,7 @@ class EstructuraCatalogoLocalDatasource {
         entityId = await txn.insert('marcas', {
           'empresa_id': marca.empresaId,
           'nombre': nombre,
-          'estado': 1,
+          'estado': marca.activa ? 1 : 0,
           'actualizado_en': now,
         });
       } else {
@@ -219,6 +227,7 @@ class EstructuraCatalogoLocalDatasource {
           {
             'empresa_id': marca.empresaId,
             'nombre': nombre,
+            'estado': marca.activa ? 1 : 0,
             'actualizado_en': now,
           },
           where: 'id = ?',
@@ -299,7 +308,7 @@ class EstructuraCatalogoLocalDatasource {
           'categoria_padre_id': categoria.categoriaPadreId,
           'nombre': nombre,
           'descripcion': categoria.descripcion.trim(),
-          'estado': 1,
+          'estado': categoria.activa ? 1 : 0,
           'actualizado_en': now,
         });
       } else {
@@ -324,6 +333,7 @@ class EstructuraCatalogoLocalDatasource {
             'categoria_padre_id': categoria.categoriaPadreId,
             'nombre': nombre,
             'descripcion': categoria.descripcion.trim(),
+            'estado': categoria.activa ? 1 : 0,
             'actualizado_en': now,
           },
           where: 'id = ?',
@@ -366,6 +376,161 @@ class EstructuraCatalogoLocalDatasource {
         categoriaIds: categoriaIds,
       ),
     );
+  }
+
+  Future<void> guardarAtributosCategoria({
+    required int categoriaId,
+    required List<AtributoCategoriaCatalogo> atributos,
+  }) async {
+    final db = await _db;
+    await db.transaction((txn) async {
+      final category = await txn.query(
+        'categorias',
+        columns: ['id', 'nombre'],
+        where: 'id = ?',
+        whereArgs: [categoriaId],
+        limit: 1,
+      );
+      if (category.isEmpty) {
+        throw StateError('La categoría ya no existe.');
+      }
+
+      final propios = atributos
+          .where((item) => item.categoriaId == categoriaId)
+          .toList();
+      _validarAtributosSinDuplicados(propios);
+      final scope = await _atributosEnCadena(txn, categoriaId);
+      for (final atributo in propios) {
+        final duplicate = scope.where(
+          (row) =>
+              row['id'] != atributo.id &&
+              (_canon(row['nombre'] as String) == _canon(atributo.nombre) ||
+                  _canon(row['clave'] as String) == _canon(atributo.clave)),
+        );
+        if (duplicate.isNotEmpty) {
+          throw StateError(
+            'Ya existe un atributo equivalente a “${atributo.nombre}” '
+            'en esta cadena de categorías.',
+          );
+        }
+      }
+
+      final existentes = await txn.query(
+        'categoria_atributos',
+        columns: ['id'],
+        where: 'categoria_id = ?',
+        whereArgs: [categoriaId],
+      );
+      final idsRecibidos = propios.map((item) => item.id).toSet();
+      for (final row in existentes) {
+        final id = row['id'] as String;
+        if (idsRecibidos.contains(id)) continue;
+        final used = await _cantidadUsoAtributo(txn, id);
+        if (used > 0) {
+          await txn.update(
+            'categoria_atributos',
+            {'estado': 0, 'activo_nuevos': 0},
+            where: 'id = ?',
+            whereArgs: [id],
+          );
+        } else {
+          await txn.delete(
+            'categoria_atributo_opciones',
+            where: 'categoria_atributo_id = ?',
+            whereArgs: [id],
+          );
+          await txn.delete(
+            'categoria_atributo_unidades',
+            where: 'categoria_atributo_id = ?',
+            whereArgs: [id],
+          );
+          await txn.delete(
+            'categoria_atributos',
+            where: 'id = ?',
+            whereArgs: [id],
+          );
+        }
+      }
+
+      final now = DateTime.now().toIso8601String();
+      for (final atributo in propios) {
+        final values = <String, Object?>{
+          'id': atributo.id,
+          'categoria_id': categoriaId,
+          'nombre': atributo.nombre.trim(),
+          'clave': atributo.clave.trim(),
+          'ayuda': atributo.ayuda?.trim(),
+          'tipo_dato': atributo.tipoDato,
+          'nivel_captura': atributo.nivelCaptura,
+          'requerido_activar': atributo.requeridoActivar ? 1 : 0,
+          'visible_ficha': atributo.visibleFicha ? 1 : 0,
+          'filtrable': atributo.filtrable ? 1 : 0,
+          'puede_ser_eje': atributo.puedeSerEje ? 1 : 0,
+          'activo_nuevos': atributo.activoNuevos ? 1 : 0,
+          'longitud_maxima': atributo.longitudMaxima,
+          'ejemplo': atributo.ejemplo?.trim(),
+          'minimo': atributo.minimo,
+          'maximo': atributo.maximo,
+          'decimales': atributo.decimales,
+          'magnitud': atributo.magnitud,
+          'maximo_selecciones': atributo.maximoSelecciones,
+          'etiqueta_verdadero': atributo.etiquetaVerdadero,
+          'etiqueta_falso': atributo.etiquetaFalso,
+          'orden': atributo.orden,
+          'estado': atributo.activo ? 1 : 0,
+          'actualizado_en': now,
+        };
+        final exists = await txn.query(
+          'categoria_atributos',
+          columns: ['id', 'tipo_dato', 'nivel_captura'],
+          where: 'id = ?',
+          whereArgs: [atributo.id],
+          limit: 1,
+        );
+        if (exists.isEmpty) {
+          await txn.insert('categoria_atributos', values);
+        } else {
+          final used = await _cantidadUsoAtributo(txn, atributo.id);
+          if (used > 0 &&
+              (exists.first['tipo_dato'] != atributo.tipoDato ||
+                  exists.first['nivel_captura'] != atributo.nivelCaptura)) {
+            throw StateError(
+              'El tipo y el nivel de captura no pueden cambiar porque '
+              'el atributo ya está utilizado.',
+            );
+          }
+          await txn.update(
+            'categoria_atributos',
+            {...values}..remove('id'),
+            where: 'id = ?',
+            whereArgs: [atributo.id],
+          );
+        }
+        await _guardarOpcionesAtributo(txn, atributo);
+        await _guardarUnidadesAtributo(txn, atributo);
+        await _encolar(
+          txn,
+          entidad: 'categoria_atributo',
+          entidadId: atributo.id,
+          accion: 'guardar',
+          payload: {
+            ...values,
+            'opciones': atributo.opciones
+                .map(
+                  (option) => {
+                    'id': option.id,
+                    'etiqueta': option.etiqueta,
+                    'codigo': option.codigo,
+                    'estado': option.activa,
+                    'orden': option.orden,
+                  },
+                )
+                .toList(),
+            'unidades': atributo.codigosUnidad,
+          },
+        );
+      }
+    });
   }
 
   Future<ImpactoEstructura> obtenerImpacto({
@@ -666,6 +831,372 @@ class EstructuraCatalogoLocalDatasource {
       'creado_en': now,
       'actualizado_en': now,
     });
+  }
+
+  Future<List<AtributoCategoriaCatalogo>> _obtenerAtributos(Database db) async {
+    final rows = await db.rawQuery('''
+      SELECT a.*, c.nombre AS categoria_nombre,
+             (SELECT COUNT(*) FROM producto_atributos pa
+              WHERE pa.categoria_atributo_id = a.id) AS usados,
+             (SELECT COUNT(*) FROM producto_familia_ejes pe
+              WHERE pe.categoria_atributo_id = a.id) AS usado_como_eje,
+             EXISTS(
+               SELECT 1 FROM sync_queue sq
+               WHERE sq.entidad = 'categoria_atributo'
+                 AND sq.entidad_id = a.id
+                 AND sq.estado = 'pendiente'
+             ) AS sync_pendiente
+      FROM categoria_atributos a
+      INNER JOIN categorias c ON c.id = a.categoria_id
+      ORDER BY a.categoria_id, a.orden, a.nombre COLLATE NOCASE
+    ''');
+    final result = <AtributoCategoriaCatalogo>[];
+    for (final row in rows) {
+      final id = row['id'] as String;
+      final optionRows = await db.rawQuery(
+        '''
+        SELECT o.*,
+               (SELECT COUNT(*) FROM producto_atributo_opciones po
+                WHERE po.opcion_id = o.id) AS usados
+        FROM categoria_atributo_opciones o
+        WHERE o.categoria_atributo_id = ?
+        ORDER BY o.orden, o.etiqueta COLLATE NOCASE
+      ''',
+        [id],
+      );
+      final unitRows = await db.rawQuery(
+        '''
+        SELECT u.codigo, cu.es_predeterminada
+        FROM categoria_atributo_unidades cu
+        INNER JOIN unidades_medida u ON u.id = cu.unidad_medida_id
+        WHERE cu.categoria_atributo_id = ? AND cu.estado = 1
+        ORDER BY cu.orden, u.nombre COLLATE NOCASE
+      ''',
+        [id],
+      );
+      final defaultUnits = unitRows.where(
+        (unit) => (unit['es_predeterminada'] as int? ?? 0) == 1,
+      );
+      result.add(
+        AtributoCategoriaCatalogo(
+          id: id,
+          categoriaId: row['categoria_id'] as int,
+          categoriaNombre: row['categoria_nombre'] as String,
+          nombre: row['nombre'] as String,
+          clave: row['clave'] as String,
+          ayuda: row['ayuda'] as String?,
+          tipoDato: row['tipo_dato'] as String,
+          nivelCaptura: row['nivel_captura'] as String,
+          requeridoActivar: (row['requerido_activar'] as int? ?? 0) == 1,
+          visibleFicha: (row['visible_ficha'] as int? ?? 1) == 1,
+          filtrable: (row['filtrable'] as int? ?? 0) == 1,
+          puedeSerEje: (row['puede_ser_eje'] as int? ?? 0) == 1,
+          activoNuevos: (row['activo_nuevos'] as int? ?? 1) == 1,
+          orden: row['orden'] as int? ?? 0,
+          activo: (row['estado'] as int? ?? 1) == 1,
+          longitudMaxima: row['longitud_maxima'] as int?,
+          ejemplo: row['ejemplo'] as String?,
+          minimo: (row['minimo'] as num?)?.toDouble(),
+          maximo: (row['maximo'] as num?)?.toDouble(),
+          decimales: row['decimales'] as int? ?? 0,
+          magnitud: row['magnitud'] as String?,
+          codigosUnidad: unitRows
+              .map((unit) => unit['codigo'] as String)
+              .toList(),
+          unidadPredeterminada: defaultUnits.isEmpty
+              ? null
+              : defaultUnits.first['codigo'] as String,
+          opciones: optionRows
+              .map(
+                (option) => OpcionAtributoCategoriaCatalogo(
+                  id: option['id'] as String,
+                  etiqueta: option['etiqueta'] as String,
+                  codigo: option['codigo'] as String,
+                  activa: (option['estado'] as int? ?? 1) == 1,
+                  orden: option['orden'] as int? ?? 0,
+                  usadaPorProductos: option['usados'] as int? ?? 0,
+                ),
+              )
+              .toList(),
+          maximoSelecciones: row['maximo_selecciones'] as int?,
+          etiquetaVerdadero: row['etiqueta_verdadero'] as String?,
+          etiquetaFalso: row['etiqueta_falso'] as String?,
+          usadoPorProductos: row['usados'] as int? ?? 0,
+          usadoComoEje: row['usado_como_eje'] as int? ?? 0,
+          sincronizacionPendiente: (row['sync_pendiente'] as int? ?? 0) == 1,
+        ),
+      );
+    }
+    return result;
+  }
+
+  UnidadMedidaCatalogo _unidadFromMap(Map<String, Object?> row) =>
+      UnidadMedidaCatalogo(
+        id: row['id'] as String,
+        codigo: row['codigo'] as String,
+        nombre: row['nombre'] as String,
+        simbolo: row['simbolo'] as String,
+        magnitud: row['magnitud'] as String,
+        factorBase: (row['factor_a_base'] as num).toDouble(),
+        decimales: row['decimales'] as int? ?? 3,
+        activa: (row['estado'] as int? ?? 1) == 1,
+      );
+
+  Future<List<Map<String, Object?>>> _atributosEnCadena(
+    DatabaseExecutor db,
+    int categoriaId,
+  ) => db.rawQuery(
+    '''
+    WITH RECURSIVE
+    ancestros(id) AS (
+      SELECT ?
+      UNION ALL
+      SELECT c.categoria_padre_id
+      FROM categorias c
+      INNER JOIN ancestros a ON c.id = a.id
+      WHERE c.categoria_padre_id IS NOT NULL
+    ),
+    descendientes(id) AS (
+      SELECT ?
+      UNION ALL
+      SELECT c.id
+      FROM categorias c
+      INNER JOIN descendientes d ON c.categoria_padre_id = d.id
+    )
+    SELECT id, nombre, clave
+    FROM categoria_atributos
+    WHERE categoria_id IN (
+      SELECT id FROM ancestros
+      UNION
+      SELECT id FROM descendientes
+    )
+  ''',
+    [categoriaId, categoriaId],
+  );
+
+  void _validarAtributosSinDuplicados(
+    List<AtributoCategoriaCatalogo> atributos,
+  ) {
+    final names = <String>{};
+    final keys = <String>{};
+    for (final attribute in atributos) {
+      final name = _canon(attribute.nombre);
+      final key = _canon(attribute.clave);
+      if (name.isEmpty || key.isEmpty) {
+        throw StateError('El nombre y la clave del atributo son obligatorios.');
+      }
+      if (!names.add(name) || !keys.add(key)) {
+        throw StateError(
+          'No se permiten atributos duplicados como Diámetro, Diametro o Ø.',
+        );
+      }
+    }
+  }
+
+  Future<void> _guardarOpcionesAtributo(
+    DatabaseExecutor db,
+    AtributoCategoriaCatalogo atributo,
+  ) async {
+    final received = atributo.opciones.map((item) => item.id).toSet();
+    final existing = await db.query(
+      'categoria_atributo_opciones',
+      columns: ['id'],
+      where: 'categoria_atributo_id = ?',
+      whereArgs: [atributo.id],
+    );
+    for (final row in existing) {
+      final id = row['id'] as String;
+      if (received.contains(id)) continue;
+      final used =
+          Sqflite.firstIntValue(
+            await db.rawQuery(
+              'SELECT COUNT(*) FROM producto_atributo_opciones '
+              'WHERE opcion_id = ?',
+              [id],
+            ),
+          ) ??
+          0;
+      if (used > 0) {
+        await db.update(
+          'categoria_atributo_opciones',
+          {'estado': 0},
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      } else {
+        await db.delete(
+          'categoria_atributo_opciones',
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      }
+    }
+    for (final option in atributo.opciones) {
+      final values = <String, Object?>{
+        'id': option.id,
+        'categoria_atributo_id': atributo.id,
+        'etiqueta': option.etiqueta.trim(),
+        'codigo': option.codigo.trim(),
+        'orden': option.orden,
+        'estado': option.activa ? 1 : 0,
+      };
+      final exists = await db.query(
+        'categoria_atributo_opciones',
+        columns: ['id'],
+        where: 'id = ?',
+        whereArgs: [option.id],
+        limit: 1,
+      );
+      if (exists.isEmpty) {
+        await db.insert('categoria_atributo_opciones', values);
+      } else {
+        await db.update(
+          'categoria_atributo_opciones',
+          {...values}..remove('id'),
+          where: 'id = ?',
+          whereArgs: [option.id],
+        );
+      }
+    }
+  }
+
+  Future<int> _cantidadUsoAtributo(
+    DatabaseExecutor db,
+    String atributoId,
+  ) async =>
+      Sqflite.firstIntValue(
+        await db.rawQuery(
+          '''
+          SELECT
+            (SELECT COUNT(*) FROM producto_atributos
+              WHERE categoria_atributo_id = ?) +
+            (SELECT COUNT(*) FROM producto_familia_ejes
+              WHERE categoria_atributo_id = ?)
+          ''',
+          [atributoId, atributoId],
+        ),
+      ) ??
+      0;
+
+  Future<void> _guardarUnidadesAtributo(
+    DatabaseExecutor db,
+    AtributoCategoriaCatalogo atributo,
+  ) async {
+    final existentes = await db.rawQuery(
+      '''
+      SELECT cau.id, u.codigo
+      FROM categoria_atributo_unidades cau
+      INNER JOIN unidades_medida u ON u.id = cau.unidad_medida_id
+      WHERE cau.categoria_atributo_id = ?
+    ''',
+      [atributo.id],
+    );
+    final recibidos = atributo.codigosUnidad
+        .map((item) => item.toLowerCase())
+        .toSet();
+    await db.update(
+      'categoria_atributo_unidades',
+      {'es_predeterminada': 0},
+      where: 'categoria_atributo_id = ?',
+      whereArgs: [atributo.id],
+    );
+    for (final existente in existentes) {
+      final codigo = (existente['codigo'] as String).toLowerCase();
+      if (recibidos.contains(codigo)) continue;
+      final id = existente['id'] as String;
+      final usados =
+          Sqflite.firstIntValue(
+            await db.rawQuery(
+              'SELECT COUNT(*) FROM producto_atributos '
+              'WHERE categoria_atributo_unidad_id = ?',
+              [id],
+            ),
+          ) ??
+          0;
+      if (usados > 0) {
+        await db.update(
+          'categoria_atributo_unidades',
+          {'estado': 0},
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      } else {
+        await db.delete(
+          'categoria_atributo_unidades',
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      }
+    }
+    for (var index = 0; index < atributo.codigosUnidad.length; index++) {
+      final code = atributo.codigosUnidad[index];
+      final unit = await db.query(
+        'unidades_medida',
+        columns: ['id', 'magnitud'],
+        where: 'codigo = ? AND estado = 1',
+        whereArgs: [code],
+        limit: 1,
+      );
+      if (unit.isEmpty) {
+        throw StateError('La unidad $code ya no está disponible.');
+      }
+      if (atributo.magnitud != null &&
+          (unit.first['magnitud'] as String).toLowerCase() !=
+              atributo.magnitud!.toLowerCase()) {
+        throw StateError(
+          'La unidad $code no pertenece a la magnitud ${atributo.magnitud}.',
+        );
+      }
+      final existente = await db.query(
+        'categoria_atributo_unidades',
+        columns: ['id'],
+        where: 'categoria_atributo_id = ? AND unidad_medida_id = ?',
+        whereArgs: [atributo.id, unit.first['id']],
+        limit: 1,
+      );
+      final values = <String, Object?>{
+        'categoria_atributo_id': atributo.id,
+        'unidad_medida_id': unit.first['id'],
+        'es_predeterminada': code == atributo.unidadPredeterminada ? 1 : 0,
+        'orden': index,
+        'estado': 1,
+      };
+      if (existente.isEmpty) {
+        await db.insert('categoria_atributo_unidades', {
+          'id': const Uuid().v4(),
+          ...values,
+        });
+      } else {
+        await db.update(
+          'categoria_atributo_unidades',
+          values,
+          where: 'id = ?',
+          whereArgs: [existente.first['id']],
+        );
+      }
+    }
+  }
+
+  String _canon(String value) {
+    var normalized = value.trim().toLowerCase();
+    const replacements = {
+      'á': 'a',
+      'é': 'e',
+      'í': 'i',
+      'ó': 'o',
+      'ú': 'u',
+      'ü': 'u',
+      'ñ': 'n',
+    };
+    replacements.forEach((source, target) {
+      normalized = normalized.replaceAll(source, target);
+    });
+    if (normalized == 'ø' ||
+        normalized == 'diameter' ||
+        normalized == 'diam.') {
+      normalized = 'diametro';
+    }
+    return normalized.replaceAll(RegExp(r'[^a-z0-9]+'), '');
   }
 
   EmpresaCatalogo _empresaFromMap(Map<String, Object?> row) => EmpresaCatalogo(

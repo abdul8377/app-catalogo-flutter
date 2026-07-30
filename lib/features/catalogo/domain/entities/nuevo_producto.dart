@@ -1,4 +1,5 @@
 import 'catalogo_form_data.dart';
+import 'producto_variante.dart';
 
 class NuevoProducto {
   const NuevoProducto({
@@ -13,8 +14,12 @@ class NuevoProducto {
     required this.atributos,
     required this.presentaciones,
     required this.precios,
+    this.variantes = const [],
     this.imagenesPaths = const [],
     this.imagenPath,
+    this.ventaLogisticaContenido,
+    this.preciosConfigurados,
+    this.imagenesConfiguradas,
     this.activo = true,
   });
   final String codigo;
@@ -28,8 +33,12 @@ class NuevoProducto {
   final Map<String, String> atributos;
   final List<PresentacionProducto> presentaciones;
   final List<PrecioProducto> precios;
+  final List<ProductoVariante> variantes;
   final List<String> imagenesPaths;
   final String? imagenPath;
+  final Map<String, dynamic>? ventaLogisticaContenido;
+  final Map<String, dynamic>? preciosConfigurados;
+  final Map<String, dynamic>? imagenesConfiguradas;
   final bool activo;
 
   List<String> get imagenes => imagenesPaths.isNotEmpty

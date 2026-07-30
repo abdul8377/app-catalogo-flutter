@@ -14,6 +14,8 @@ class ProductoResumen extends Equatable {
     required this.activo,
     required this.tipoRegistro,
     required this.atributosClave,
+    this.subcategoria = '',
+    this.presentaciones = const [],
     this.creadoEn,
     this.imagenesPaths = const [],
     this.imagenPath,
@@ -31,6 +33,8 @@ class ProductoResumen extends Equatable {
   final bool activo;
   final String tipoRegistro;
   final List<String> atributosClave;
+  final String subcategoria;
+  final List<String> presentaciones;
   final DateTime? creadoEn;
   final List<String> imagenesPaths;
   final String? imagenPath;
@@ -50,6 +54,8 @@ class ProductoResumen extends Equatable {
     imagenPath,
     tipoRegistro,
     atributosClave,
+    subcategoria,
+    presentaciones,
     creadoEn,
     imagenesPaths,
   ];

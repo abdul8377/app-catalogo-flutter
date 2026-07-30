@@ -1,6 +1,10 @@
 import 'package:equatable/equatable.dart';
 
 import '../../domain/entities/catalogo_form_data.dart';
+import '../../domain/entities/producto_variante.dart';
+import '../widgets/paso4_venta_logistica_contenido.dart';
+import '../widgets/paso5_precios_corregido.dart';
+import '../widgets/paso6_imagenes_corregido.dart';
 
 class ProductoFormState extends Equatable {
   const ProductoFormState({
@@ -18,12 +22,17 @@ class ProductoFormState extends Equatable {
     required this.subcategoria,
     required this.tipoRegistro,
     required this.atributos,
+    required this.variantes,
+    required this.edicionVariantePendiente,
     required this.presentaciones,
     required this.precios,
     required this.imagenesPaths,
     required this.productoId,
     required this.activo,
     required this.creadoEn,
+    this.ventaLogisticaContenido,
+    this.preciosConfigurados,
+    this.imagenesConfiguradas,
     this.error,
   });
   factory ProductoFormState.initial() => const ProductoFormState(
@@ -41,6 +50,8 @@ class ProductoFormState extends Equatable {
     subcategoria: null,
     tipoRegistro: 'unico',
     atributos: {},
+    variantes: [],
+    edicionVariantePendiente: false,
     presentaciones: [],
     precios: [],
     imagenesPaths: [],
@@ -60,8 +71,23 @@ class ProductoFormState extends Equatable {
   final DateTime? creadoEn;
   bool get editando => productoId != null;
   final Map<String, String> atributos;
+  final List<ProductoVariante> variantes;
+  final bool edicionVariantePendiente;
   final List<PresentacionProducto> presentaciones;
   final List<PrecioProducto> precios;
+  final Step4SalesDraft? ventaLogisticaContenido;
+  final PricingStep5Draft? preciosConfigurados;
+  final Step6ImagesDraft? imagenesConfiguradas;
+  bool get preciosListosParaActivar {
+    final draft = preciosConfigurados;
+    if (draft == null) return precios.isNotEmpty;
+    if (draft.lists.isEmpty) return false;
+    return draft.canActivate(draft.lists.first.id);
+  }
+
+  bool get imagenesListasParaActivar =>
+      imagenesConfiguradas?.canActivate ?? imagenesPaths.isNotEmpty;
+
   List<String> get subcategorias => categoria == null
       ? const []
       : datos?.subcategorias[categoria] ?? const [];
@@ -79,37 +105,82 @@ class ProductoFormState extends Equatable {
         : values;
   }
 
-  List<AtributoDef> get atributosDisponibles =>
-      categoria == null ? const [] : datos?.atributos[categoria] ?? const [];
+  List<AtributoDef> get atributosDisponibles {
+    final key = subcategoria ?? categoria;
+    return key == null ? const [] : datos?.atributos[key] ?? const [];
+  }
+
+  bool get subcategoriaRequerida => subcategorias.isNotEmpty;
+  bool get variantesCompletas => variantes.every(
+    (variante) =>
+        variante.sku.trim().isNotEmpty &&
+        variante.nombreCorto.trim().isNotEmpty,
+  );
+  bool get variantesConSkuUnico {
+    final skus = variantes
+        .map((variante) => variante.sku.trim().toUpperCase())
+        .where((sku) => sku.isNotEmpty)
+        .toList();
+    return skus.toSet().length == skus.length;
+  }
+
+  bool get variantesValidas =>
+      variantes.isNotEmpty &&
+      variantes.any((variante) => variante.activa) &&
+      variantesCompletas &&
+      variantesConSkuUnico &&
+      (tipoRegistro != 'unico' || variantes.length == 1) &&
+      !edicionVariantePendiente;
+
   bool get pasoValido => switch (paso) {
     0 =>
       empresa != null &&
           marca != null &&
           categoria != null &&
-          subcategoria != null,
-    1 => codigo.trim().isNotEmpty && nombre.trim().isNotEmpty,
-    4 => presentaciones.isNotEmpty,
+          (!subcategoriaRequerida || subcategoria != null),
+    1 => nombre.trim().isNotEmpty,
+    2 => variantesValidas,
+    3 => presentaciones.isNotEmpty,
     _ => true,
   };
+
+  String get mensajePasoInvalido => switch (paso) {
+    0 => 'Completa la empresa, marca, categoría y subcategoría requeridas.',
+    1 => 'Ingresa el nombre de la familia antes de continuar.',
+    2 when edicionVariantePendiente =>
+      'Guarda o cancela los cambios de la variante antes de continuar.',
+    2 when variantes.isEmpty => 'Agrega al menos una variante para continuar.',
+    2 when !variantes.any((variante) => variante.activa) =>
+      'Activa al menos una variante para continuar.',
+    2 when !variantesCompletas =>
+      'Completa el SKU y el nombre de todas las variantes.',
+    2 when !variantesConSkuUnico =>
+      'Corrige los SKU duplicados antes de continuar.',
+    2 when tipoRegistro == 'unico' && variantes.length != 1 =>
+      'Un producto único debe tener exactamente una variante.',
+    3 => 'Agrega al menos una presentación para continuar.',
+    _ => 'Revisa los datos requeridos antes de continuar.',
+  };
+
   bool get formularioValido =>
       empresa != null &&
       marca != null &&
       categoria != null &&
-      subcategoria != null &&
-      codigo.trim().isNotEmpty &&
+      (!subcategoriaRequerida || subcategoria != null) &&
       nombre.trim().isNotEmpty &&
+      variantesValidas &&
       presentaciones.isNotEmpty;
 
   int get primerPasoInvalido {
     if (empresa == null ||
         marca == null ||
         categoria == null ||
-        subcategoria == null ||
-        codigo.trim().isEmpty ||
-        nombre.trim().isEmpty) {
+        (subcategoriaRequerida && subcategoria == null)) {
       return 0;
     }
-    if (presentaciones.isEmpty) return editando ? 3 : 4;
+    if (nombre.trim().isEmpty) return editando ? 0 : 1;
+    if (!variantesValidas) return editando ? 1 : 2;
+    if (presentaciones.isEmpty) return 3;
     return paso;
   }
 
@@ -131,8 +202,13 @@ class ProductoFormState extends Equatable {
     bool limpiarSubcategoria = false,
     String? tipoRegistro,
     Map<String, String>? atributos,
+    List<ProductoVariante>? variantes,
+    bool? edicionVariantePendiente,
     List<PresentacionProducto>? presentaciones,
     List<PrecioProducto>? precios,
+    Step4SalesDraft? ventaLogisticaContenido,
+    PricingStep5Draft? preciosConfigurados,
+    Step6ImagesDraft? imagenesConfiguradas,
     String? error,
     bool limpiarError = false,
     List<String>? imagenesPaths,
@@ -156,8 +232,15 @@ class ProductoFormState extends Equatable {
         : subcategoria ?? this.subcategoria,
     tipoRegistro: tipoRegistro ?? this.tipoRegistro,
     atributos: atributos ?? this.atributos,
+    variantes: variantes ?? this.variantes,
+    edicionVariantePendiente:
+        edicionVariantePendiente ?? this.edicionVariantePendiente,
     presentaciones: presentaciones ?? this.presentaciones,
     precios: precios ?? this.precios,
+    ventaLogisticaContenido:
+        ventaLogisticaContenido ?? this.ventaLogisticaContenido,
+    preciosConfigurados: preciosConfigurados ?? this.preciosConfigurados,
+    imagenesConfiguradas: imagenesConfiguradas ?? this.imagenesConfiguradas,
     error: limpiarError ? null : error ?? this.error,
     imagenesPaths: imagenesPaths ?? this.imagenesPaths,
     productoId: productoId ?? this.productoId,
@@ -180,8 +263,13 @@ class ProductoFormState extends Equatable {
     subcategoria,
     tipoRegistro,
     atributos,
+    variantes,
+    edicionVariantePendiente,
     presentaciones,
     precios,
+    ventaLogisticaContenido,
+    preciosConfigurados,
+    imagenesConfiguradas,
     error,
     imagenesPaths,
     productoId,

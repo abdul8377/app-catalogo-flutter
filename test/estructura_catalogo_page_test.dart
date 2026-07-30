@@ -20,17 +20,26 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Empresas'), findsWidgets);
-    expect(find.text('Marcas'), findsOneWidget);
-    expect(find.text('Categorías'), findsOneWidget);
-    expect(find.text('Relaciones'), findsOneWidget);
+    expect(find.text('Marcas'), findsWidgets);
+    expect(find.text('Categorías'), findsWidgets);
+    expect(find.text('Categorías por marca'), findsWidgets);
     expect(find.text('DINAFAST'), findsOneWidget);
     expect(find.text('Nueva empresa'), findsOneWidget);
 
-    await tester.tap(find.text('Ver'));
+    await tester.tap(find.text('Ver').first);
     await tester.pumpAndSettle();
-    expect(find.text('Resumen'), findsOneWidget);
-    expect(find.text('Productos'), findsOneWidget);
-    expect(find.text('20601234567'), findsOneWidget);
+    expect(find.text('Detalle de DINAFAST'), findsOneWidget);
+
+    await tester.tap(find.text('Categorías').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pernería').first);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Gestionar atributos'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Gestionar atributos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Gestionar atributos · Pernería'), findsOneWidget);
+    expect(find.text('Nuevo atributo'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -95,6 +104,37 @@ class _EstructuraRepositoryFake implements EstructuraCatalogoRepository {
     relaciones: [
       RelacionMarcaCategoria(marcaId: 1, categoriaId: 1, activa: true),
     ],
+    atributos: [
+      AtributoCategoriaCatalogo(
+        id: 'diametro',
+        categoriaId: 1,
+        categoriaNombre: 'Pernería',
+        nombre: 'Diámetro',
+        clave: 'diametro',
+        tipoDato: 'numero_unidad',
+        nivelCaptura: 'variante',
+        requeridoActivar: true,
+        visibleFicha: true,
+        filtrable: true,
+        puedeSerEje: true,
+        activoNuevos: true,
+        orden: 0,
+        activo: true,
+        magnitud: 'Longitud',
+        codigosUnidad: ['mm'],
+        unidadPredeterminada: 'mm',
+      ),
+    ],
+    unidades: [
+      UnidadMedidaCatalogo(
+        id: 'unit-mm',
+        codigo: 'mm',
+        nombre: 'Milímetro',
+        simbolo: 'mm',
+        magnitud: 'Longitud',
+        factorBase: 1,
+      ),
+    ],
   );
 
   @override
@@ -129,6 +169,12 @@ class _EstructuraRepositoryFake implements EstructuraCatalogoRepository {
   Future<void> guardarRelaciones({
     required int marcaId,
     required Set<int> categoriaIds,
+  }) async {}
+
+  @override
+  Future<void> guardarAtributosCategoria({
+    required int categoriaId,
+    required List<AtributoCategoriaCatalogo> atributos,
   }) async {}
 
   @override

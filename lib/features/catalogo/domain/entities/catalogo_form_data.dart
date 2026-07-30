@@ -5,12 +5,34 @@ class AtributoDef extends Equatable {
     required this.nombre,
     required this.tipo,
     required this.esVariante,
+    this.id = '',
+    this.clave = '',
+    this.requerido = false,
+    this.opciones = const [],
+    this.unidades = const [],
+    this.unidadPredeterminada,
   });
   final String nombre;
   final String tipo;
   final bool esVariante;
+  final String id;
+  final String clave;
+  final bool requerido;
+  final List<String> opciones;
+  final List<String> unidades;
+  final String? unidadPredeterminada;
   @override
-  List<Object?> get props => [nombre, tipo, esVariante];
+  List<Object?> get props => [
+    nombre,
+    tipo,
+    esVariante,
+    id,
+    clave,
+    requerido,
+    opciones,
+    unidades,
+    unidadPredeterminada,
+  ];
 }
 
 class CatalogoFormData extends Equatable {
@@ -59,13 +81,35 @@ class PresentacionProducto extends Equatable {
 }
 
 class PrecioProducto extends Equatable {
-  const PrecioProducto({required this.presentacion, required this.valor});
+  const PrecioProducto({
+    required this.presentacion,
+    required this.valor,
+    this.listaPrecioId = '',
+    this.varianteId = '',
+    this.presentacionId = '',
+    this.configuracion = 'precio_fijo',
+  });
   final String presentacion;
   final double valor;
+  final String listaPrecioId;
+  final String varianteId;
+  final String presentacionId;
+  final String configuracion;
   Map<String, dynamic> toMap() => {
     'presentacion': presentacion,
     'valor': valor,
+    'lista_precio_id': listaPrecioId,
+    'variante_id': varianteId,
+    'presentacion_id': presentacionId,
+    'configuracion': configuracion,
   };
   @override
-  List<Object?> get props => [presentacion, valor];
+  List<Object?> get props => [
+    presentacion,
+    valor,
+    listaPrecioId,
+    varianteId,
+    presentacionId,
+    configuracion,
+  ];
 }

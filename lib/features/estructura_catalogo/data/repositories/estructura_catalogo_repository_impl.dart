@@ -37,6 +37,15 @@ class EstructuraCatalogoRepositoryImpl implements EstructuraCatalogoRepository {
   );
 
   @override
+  Future<void> guardarAtributosCategoria({
+    required int categoriaId,
+    required List<AtributoCategoriaCatalogo> atributos,
+  }) => localDatasource.guardarAtributosCategoria(
+    categoriaId: categoriaId,
+    atributos: atributos,
+  );
+
+  @override
   Future<ImpactoEstructura> obtenerImpacto({
     required String tipo,
     required int id,
