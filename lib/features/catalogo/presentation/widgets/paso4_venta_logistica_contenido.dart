@@ -45,6 +45,21 @@ class CatalogVariantOption {
 }
 
 @immutable
+class SalesPresentationVariantRule {
+  const SalesPresentationVariantRule({
+    required this.variantId,
+    required this.equivalentTo,
+    required this.minimumOrder,
+    required this.purchaseIncrement,
+  });
+
+  final String variantId;
+  final double equivalentTo;
+  final double minimumOrder;
+  final double purchaseIncrement;
+}
+
+@immutable
 class SalesPresentationDraft {
   const SalesPresentationDraft({
     required this.id,
@@ -56,6 +71,7 @@ class SalesPresentationDraft {
     required this.allowsDecimals,
     required this.assignedVariantIds,
     required this.defaultVariantIds,
+    this.variantRules = const {},
     this.linkedLogisticsPackageId,
   });
 
@@ -74,6 +90,18 @@ class SalesPresentationDraft {
   /// El widget garantiza como máximo una predeterminada por variante.
   final Set<String> defaultVariantIds;
 
+  /// Excepciones de equivalencia, mínimo e incremento por variante.
+  final Map<String, SalesPresentationVariantRule> variantRules;
+
+  SalesPresentationVariantRule ruleFor(String variantId) =>
+      variantRules[variantId] ??
+      SalesPresentationVariantRule(
+        variantId: variantId,
+        equivalentTo: equivalentTo,
+        minimumOrder: minimumOrder,
+        purchaseIncrement: purchaseIncrement,
+      );
+
   /// Se informa cuando nació desde un empaque logístico.
   final String? linkedLogisticsPackageId;
 
@@ -86,6 +114,7 @@ class SalesPresentationDraft {
     bool? allowsDecimals,
     Set<String>? assignedVariantIds,
     Set<String>? defaultVariantIds,
+    Map<String, SalesPresentationVariantRule>? variantRules,
     String? linkedLogisticsPackageId,
     bool clearLinkedLogisticsPackageId = false,
   }) {
@@ -99,6 +128,7 @@ class SalesPresentationDraft {
       allowsDecimals: allowsDecimals ?? this.allowsDecimals,
       assignedVariantIds: assignedVariantIds ?? this.assignedVariantIds,
       defaultVariantIds: defaultVariantIds ?? this.defaultVariantIds,
+      variantRules: variantRules ?? this.variantRules,
       linkedLogisticsPackageId: clearLinkedLogisticsPackageId
           ? null
           : linkedLogisticsPackageId ?? this.linkedLogisticsPackageId,
@@ -325,6 +355,7 @@ class _Step4SalesLogisticsContentPanelState
   bool _presentationIsDefault = true;
   bool _presentationForAllVariants = true;
   Set<String> _presentationVariantIds = <String>{};
+  Map<String, SalesPresentationVariantRule> _presentationVariantRules = {};
 
   // --------------------------------------------------------------------------
   // Editor de empaques
@@ -462,6 +493,7 @@ class _Step4SalesLogisticsContentPanelState
     _presentationIsDefault = _presentations.isEmpty;
     _presentationForAllVariants = true;
     _presentationVariantIds = {..._allVariantIds};
+    _presentationVariantRules = {};
 
     if (rebuild && mounted) {
       setState(() {});
@@ -485,6 +517,7 @@ class _Step4SalesLogisticsContentPanelState
     _presentationAllowsDecimals = presentation.allowsDecimals;
     _presentationIsDefault = presentation.defaultVariantIds.isNotEmpty;
     _presentationVariantIds = {...presentation.assignedVariantIds};
+    _presentationVariantRules = {...presentation.variantRules};
     _presentationForAllVariants =
         _presentationVariantIds.length == _allVariantIds.length &&
         _presentationVariantIds.containsAll(_allVariantIds);
@@ -502,6 +535,168 @@ class _Step4SalesLogisticsContentPanelState
     }
 
     _loadPresentation(index);
+  }
+
+  Future<void> _editPresentationVariantRules() async {
+    final inheritedEquivalent =
+        _parsePositive(_presentationEquivalentController.text) ?? 1;
+    final inheritedMinimum =
+        _parsePositive(_presentationMinimumController.text) ?? 1;
+    final inheritedIncrement =
+        _parsePositive(_presentationIncrementController.text) ?? 1;
+    final variants = widget.variants
+        .where((variant) => _presentationVariantIds.contains(variant.id))
+        .toList();
+    final controllers = <String, List<TextEditingController>>{};
+    for (final variant in variants) {
+      final rule = _presentationVariantRules[variant.id];
+      controllers[variant.id] = [
+        TextEditingController(
+          text: _step4PlainNumber(rule?.equivalentTo ?? inheritedEquivalent),
+        ),
+        TextEditingController(
+          text: _step4PlainNumber(rule?.minimumOrder ?? inheritedMinimum),
+        ),
+        TextEditingController(
+          text: _step4PlainNumber(
+            rule?.purchaseIncrement ?? inheritedIncrement,
+          ),
+        ),
+      ];
+    }
+
+    final result = await showDialog<Map<String, SalesPresentationVariantRule>>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reglas comerciales por variante'),
+        content: SizedBox(
+          width: 760,
+          height: 460,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Solo cambia las filas que difieren de los valores generales. '
+                'Esto evita duplicar presentaciones por cada medida.',
+                style: TextStyle(color: _muted),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: variants.length,
+                  separatorBuilder: (_, __) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final variant = variants[index];
+                    final fields = controllers[variant.id]!;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          variant.label,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: fields[0],
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                decoration: _inputDecoration(
+                                  hint: 'Equivale a',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: fields[1],
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                decoration: _inputDecoration(
+                                  hint: 'Pedido mínimo',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: fields[2],
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                decoration: _inputDecoration(
+                                  hint: 'Incremento',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final rules = <String, SalesPresentationVariantRule>{};
+              for (final variant in variants) {
+                final fields = controllers[variant.id]!;
+                final equivalent = _parsePositive(fields[0].text);
+                final minimum = _parsePositive(fields[1].text);
+                final increment = _parsePositive(fields[2].text);
+                if (equivalent == null ||
+                    minimum == null ||
+                    increment == null) {
+                  _showMessage(
+                    'Todos los valores deben ser mayores que cero.',
+                    error: true,
+                  );
+                  return;
+                }
+                final differs =
+                    equivalent != inheritedEquivalent ||
+                    minimum != inheritedMinimum ||
+                    increment != inheritedIncrement;
+                if (differs) {
+                  rules[variant.id] = SalesPresentationVariantRule(
+                    variantId: variant.id,
+                    equivalentTo: equivalent,
+                    minimumOrder: minimum,
+                    purchaseIncrement: increment,
+                  );
+                }
+              }
+              Navigator.pop(dialogContext, rules);
+            },
+            child: const Text('Aplicar excepciones'),
+          ),
+        ],
+      ),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final fields in controllers.values) {
+        for (final controller in fields) {
+          controller.dispose();
+        }
+      }
+    });
+    if (result == null || !mounted) return;
+    setState(() => _presentationVariantRules = result);
   }
 
   void _savePresentation() {
@@ -568,6 +763,10 @@ class _Step4SalesLogisticsContentPanelState
       allowsDecimals: _presentationAllowsDecimals,
       assignedVariantIds: assignedIds,
       defaultVariantIds: defaults,
+      variantRules: {
+        for (final entry in _presentationVariantRules.entries)
+          if (assignedIds.contains(entry.key)) entry.key: entry.value,
+      },
       linkedLogisticsPackageId: linkedPackageId,
     );
 
@@ -2450,6 +2649,19 @@ class _Step4SalesLogisticsContentPanelState
                 });
               },
             ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              key: const Key('reglas_presentacion_por_variante'),
+              onPressed: _presentationVariantIds.isEmpty
+                  ? null
+                  : _editPresentationVariantRules,
+              icon: const Icon(Icons.tune, size: 18),
+              label: Text(
+                'Excepciones por variante '
+                '(${_presentationVariantRules.length})',
+              ),
+              style: _outlinedButtonStyle(),
+            ),
             const SizedBox(height: 20),
             LayoutBuilder(
               builder: (context, constraints) {
@@ -4136,6 +4348,14 @@ Map<String, dynamic> step4SalesDraftToMap(Step4SalesDraft draft) {
         'allows_decimals': item.allowsDecimals,
         'assigned_variant_ids': item.assignedVariantIds.toList(),
         'default_variant_ids': item.defaultVariantIds.toList(),
+        'variant_rules': item.variantRules.values.map((rule) {
+          return {
+            'variant_id': rule.variantId,
+            'equivalent_to': rule.equivalentTo,
+            'minimum_order': rule.minimumOrder,
+            'purchase_increment': rule.purchaseIncrement,
+          };
+        }).toList(),
         'linked_logistics_package_id': item.linkedLogisticsPackageId,
       };
     }).toList(),
@@ -4193,6 +4413,21 @@ Step4SalesDraft? step4SalesDraftFromMap(Map<String, dynamic>? map) {
           allowsDecimals: item['allows_decimals'] as bool? ?? false,
           assignedVariantIds: stringSet(item['assigned_variant_ids']),
           defaultVariantIds: stringSet(item['default_variant_ids']),
+          variantRules: {
+            for (final rawRule
+                in (item['variant_rules'] as List? ?? const [])
+                    .whereType<Map>())
+              if (rawRule['variant_id'] != null)
+                rawRule['variant_id'].toString(): SalesPresentationVariantRule(
+                  variantId: rawRule['variant_id'].toString(),
+                  equivalentTo:
+                      (rawRule['equivalent_to'] as num?)?.toDouble() ?? 1,
+                  minimumOrder:
+                      (rawRule['minimum_order'] as num?)?.toDouble() ?? 1,
+                  purchaseIncrement:
+                      (rawRule['purchase_increment'] as num?)?.toDouble() ?? 1,
+                ),
+          },
           linkedLogisticsPackageId:
               item['linked_logistics_package_id'] as String?,
         );

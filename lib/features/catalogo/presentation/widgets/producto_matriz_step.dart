@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../domain/entities/producto_variante.dart';
 import '../../domain/services/codigo_interno_generator.dart';
@@ -32,6 +33,7 @@ class _MatrixMeasureDraft {
 
 class _MatrixCombinationDraft {
   const _MatrixCombinationDraft({
+    required this.id,
     required this.key,
     required this.rowValue,
     required this.columnValue,
@@ -44,6 +46,7 @@ class _MatrixCombinationDraft {
     this.wasEdited = false,
   });
 
+  final String id;
   final String key;
   final String rowValue;
   final String columnValue;
@@ -62,6 +65,7 @@ class _MatrixCombinationDraft {
   }
 
   _MatrixCombinationDraft copyWith({
+    String? id,
     bool? included,
     String? sku,
     String? supplierCode,
@@ -70,6 +74,7 @@ class _MatrixCombinationDraft {
     Map<String, String>? attributes,
     bool? wasEdited,
   }) => _MatrixCombinationDraft(
+    id: id ?? this.id,
     key: key,
     rowValue: rowValue,
     columnValue: columnValue,
@@ -84,12 +89,16 @@ class _MatrixCombinationDraft {
 }
 
 class _MatrixAttributeFields {
-  _MatrixAttributeFields({String name = '', String value = ''})
-    : nameController = TextEditingController(text: name),
-      valueController = TextEditingController(text: value);
+  _MatrixAttributeFields({
+    String name = '',
+    String value = '',
+    this.managed = false,
+  }) : nameController = TextEditingController(text: name),
+       valueController = TextEditingController(text: value);
 
   final TextEditingController nameController;
   final TextEditingController valueController;
+  final bool managed;
 
   void dispose() {
     nameController.dispose();
@@ -114,16 +123,10 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
   static const _matrixIncluded = Color(0xFFE7F7EF);
   static const _matrixExcluded = Color(0xFFF0F2F5);
 
-  static const _matrixAxisOptions = [
-    'Diámetro',
-    'Largo',
-    'Color',
-    'Voltaje',
-    'Capacidad',
-    'Volumen',
-    'Material',
-    'Acabado',
-  ];
+  List<String> get _matrixAxisOptions => widget.state.atributosPermitidosComoEje
+      .map((attribute) => attribute.nombre)
+      .toSet()
+      .toList();
 
   final _matrixVariantFormKey = GlobalKey<FormState>();
   final _matrixSkuController = TextEditingController();
@@ -131,24 +134,13 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
   final _matrixNameController = TextEditingController();
   final List<_MatrixAttributeFields> _matrixAttributeFields = [];
 
-  String _matrixDraftColumnAxis = 'Diámetro';
-  String _matrixDraftRowAxis = 'Largo';
-  String _matrixAppliedColumnAxis = 'Diámetro';
-  String _matrixAppliedRowAxis = 'Largo';
+  String _matrixDraftColumnAxis = '';
+  String _matrixDraftRowAxis = '';
+  String _matrixAppliedColumnAxis = '';
+  String _matrixAppliedRowAxis = '';
 
-  final List<_MatrixMeasureDraft> _matrixDraftColumns = [
-    const _MatrixMeasureDraft(id: 'column-1', value: '1/4', unit: '″'),
-    const _MatrixMeasureDraft(id: 'column-2', value: '5/16', unit: '″'),
-    const _MatrixMeasureDraft(id: 'column-3', value: '3/8', unit: '″'),
-    const _MatrixMeasureDraft(id: 'column-4', value: '1/2', unit: '″'),
-  ];
-
-  final List<_MatrixMeasureDraft> _matrixDraftRows = [
-    const _MatrixMeasureDraft(id: 'row-1', value: '1', unit: '″'),
-    const _MatrixMeasureDraft(id: 'row-2', value: '2', unit: '″'),
-    const _MatrixMeasureDraft(id: 'row-3', value: '3', unit: '″'),
-    const _MatrixMeasureDraft(id: 'row-4', value: '4', unit: '″'),
-  ];
+  final List<_MatrixMeasureDraft> _matrixDraftColumns = [];
+  final List<_MatrixMeasureDraft> _matrixDraftRows = [];
 
   List<_MatrixMeasureDraft> _matrixAppliedColumns = [];
   List<_MatrixMeasureDraft> _matrixAppliedRows = [];
@@ -164,7 +156,7 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
 
   String get _matrixFamilyLabel {
     final family = widget.state.nombre.trim();
-    return family.isEmpty ? 'Perno hexagonal UNC 304' : family;
+    return family.isEmpty ? 'Familia sin nombre' : family;
   }
 
   _MatrixCombinationDraft? get _matrixFocusedCombination {
@@ -227,61 +219,95 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
   }
 
   void _initializeMatrix() {
+    final axisOptions = _matrixAxisOptions;
+    if (axisOptions.isNotEmpty) {
+      _matrixDraftColumnAxis = axisOptions.first;
+      _matrixAppliedColumnAxis = axisOptions.first;
+    }
+    if (axisOptions.length > 1) {
+      _matrixDraftRowAxis = axisOptions[1];
+      _matrixAppliedRowAxis = axisOptions[1];
+    }
+
+    final savedVariants = widget.state.variantes;
+    if (savedVariants.isEmpty ||
+        _matrixAppliedColumnAxis.isEmpty ||
+        _matrixAppliedRowAxis.isEmpty) {
+      _matrixAppliedColumns = const [];
+      _matrixAppliedRows = const [];
+      _matrixCombinations = const {};
+      _matrixFocusedKey = null;
+      return;
+    }
+
+    _matrixDraftColumns
+      ..clear()
+      ..addAll(
+        _measuresFromVariants(
+          savedVariants,
+          _matrixAppliedColumnAxis,
+          'column',
+        ),
+      );
+    _matrixDraftRows
+      ..clear()
+      ..addAll(
+        _measuresFromVariants(savedVariants, _matrixAppliedRowAxis, 'row'),
+      );
     _matrixAppliedColumns = List.of(_matrixDraftColumns);
     _matrixAppliedRows = List.of(_matrixDraftRows);
 
-    final excludedKeys = {
-      _MatrixCombinationDraft.buildKey('1″', '1/2″'),
-      _MatrixCombinationDraft.buildKey('3″', '5/16″'),
-    };
     final combinations = <String, _MatrixCombinationDraft>{};
-    final matrixVariants = <String, ProductoVariante>{};
-
-    for (final variante in widget.state.variantes) {
-      final row = _attributeLabel(variante, _matrixAppliedRowAxis);
-      final column = _attributeLabel(variante, _matrixAppliedColumnAxis);
+    for (final variant in savedVariants) {
+      final row = _attributeLabel(variant, _matrixAppliedRowAxis);
+      final column = _attributeLabel(variant, _matrixAppliedColumnAxis);
       if (row == null || column == null) continue;
-      matrixVariants[_MatrixCombinationDraft.buildKey(row, column)] = variante;
+      final key = _MatrixCombinationDraft.buildKey(row, column);
+      combinations[key] = _MatrixCombinationDraft(
+        id: variant.id,
+        key: key,
+        rowValue: row,
+        columnValue: column,
+        included: true,
+        sku: variant.sku,
+        supplierCode: variant.codigoProveedor,
+        generatedName: variant.nombreCorto,
+        initialActive: variant.activa,
+        attributes: {
+          for (final attribute in variant.atributos)
+            if (attribute.nombre != _matrixAppliedColumnAxis &&
+                attribute.nombre != _matrixAppliedRowAxis)
+              attribute.nombre: attribute.texto,
+        },
+        wasEdited: true,
+      );
     }
-
-    final hasSavedMatrix = matrixVariants.isNotEmpty;
-    for (final row in _matrixAppliedRows) {
-      for (final column in _matrixAppliedColumns) {
-        final key = _MatrixCombinationDraft.buildKey(row.label, column.label);
-        final saved = matrixVariants[key];
-        final defaults = _createDefaultMatrixCombination(
-          rowLabel: row.label,
-          columnLabel: column.label,
-          included: hasSavedMatrix
-              ? saved != null
-              : !excludedKeys.contains(key),
-        );
-        combinations[key] = saved == null
-            ? defaults
-            : defaults.copyWith(
-                included: true,
-                sku: saved.sku,
-                supplierCode: saved.codigoProveedor,
-                generatedName: saved.nombreCorto,
-                initialActive: saved.activa,
-                attributes: {
-                  for (final attribute in saved.atributos)
-                    if (attribute.nombre != _matrixAppliedColumnAxis &&
-                        attribute.nombre != _matrixAppliedRowAxis)
-                      attribute.nombre: attribute.texto,
-                },
-                wasEdited: true,
-              );
-      }
-    }
-
     _matrixCombinations = combinations;
-    final preferred = _MatrixCombinationDraft.buildKey('4″', '3/8″');
-    _matrixFocusedKey = combinations.containsKey(preferred)
-        ? preferred
-        : combinations.keys.firstOrNull;
+    _matrixFocusedKey = combinations.keys.firstOrNull;
     final focused = _matrixFocusedCombination;
     if (focused != null) _loadMatrixEditor(focused);
+  }
+
+  List<_MatrixMeasureDraft> _measuresFromVariants(
+    List<ProductoVariante> variants,
+    String name,
+    String prefix,
+  ) {
+    final result = <_MatrixMeasureDraft>[];
+    final seen = <String>{};
+    for (final variant in variants) {
+      for (final attribute in variant.atributos) {
+        if (attribute.nombre != name || !seen.add(attribute.texto)) continue;
+        result.add(
+          _MatrixMeasureDraft(
+            id: '$prefix-${result.length + 1}',
+            value: attribute.valor,
+            unit: attribute.unidad,
+          ),
+        );
+      }
+    }
+    return result;
   }
 
   String? _attributeLabel(ProductoVariante variante, String name) {
@@ -299,10 +325,11 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
   _MatrixCombinationDraft _createDefaultMatrixCombination({
     required String rowLabel,
     required String columnLabel,
-    bool included = true,
+    bool included = false,
   }) {
     final key = _MatrixCombinationDraft.buildKey(rowLabel, columnLabel);
     return _MatrixCombinationDraft(
+      id: const Uuid().v4(),
       key: key,
       rowValue: rowLabel,
       columnValue: columnLabel,
@@ -322,16 +349,33 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
     _matrixNameController.text = combination.generatedName;
     _matrixEditorInitialActive = combination.initialActive;
 
+    final managedNames = widget.state.atributosDeVariante
+        .where(
+          (attribute) =>
+              attribute.nombre != _matrixAppliedColumnAxis &&
+              attribute.nombre != _matrixAppliedRowAxis,
+        )
+        .map((attribute) => attribute.nombre)
+        .toList();
     final oldFields = List<_MatrixAttributeFields>.of(_matrixAttributeFields);
     _matrixAttributeFields
       ..clear()
       ..addAll(
-        combination.attributes.entries.map(
-          (attribute) => _MatrixAttributeFields(
-            name: attribute.key,
-            value: attribute.value,
+        managedNames.map(
+          (name) => _MatrixAttributeFields(
+            name: name,
+            value: combination.attributes[name] ?? '',
+            managed: true,
           ),
         ),
+      )
+      ..addAll(
+        combination.attributes.entries
+            .where((entry) => !managedNames.contains(entry.key))
+            .map(
+              (entry) =>
+                  _MatrixAttributeFields(name: entry.key, value: entry.value),
+            ),
       );
     if (oldFields.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -965,9 +1009,14 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
     final variants = _matrixIncludedCombinations
         .map(_combinationToVariant)
         .toList();
-    context.read<ProductoFormBloc>().add(
-      ProductoFormVariantesReemplazadas(variants),
-    );
+    context.read<ProductoFormBloc>()
+      ..add(ProductoFormVariantesReemplazadas(variants))
+      ..add(
+        ProductoFormMatrizResumenCambiado(
+          total: _matrixCombinations.length,
+          excluidas: _matrixExcludedCount,
+        ),
+      );
   }
 
   ProductoVariante _combinationToVariant(_MatrixCombinationDraft combination) {
@@ -978,7 +1027,7 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
       (item) => item.label == combination.rowValue,
     );
     return ProductoVariante(
-      id: 'matrix:${combination.key}',
+      id: combination.id,
       sku: combination.sku.trim().toUpperCase(),
       codigoProveedor: combination.supplierCode.trim().toUpperCase(),
       nombreCorto: combination.generatedName.trim(),
@@ -1836,7 +1885,7 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
           children: [
             const Expanded(
               child: Text(
-                'Atributos adicionales',
+                'Atributos técnicos de la variante',
                 style: TextStyle(
                   color: _matrixInk,
                   fontWeight: FontWeight.w800,
@@ -1980,7 +2029,8 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
         Expanded(
           child: TextField(
             controller: fields.nameController,
-            onChanged: (_) => _markMatrixEditorDirty(),
+            readOnly: fields.managed,
+            onChanged: fields.managed ? null : (_) => _markMatrixEditorDirty(),
             decoration: _matrixInputDecoration(hint: 'Material'),
           ),
         ),

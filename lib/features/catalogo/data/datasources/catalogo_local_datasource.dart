@@ -219,6 +219,10 @@ class CatalogoLocalDatasource {
           decimales: row['decimales'] as int? ?? 0,
           maximoSelecciones: row['maximo_selecciones'] as int?,
           magnitud: row['magnitud'] as String?,
+          nivelCaptura: capture,
+          puedeSerEje: row['puede_ser_eje'] == 1,
+          ayuda: row['ayuda'] as String? ?? '',
+          ejemplo: row['ejemplo'] as String? ?? '',
         ),
       );
     }

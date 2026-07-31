@@ -240,6 +240,30 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
   late List<PriceListDraft> _lists;
   late List<ProductPriceDraft> _prices;
 
+  List<PriceListDraft> get _catalogPriceLists => [
+    PriceListDraft(
+      id: 'regular',
+      name: 'Regular',
+      currencyCode: 'PEN',
+      includesIgv: true,
+      validFrom: DateTime(2020),
+    ),
+    PriceListDraft(
+      id: 'mayorista',
+      name: 'Mayorista',
+      currencyCode: 'PEN',
+      includesIgv: true,
+      validFrom: DateTime(2020),
+    ),
+    PriceListDraft(
+      id: 'exportacion',
+      name: 'Exportación',
+      currencyCode: 'USD',
+      includesIgv: false,
+      validFrom: DateTime(2020),
+    ),
+  ];
+
   String? _selectedListId;
   String? _presentationFilterId;
   String? _editorPriceKey;
@@ -264,7 +288,7 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
             PriceListDraft(
               id: 'regular',
               name: 'Regular',
-              currencyCode: 'USD',
+              currencyCode: 'PEN',
               includesIgv: true,
               validFrom: DateTime.now(),
             ),
@@ -330,6 +354,8 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
 
   int get _pendingCount =>
       _activeListRows.where((item) => !item.isReady).length;
+
+  int get _totalPendingCount => _prices.where((item) => !item.isReady).length;
 
   int get _quoteCount => _activeListRows
       .where((item) => item.configuration == PriceConfigurationType.quote)
@@ -1061,350 +1087,78 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
     return result;
   }
 
-  Future<void> _editSelectedList() async {
-    final current = _selectedList;
-    final result = await _showPriceListDialog(current);
-
-    if (result == null || !mounted) {
-      return;
-    }
-
-    final changesMeaning =
-        current.currencyCode != result.currencyCode ||
-        current.includesIgv != result.includesIgv;
-
-    final hasConfiguredAmounts = _activeListRows.any(
-      (item) => item.hasNumericPrice,
-    );
-
-    if (changesMeaning && hasConfiguredAmounts) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) {
-          return AlertDialog(
-            backgroundColor: Colors.white,
-            title: const Text('Revisar importes existentes'),
-            content: const Text(
-              'Cambiar moneda o tratamiento de IGV no convertirá ni '
-              'recalculará los importes guardados. Los valores numéricos '
-              'permanecerán iguales y deberán revisarse.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext, false);
-                },
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext, true);
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: _primary,
-                  foregroundColor: Colors.black,
+  Future<void> _selectPriceLists() async {
+    final available = <String, PriceListDraft>{
+      for (final list in _catalogPriceLists) list.id: list,
+      for (final list in _lists) list.id: list,
+    }.values.toList();
+    final selected = _lists.map((list) => list.id).toSet();
+    final result = await showDialog<Set<String>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Listas aplicables al producto'),
+          content: SizedBox(
+            width: 520,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'La moneda y el tratamiento de IGV provienen de la lista. '
+                  'No se redefinen dentro del producto.',
+                  style: TextStyle(color: _muted),
                 ),
-                child: const Text('Guardar sin convertir'),
-              ),
-            ],
-          );
-        },
-      );
-
-      if (confirmed != true || !mounted) {
-        return;
+                const SizedBox(height: 12),
+                ...available.map(
+                  (list) => CheckboxListTile(
+                    value: selected.contains(list.id),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: Text(list.name),
+                    subtitle: Text(
+                      '${list.currencyCode} · '
+                      '${list.includesIgv ? 'Con IGV' : 'Sin IGV'}',
+                    ),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        if (value ?? false) {
+                          selected.add(list.id);
+                        } else {
+                          selected.remove(list.id);
+                        }
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: selected.isEmpty
+                  ? null
+                  : () => Navigator.pop(dialogContext, {...selected}),
+              child: const Text('Aplicar listas'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _lists = available.where((list) => result.contains(list.id)).toList();
+      if (!_lists.any((list) => list.id == _selectedListId)) {
+        _selectedListId = _lists.first.id;
       }
-    }
-
-    final index = _lists.indexWhere((item) => item.id == current.id);
-
-    setState(() {
-      _lists[index] = result;
-      _closeEditor();
-    });
-
-    _notifyChanged();
-  }
-
-  Future<void> _createPriceList() async {
-    final result = await _showPriceListDialog();
-
-    if (result == null || !mounted) {
-      return;
-    }
-
-    setState(() {
-      _lists.add(result);
-      _selectedListId = result.id;
       _syncGeneratedRows();
       _selectedPriceKeys.clear();
       _closeEditor();
     });
-
     _notifyChanged();
-  }
-
-  Future<PriceListDraft?> _showPriceListDialog([
-    PriceListDraft? initial,
-  ]) async {
-    final editing = initial != null;
-    final formKey = GlobalKey<FormState>();
-
-    var name = initial?.name ?? '';
-    var currency = initial?.currencyCode ?? 'PEN';
-    var includesIgv = initial?.includesIgv ?? true;
-    var validFrom = initial?.validFrom ?? DateTime.now();
-    DateTime? validUntil = initial?.validUntil;
-
-    final result = await showDialog<PriceListDraft>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: Colors.white,
-              title: Text(
-                editing ? 'Editar lista de precios' : 'Nueva lista de precios',
-              ),
-              content: SizedBox(
-                width: 500,
-                child: Form(
-                  key: formKey,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TextFormField(
-                          initialValue: name,
-                          decoration: _inputDecoration('Nombre *'),
-                          onChanged: (value) {
-                            name = value;
-                          },
-                          validator: (value) {
-                            final name = value?.trim() ?? '';
-                            if (name.isEmpty) {
-                              return 'Ingresa un nombre.';
-                            }
-
-                            final duplicated = _lists.any(
-                              (item) =>
-                                  item.id != initial?.id &&
-                                  item.name.trim().toLowerCase() ==
-                                      name.toLowerCase(),
-                            );
-
-                            return duplicated
-                                ? 'Ya existe una lista con este nombre.'
-                                : null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                value: currency,
-                                decoration: _inputDecoration('Moneda *'),
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'PEN',
-                                    child: Text('S/ · Soles'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'USD',
-                                    child: Text('US\$ · Dólares'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'EUR',
-                                    child: Text('€ · Euros'),
-                                  ),
-                                ],
-                                onChanged: (value) {
-                                  if (value == null) {
-                                    return;
-                                  }
-                                  setDialogState(() {
-                                    currency = value;
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: DropdownButtonFormField<bool>(
-                                value: includesIgv,
-                                decoration: _inputDecoration('Importes'),
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: true,
-                                    child: Text('Con IGV'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: false,
-                                    child: Text('Sin IGV'),
-                                  ),
-                                ],
-                                onChanged: (value) {
-                                  if (value == null) {
-                                    return;
-                                  }
-                                  setDialogState(() {
-                                    includesIgv = value;
-                                  });
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _buildDialogDateField(
-                          label: 'Fecha inicial *',
-                          value: _formatDate(validFrom),
-                          onTap: () async {
-                            final selected = await showDatePicker(
-                              context: dialogContext,
-                              initialDate: validFrom,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2100),
-                            );
-
-                            if (selected != null) {
-                              setDialogState(() {
-                                validFrom = selected;
-                                if (validUntil != null &&
-                                    validUntil!.isBefore(validFrom)) {
-                                  validUntil = null;
-                                }
-                              });
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        _buildDialogDateField(
-                          label: 'Fecha final',
-                          value: validUntil == null
-                              ? 'Sin fecha final'
-                              : _formatDate(validUntil!),
-                          onTap: () async {
-                            final selected = await showDatePicker(
-                              context: dialogContext,
-                              initialDate: validUntil ?? validFrom,
-                              firstDate: validFrom,
-                              lastDate: DateTime(2100),
-                            );
-
-                            if (selected != null) {
-                              setDialogState(() {
-                                validUntil = selected;
-                              });
-                            }
-                          },
-                          onClear: validUntil == null
-                              ? null
-                              : () {
-                                  setDialogState(() {
-                                    validUntil = null;
-                                  });
-                                },
-                        ),
-                        const SizedBox(height: 14),
-                        _buildInlineNote(
-                          'Cambiar moneda no convierte precios. Cambiar el '
-                          'tratamiento de IGV tampoco recalcula importes.',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                  },
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    if (formKey.currentState?.validate() != true) {
-                      return;
-                    }
-
-                    Navigator.pop(
-                      dialogContext,
-                      PriceListDraft(
-                        id:
-                            initial?.id ??
-                            'list-${DateTime.now().microsecondsSinceEpoch}',
-                        name: name.trim(),
-                        currencyCode: currency,
-                        includesIgv: includesIgv,
-                        validFrom: validFrom,
-                        validUntil: validUntil,
-                      ),
-                    );
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _primary,
-                    foregroundColor: Colors.black,
-                  ),
-                  child: Text(
-                    editing ? 'Guardar configuración' : 'Crear lista',
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    return result;
-  }
-
-  Widget _buildDialogDateField({
-    required String label,
-    required String value,
-    required VoidCallback onTap,
-    VoidCallback? onClear,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: _muted,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 7),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: onTap,
-                icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                label: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(value),
-                ),
-                style: _outlinedStyle(),
-              ),
-            ),
-            if (onClear != null) ...[
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: onClear,
-                tooltip: 'Quitar fecha final',
-                icon: const Icon(Icons.close),
-              ),
-            ],
-          ],
-        ),
-      ],
-    );
   }
 
   void _changeSelectedList(String listId) {
@@ -1437,13 +1191,13 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
   }
 
   Future<void> _continueToImages() async {
-    if (_pendingCount > 0) {
+    if (_totalPendingCount > 0) {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
             backgroundColor: Colors.white,
-            title: Text('Continuar con $_pendingCount pendientes'),
+            title: Text('Continuar con $_totalPendingCount pendientes'),
             content: const Text(
               'Puedes continuar y guardar el producto como borrador. '
               'Sin embargo, las combinaciones pendientes impedirán '
@@ -1660,15 +1414,11 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
             spacing: 10,
             runSpacing: 10,
             children: [
-              OutlinedButton(
-                onPressed: _editSelectedList,
-                style: _outlinedStyle(),
-                child: const Text('Editar lista'),
-              ),
               OutlinedButton.icon(
-                onPressed: _createPriceList,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Nueva lista'),
+                key: const Key('seleccionar_listas_precios'),
+                onPressed: _selectPriceLists,
+                icon: const Icon(Icons.playlist_add_check, size: 18),
+                label: const Text('Seleccionar listas'),
                 style: _outlinedStyle(),
               ),
             ],

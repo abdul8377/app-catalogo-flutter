@@ -18,7 +18,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('el indicador usa seis pasos y permite navegar por número', (
+  testWidgets('el indicador usa seis pasos y bloquea pasos futuros', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1000, 900));
@@ -33,19 +33,36 @@ void main() {
     await tester.pumpAndSettle();
 
     final bloc = tester.element(find.byType(Scaffold)).read<ProductoFormBloc>();
-
     expect(find.byKey(const ValueKey('paso_flujo_1')), findsOneWidget);
     expect(find.byKey(const ValueKey('paso_flujo_6')), findsOneWidget);
     expect(find.byKey(const ValueKey('paso_flujo_7')), findsNothing);
+    expect(
+      tester.widget<InkWell>(find.byKey(const ValueKey('paso_flujo_3'))).onTap,
+      isNull,
+    );
+    expect(bloc.state.paso, 0);
 
-    await tester.tap(find.byKey(const ValueKey('paso_flujo_3')));
+    bloc
+      ..add(
+        const ProductoFormClasificacionCambiada(
+          empresa: 'DINA',
+          marca: 'DINA',
+          categoria: 'Pernería',
+        ),
+      )
+      ..add(
+        const ProductoFormClasificacionCambiada(
+          subcategoria: 'Pernos métricos',
+        ),
+      );
     await tester.pumpAndSettle();
 
-    expect(bloc.state.paso, 3);
-
+    expect(
+      tester.widget<InkWell>(find.byKey(const ValueKey('paso_flujo_2'))).onTap,
+      isNotNull,
+    );
     await tester.tap(find.byKey(const ValueKey('paso_flujo_2')));
     await tester.pumpAndSettle();
-
     expect(bloc.state.paso, 1);
     expect(tester.takeException(), isNull);
   });
@@ -83,7 +100,7 @@ void main() {
     expect(find.text('¿Cómo se organiza este producto?'), findsOneWidget);
     expect(find.text('Atributos de la categoría'), findsNothing);
 
-    await tester.tap(find.text('Lista de variantes'));
+    await tester.tap(find.byKey(const Key('tipo_producto_variantes')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('familia_nombre')), findsOneWidget);
@@ -100,127 +117,88 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
-    'Matriz abre su pantalla, genera combinaciones y sincroniza variantes',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1400, 1000));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+  testWidgets('Matriz inicia vacía y crea solo combinaciones incluidas', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1400, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(
-        RepositoryProvider<CatalogoRepository>.value(
-          value: _FakeCatalogoRepository(),
-          child: const MaterialApp(home: ProductoFormPage()),
+    await tester.pumpWidget(
+      RepositoryProvider<CatalogoRepository>.value(
+        value: _FakeCatalogoRepository(),
+        child: const MaterialApp(home: ProductoFormPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final bloc = tester.element(find.byType(Scaffold)).read<ProductoFormBloc>();
+    bloc
+      ..add(
+        const ProductoFormClasificacionCambiada(
+          empresa: 'DINA',
+          marca: 'DINA',
+          categoria: 'Pernería',
         ),
-      );
-      await tester.pumpAndSettle();
-
-      final bloc = tester
-          .element(find.byType(Scaffold))
-          .read<ProductoFormBloc>();
-      bloc
-        ..add(
-          const ProductoFormClasificacionCambiada(
-            empresa: 'DINA',
-            marca: 'DINA',
-            categoria: 'Pernería',
-          ),
-        )
-        ..add(
-          const ProductoFormClasificacionCambiada(
-            subcategoria: 'Pernos métricos',
-          ),
-        )
-        ..add(const ProductoFormFamiliaCambiada(nombre: 'Perno hexagonal'))
-        ..add(const ProductoFormTipoCambiado('matriz'))
-        ..add(const ProductoFormPasoSeleccionado(1));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Matriz de variantes'), findsWidgets);
-      expect(find.text('Combinaciones generadas'), findsOneWidget);
-      expect(
-        find.text('16 combinaciones · 14 variantes a crear · 2 no existen'),
-        findsOneWidget,
-      );
-      expect(bloc.state.variantes, hasLength(14));
-      expect(
-        bloc.state.variantes.every(
-          (variante) =>
-              variante.atributos.any(
-                (atributo) => atributo.nombre == 'Diámetro',
-              ) &&
-              variante.atributos.any((atributo) => atributo.nombre == 'Largo'),
+      )
+      ..add(
+        const ProductoFormClasificacionCambiada(
+          subcategoria: 'Pernos métricos',
         ),
-        isTrue,
-      );
+      )
+      ..add(const ProductoFormFamiliaCambiada(nombre: 'Perno hexagonal'))
+      ..add(const ProductoFormTipoCambiado('matriz'))
+      ..add(const ProductoFormPasoSeleccionado(1));
+    await tester.pumpAndSettle();
 
-      await tester.ensureVisible(
-        find.byKey(const Key('alternar_combinacion_matriz')),
-      );
-      await tester.tap(find.byKey(const Key('alternar_combinacion_matriz')));
-      await tester.pumpAndSettle();
-      expect(bloc.state.variantes, hasLength(13));
-      await tester.tap(find.byKey(const Key('alternar_combinacion_matriz')));
-      await tester.pumpAndSettle();
-      expect(bloc.state.variantes, hasLength(14));
+    expect(find.text('Matriz de variantes'), findsWidgets);
+    expect(
+      find.text('0 combinaciones · 0 variantes a crear · 0 no existen'),
+      findsOneWidget,
+    );
+    expect(bloc.state.variantes, isEmpty);
 
-      await tester.enterText(
-        find.byKey(const Key('matriz_codigo_proveedor')),
-        'MATRIX-PROV',
-      );
-      await tester.enterText(
-        find.byKey(const Key('matriz_nombre')),
-        'Perno hexagonal editado',
-      );
-      await tester.pump();
-      expect(bloc.state.edicionVariantePendiente, isTrue);
-      await tester.ensureVisible(
-        find.byKey(const Key('guardar_variante_matriz')),
+    Future<void> addMeasure(int chipIndex, String value) async {
+      await tester.tap(
+        find.widgetWithText(ActionChip, 'Añadir medida').at(chipIndex),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('guardar_variante_matriz')));
-      await tester.pumpAndSettle();
-      expect(bloc.state.edicionVariantePendiente, isFalse);
-      expect(
-        bloc.state.variantes.any(
-          (variante) => variante.codigoProveedor == 'MATRIX-PROV',
-        ),
-        isTrue,
+      final dialogFields = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextFormField),
       );
-
-      await tester.ensureVisible(
-        find.widgetWithText(ActionChip, 'Añadir medida').first,
-      );
-      await tester.tap(find.widgetWithText(ActionChip, 'Añadir medida').first);
-      await tester.pumpAndSettle();
-      await tester.enterText(find.widgetWithText(TextFormField, '3/8'), '3/4');
+      await tester.enterText(dialogFields.at(0), value);
+      await tester.enterText(dialogFields.at(1), 'mm');
       await tester.tap(find.widgetWithText(ElevatedButton, 'Guardar'));
       await tester.pumpAndSettle();
-      expect(find.text('Cambios sin aplicar'), findsOneWidget);
-      expect(bloc.state.edicionVariantePendiente, isTrue);
+    }
 
-      tester
-          .widget<OutlinedButton>(find.byKey(const Key('actualizar_matriz')))
-          .onPressed
-          ?.call();
-      await tester.pumpAndSettle();
-      expect(
-        find.text('20 combinaciones · 18 variantes a crear · 2 no existen'),
-        findsOneWidget,
-      );
-      expect(bloc.state.variantes, hasLength(18));
-      expect(bloc.state.edicionVariantePendiente, isFalse);
+    await addMeasure(0, '10');
+    await addMeasure(1, '40');
+    tester
+        .widget<OutlinedButton>(find.byKey(const Key('actualizar_matriz')))
+        .onPressed
+        ?.call();
+    await tester.pumpAndSettle();
 
-      tester
-          .widget<FilledButton>(
-            find.widgetWithText(FilledButton, 'Siguiente: venta y empaques'),
-          )
-          .onPressed
-          ?.call();
-      await tester.pumpAndSettle();
-      expect(bloc.state.paso, 3);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(
+      find.text('1 combinaciones · 0 variantes a crear · 1 no existen'),
+      findsOneWidget,
+    );
+    expect(bloc.state.variantes, isEmpty);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('alternar_combinacion_matriz')),
+    );
+    await tester.tap(find.byKey(const Key('alternar_combinacion_matriz')));
+    await tester.pumpAndSettle();
+    expect(bloc.state.variantes, hasLength(1));
+    expect(bloc.state.variantes.single.id, isNot(contains('matrix:')));
+    expect(
+      bloc.state.variantes.single.atributos.map((item) => item.nombre),
+      containsAll(['Diámetro', 'Largo']),
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('Matriz no desborda en una pantalla angosta', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
@@ -254,8 +232,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Combinaciones generadas'), findsOneWidget);
-    expect(find.text('Detalle de variante'), findsOneWidget);
-    expect(bloc.state.variantes, hasLength(14));
+    expect(bloc.state.variantes, isEmpty);
+    expect(
+      find.text('0 combinaciones · 0 variantes a crear · 0 no existen'),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -751,7 +732,7 @@ void main() {
           ?.call();
       await tester.pumpAndSettle();
 
-      expect(find.text('US\$ 21.50 por Docena'), findsOneWidget);
+      expect(find.text('S/ 21.50 por Docena'), findsOneWidget);
       expect(
         find.text('1 de 1 combinaciones listas · 0 pendientes'),
         findsOneWidget,
@@ -1818,7 +1799,7 @@ void main() {
     },
   );
 
-  testWidgets('la edición usa navegación lateral y guardado fijo', (
+  testWidgets('la edición conserva el mismo flujo de seis pasos', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1000, 720));
@@ -1832,14 +1813,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Editar Producto'), findsOneWidget);
-    expect(find.text('General'), findsOneWidget);
-    expect(find.text('Imágenes'), findsOneWidget);
-    expect(find.byKey(const Key('guardar_cambios')), findsOneWidget);
-
-    await tester.tap(find.text('Imágenes'));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('seleccionar_imagenes')), findsOneWidget);
+    expect(find.text('Editar producto'), findsOneWidget);
+    expect(find.byKey(const ValueKey('paso_flujo_1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('paso_flujo_6')), findsOneWidget);
+    expect(find.text('General'), findsNothing);
+    expect(find.byKey(const Key('guardar_cambios')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }
@@ -1868,6 +1846,7 @@ class _FakeCatalogoRepository implements CatalogoRepository {
               requerido: true,
               unidades: ['mm', 'in', '″'],
               unidadPredeterminada: 'mm',
+              puedeSerEje: true,
             ),
             AtributoDef(
               nombre: 'Largo',
@@ -1876,6 +1855,7 @@ class _FakeCatalogoRepository implements CatalogoRepository {
               requerido: true,
               unidades: ['mm', 'cm', 'in', '″'],
               unidadPredeterminada: 'mm',
+              puedeSerEje: true,
             ),
           ],
           'Pernos métricos': [
@@ -1886,6 +1866,7 @@ class _FakeCatalogoRepository implements CatalogoRepository {
               requerido: true,
               unidades: ['mm'],
               unidadPredeterminada: 'mm',
+              puedeSerEje: true,
             ),
             AtributoDef(
               nombre: 'Largo',
@@ -1894,6 +1875,7 @@ class _FakeCatalogoRepository implements CatalogoRepository {
               requerido: true,
               unidades: ['mm'],
               unidadPredeterminada: 'mm',
+              puedeSerEje: true,
             ),
           ],
         },

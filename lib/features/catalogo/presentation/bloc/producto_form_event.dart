@@ -157,6 +157,19 @@ class ProductoFormVariantesReemplazadas extends ProductoFormEvent {
   List<Object?> get props => [variantes];
 }
 
+class ProductoFormMatrizResumenCambiado extends ProductoFormEvent {
+  const ProductoFormMatrizResumenCambiado({
+    required this.total,
+    required this.excluidas,
+  });
+
+  final int total;
+  final int excluidas;
+
+  @override
+  List<Object?> get props => [total, excluidas];
+}
+
 class ProductoFormVarianteEliminada extends ProductoFormEvent {
   const ProductoFormVarianteEliminada(this.id);
   final String id;

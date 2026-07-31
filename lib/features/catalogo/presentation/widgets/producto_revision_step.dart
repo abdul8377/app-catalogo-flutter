@@ -20,9 +20,14 @@ class ProductoRevisionStep extends StatelessWidget {
     review: _review,
     onBack: () =>
         context.read<ProductoFormBloc>().add(const ProductoFormPasoAnterior()),
-    onReviewStep: (stepNumber) => context.read<ProductoFormBloc>().add(
-      ProductoFormPasoSeleccionado(stepNumber - 1),
-    ),
+    onReviewStep: (stepNumber) {
+      const internalSteps = ProductoFormState.pasosFlujo;
+      final index = stepNumber - 1;
+      if (index < 0 || index >= internalSteps.length) return;
+      context.read<ProductoFormBloc>().add(
+        ProductoFormPasoSeleccionado(internalSteps[index]),
+      );
+    },
     onActivate: (request) {
       final completer = Completer<Step7ActivationResult>();
       context.read<ProductoFormBloc>().add(
@@ -43,12 +48,8 @@ class ProductoRevisionStep extends StatelessWidget {
     final sales = state.ventaLogisticaContenido;
     final pricing = state.preciosConfigurados;
     final images = state.imagenesConfiguradas;
-    final primaryList = pricing?.lists.firstOrNull;
-    final listPrices = primaryList == null
-        ? const <ProductPriceDraft>[]
-        : pricing!.prices
-              .where((price) => price.listId == primaryList.id)
-              .toList();
+    final configuredLists = pricing?.lists ?? const <PriceListDraft>[];
+    final listPrices = pricing?.prices ?? const <ProductPriceDraft>[];
 
     return Step7ReviewData(
       productId: state.productoId ?? 'borrador-local',
@@ -71,7 +72,7 @@ class ProductoRevisionStep extends StatelessWidget {
         _ => 'Producto único',
       },
       includedVariantCount: state.variantes.length,
-      excludedCombinationCount: 0,
+      excludedCombinationCount: state.matrizCombinacionesExcluidas,
       duplicateSkuCount: duplicateSkuCount,
       presentations: sales == null
           ? state.presentaciones
@@ -94,11 +95,18 @@ class ProductoRevisionStep extends StatelessWidget {
       contentNotApplicable: sales?.hasProductContent != true,
       contentComponentCount: sales?.contentItems.length ?? 0,
       pricing: Step7PricingReview(
-        listName: primaryList?.name ?? 'Lista principal',
-        currencyCode: primaryList?.currencyCode ?? 'PEN',
-        includesIgv: primaryList?.includesIgv ?? true,
+        listName: configuredLists.isEmpty
+            ? 'Sin listas'
+            : '${configuredLists.length} listas',
+        currencyCode:
+            configuredLists.map((list) => list.currencyCode).toSet().length == 1
+            ? configuredLists.first.currencyCode
+            : 'Múltiple',
+        includesIgv:
+            configuredLists.isNotEmpty &&
+            configuredLists.every((list) => list.includesIgv),
         totalCombinationCount:
-            pricing?.sellableCombinations.length ??
+            pricing?.prices.length ??
             state.presentaciones.length * activeVariants.length,
         numericPriceCount: pricing == null
             ? state.precios.length
@@ -111,6 +119,15 @@ class ProductoRevisionStep extends StatelessWidget {
         pendingCount: pricing == null
             ? (state.precios.isEmpty ? state.presentaciones.length : 0)
             : listPrices.where((price) => !price.isReady).length,
+        listSummaries: configuredLists.map((list) {
+          final pricesForList = listPrices
+              .where((price) => price.listId == list.id)
+              .toList();
+          final pending = pricesForList.where((price) => !price.isReady).length;
+          return '${list.name} · ${list.currencyCode} · '
+              '${list.includesIgv ? 'Con IGV' : 'Sin IGV'} · '
+              '${pricesForList.length - pending}/${pricesForList.length} combinaciones listas';
+        }).toList(),
       ),
       images: Step7ImagesReview(
         familyImageCount:
@@ -130,16 +147,19 @@ class ProductoRevisionStep extends StatelessWidget {
           state.marca != null &&
           state.categoria != null &&
           (!state.subcategoriaRequerida || state.subcategoria != null) &&
-          state.nombre.trim().isNotEmpty,
-      initialStatus: Step7InitialStatus.active,
+          state.nombre.trim().isNotEmpty &&
+          state.atributosFamiliaCompletos,
+      initialStatus: state.activo
+          ? Step7InitialStatus.active
+          : Step7InitialStatus.inactive,
       inactiveVariantCount: state.variantes.length - activeVariants.length,
-      visibleInCatalog: true,
-      visibleInNewOrder: true,
+      visibleInCatalog: state.activo,
+      visibleInNewOrder: state.activo,
       additionalBlockingIssues: [
         if (state.edicionVariantePendiente)
           'Guarda o cancela los cambios pendientes de la variante.',
         if (!state.variantesCompletas)
-          'Completa el SKU y el nombre de todas las variantes.',
+          'Completa el código interno y el nombre de todas las variantes.',
         if (activeVariants.isEmpty)
           'Activa al menos una variante antes de activar el producto.',
       ],

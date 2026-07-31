@@ -30,9 +30,15 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       }
     });
     on<ProductoFormPasoSeleccionado>((event, emit) {
-      if (event.paso >= 0 && event.paso <= 6) {
+      if (state.pasoEsAccesible(event.paso)) {
         emit(state.copyWith(paso: event.paso, limpiarError: true));
+        return;
       }
+      emit(
+        state.copyWith(
+          error: 'Completa los pasos anteriores antes de continuar.',
+        ),
+      );
     });
     on<ProductoFormClasificacionCambiada>(_clasificacion);
     on<ProductoFormFamiliaCambiada>(
@@ -111,6 +117,15 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
           tipoRegistro: event.tipo,
           variantes: const [],
           edicionVariantePendiente: false,
+          matrizCombinacionesTotales: 0,
+          matrizCombinacionesExcluidas: 0,
+          presentaciones: const [],
+          precios: const [],
+          imagenesPaths: const [],
+          limpiarVentaLogisticaContenido: true,
+          limpiarPreciosConfigurados: true,
+          limpiarImagenesConfiguradas: true,
+          activo: false,
           limpiarError: true,
         ),
       );
@@ -127,7 +142,8 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       final index = variantes.indexWhere(
         (variante) => variante.id == event.variante.id,
       );
-      if (index < 0) {
+      final cambiaEstructura = index < 0;
+      if (cambiaEstructura) {
         variantes.add(event.variante);
       } else {
         variantes[index] = event.variante;
@@ -136,15 +152,42 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
         state.copyWith(
           variantes: variantes,
           edicionVariantePendiente: false,
+          presentaciones: cambiaEstructura ? const [] : null,
+          precios: cambiaEstructura ? const [] : null,
+          imagenesPaths: cambiaEstructura ? const [] : null,
+          limpiarVentaLogisticaContenido: cambiaEstructura,
+          limpiarPreciosConfigurados: cambiaEstructura,
+          limpiarImagenesConfiguradas: cambiaEstructura,
+          activo: cambiaEstructura ? false : null,
           limpiarError: true,
         ),
       );
     });
+    on<ProductoFormMatrizResumenCambiado>((event, emit) {
+      emit(
+        state.copyWith(
+          matrizCombinacionesTotales: event.total,
+          matrizCombinacionesExcluidas: event.excluidas,
+        ),
+      );
+    });
     on<ProductoFormVariantesReemplazadas>((event, emit) {
+      final currentIds = state.variantes.map((item) => item.id).toSet();
+      final nextIds = event.variantes.map((item) => item.id).toSet();
+      final cambiaEstructura =
+          currentIds.length != nextIds.length ||
+          !currentIds.containsAll(nextIds);
       emit(
         state.copyWith(
           variantes: event.variantes,
           edicionVariantePendiente: false,
+          presentaciones: cambiaEstructura ? const [] : null,
+          precios: cambiaEstructura ? const [] : null,
+          imagenesPaths: cambiaEstructura ? const [] : null,
+          limpiarVentaLogisticaContenido: cambiaEstructura,
+          limpiarPreciosConfigurados: cambiaEstructura,
+          limpiarImagenesConfiguradas: cambiaEstructura,
+          activo: cambiaEstructura ? false : null,
           limpiarError: true,
         ),
       );
@@ -157,6 +200,13 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
         state.copyWith(
           variantes: variantes,
           edicionVariantePendiente: false,
+          presentaciones: const [],
+          precios: const [],
+          imagenesPaths: const [],
+          limpiarVentaLogisticaContenido: true,
+          limpiarPreciosConfigurados: true,
+          limpiarImagenesConfiguradas: true,
+          activo: false,
           limpiarError: true,
         ),
       );
@@ -234,9 +284,9 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       emit(state.copyWith(precios: items));
     });
     on<ProductoFormPreciosConfiguradosCambiados>((event, emit) {
-      final listaPrincipal = event.draft.lists.firstOrNull;
       final tienePendientes =
-          listaPrincipal == null || !event.draft.canActivate(listaPrincipal.id);
+          event.draft.lists.isEmpty ||
+          event.draft.lists.any((list) => !event.draft.canActivate(list.id));
       emit(
         state.copyWith(
           paso: event.continuar ? 5 : null,
@@ -437,6 +487,11 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
     final cambioMarca = event.marca != null && event.marca != state.marca;
     final cambioCategoria =
         event.categoria != null && event.categoria != state.categoria;
+    final cambioSubcategoria =
+        event.subcategoria != null && event.subcategoria != state.subcategoria;
+    final cambioEstructural =
+        cambioEmpresa || cambioMarca || cambioCategoria || cambioSubcategoria;
+
     emit(
       state.copyWith(
         empresa: event.empresa,
@@ -449,7 +504,18 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
         limpiarSubcategoria:
             (cambioEmpresa || cambioMarca || cambioCategoria) &&
             event.subcategoria == null,
-        atributos: cambioEmpresa || cambioMarca || cambioCategoria ? {} : null,
+        atributos: cambioEstructural ? const {} : null,
+        variantes: cambioEstructural ? const [] : null,
+        edicionVariantePendiente: cambioEstructural ? false : null,
+        matrizCombinacionesTotales: cambioEstructural ? 0 : null,
+        matrizCombinacionesExcluidas: cambioEstructural ? 0 : null,
+        presentaciones: cambioEstructural ? const [] : null,
+        precios: cambioEstructural ? const [] : null,
+        imagenesPaths: cambioEstructural ? const [] : null,
+        limpiarVentaLogisticaContenido: cambioEstructural,
+        limpiarPreciosConfigurados: cambioEstructural,
+        limpiarImagenesConfiguradas: cambioEstructural,
+        activo: cambioEstructural ? false : null,
         limpiarError: true,
       ),
     );

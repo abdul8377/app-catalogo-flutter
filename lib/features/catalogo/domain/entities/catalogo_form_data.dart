@@ -16,6 +16,10 @@ class AtributoDef extends Equatable {
     this.decimales = 0,
     this.maximoSelecciones,
     this.magnitud,
+    this.nivelCaptura = 'familia',
+    this.puedeSerEje = false,
+    this.ayuda = '',
+    this.ejemplo = '',
   });
   final String nombre;
   final String tipo;
@@ -31,6 +35,10 @@ class AtributoDef extends Equatable {
   final int decimales;
   final int? maximoSelecciones;
   final String? magnitud;
+  final String nivelCaptura;
+  final bool puedeSerEje;
+  final String ayuda;
+  final String ejemplo;
   @override
   List<Object?> get props => [
     nombre,
@@ -47,6 +55,10 @@ class AtributoDef extends Equatable {
     decimales,
     maximoSelecciones,
     magnitud,
+    nivelCaptura,
+    puedeSerEje,
+    ayuda,
+    ejemplo,
   ];
 }
 

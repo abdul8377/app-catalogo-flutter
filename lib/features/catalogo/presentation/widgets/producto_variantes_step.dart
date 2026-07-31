@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../../domain/entities/catalogo_form_data.dart';
 import '../../domain/entities/producto_variante.dart';
 import '../../domain/services/codigo_interno_generator.dart';
+import '../../domain/services/valor_tecnico_parser.dart';
 import '../bloc/producto_form_bloc.dart';
 import '../bloc/producto_form_event.dart';
 import '../bloc/producto_form_state.dart';
@@ -630,6 +631,16 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
                 )
               else
                 ..._specs.map(_atributoField),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  key: const Key('agregar_atributo_adicional_lista'),
+                  onPressed: _agregarAtributoAdicional,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Añadir característica adicional'),
+                ),
+              ),
               const SizedBox(height: 18),
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -752,7 +763,7 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
                       ? [
                           TextInputFormatter.withFunction((oldValue, newValue) {
                             return RegExp(
-                                  r'^[0-9\s/.,]*$',
+                                  r'^[0-9\s/.,aA+\-–—]*$',
                                 ).hasMatch(newValue.text)
                                 ? newValue
                                 : oldValue;
@@ -945,6 +956,49 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
     }
   }
 
+  Future<void> _agregarAtributoAdicional() async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Característica adicional'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Nombre',
+            hintText: 'Ej. Norma especial',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            child: const Text('Añadir'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (!mounted || name == null || name.trim().isEmpty) return;
+    if (_valores.containsKey(name) ||
+        _specs.any((spec) => spec.nombre == name)) {
+      setState(() => _panelError = 'La característica “$name” ya existe.');
+      return;
+    }
+    setState(() {
+      _valores[name] = TextEditingController();
+      _unidades[name] = '';
+      _dirty = true;
+    });
+    _notificarPendiente(true);
+  }
+
   void _marcarPendiente() {
     if (_sincronizandoCampos) return;
     if (_dirty) {
@@ -1125,21 +1179,8 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
   }
 
   double? _parseVariantNumber(String raw) {
-    final value = raw.trim().replaceAll(',', '.');
-    final mixed = RegExp(r'^(\d+)\s+(\d+)\s*/\s*(\d+)$').firstMatch(value);
-    if (mixed != null) {
-      final whole = double.parse(mixed.group(1)!);
-      final numerator = double.parse(mixed.group(2)!);
-      final denominator = double.parse(mixed.group(3)!);
-      return denominator == 0 ? null : whole + numerator / denominator;
-    }
-    final fraction = RegExp(r'^(\d+)\s*/\s*(\d+)$').firstMatch(value);
-    if (fraction != null) {
-      final numerator = double.parse(fraction.group(1)!);
-      final denominator = double.parse(fraction.group(2)!);
-      return denominator == 0 ? null : numerator / denominator;
-    }
-    return double.tryParse(value);
+    final parsed = ValorTecnicoParser.parse(raw);
+    return parsed.esNumerico ? parsed.minimo : null;
   }
 
   void _notificarPendiente(bool value) {

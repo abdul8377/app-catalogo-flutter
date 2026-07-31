@@ -76,15 +76,16 @@ class ProductoPreciosStep extends StatelessWidget {
     final variant = state.variantes
         .where((item) => item.id == variantId)
         .firstOrNull;
+    final rule = presentation.ruleFor(variantId);
     return SellablePriceCombination(
       variantId: variantId,
       variantLabel: variant == null ? variantId : _variantLabel(variant),
       presentationId: presentation.id,
       presentationLabel: presentation.name,
       baseUnit: presentation.baseUnit,
-      equivalentToBaseUnit: presentation.equivalentTo,
-      minimumOrder: presentation.minimumOrder,
-      purchaseIncrement: presentation.purchaseIncrement,
+      equivalentToBaseUnit: rule.equivalentTo,
+      minimumOrder: rule.minimumOrder,
+      purchaseIncrement: rule.purchaseIncrement,
     );
   }
 

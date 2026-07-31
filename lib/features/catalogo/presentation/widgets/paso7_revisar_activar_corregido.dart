@@ -44,6 +44,7 @@ class Step7PricingReview {
     required this.numericPriceCount,
     required this.quoteCount,
     required this.pendingCount,
+    this.listSummaries = const [],
   }) : assert(totalCombinationCount >= 0),
        assert(numericPriceCount >= 0),
        assert(quoteCount >= 0),
@@ -64,6 +65,7 @@ class Step7PricingReview {
 
   /// Combinaciones que todavía están "Sin configurar".
   final int pendingCount;
+  final List<String> listSummaries;
 
   int get readyCount => numericPriceCount + quoteCount;
 }
@@ -190,7 +192,7 @@ class Step7ValidationResult {
     if (data.duplicateSkuCount > 0) {
       blockers.add(
         '${data.duplicateSkuCount} '
-        '${data.duplicateSkuCount == 1 ? 'SKU duplicado debe' : 'SKU duplicados deben'} '
+        '${data.duplicateSkuCount == 1 ? 'código interno duplicado debe' : 'códigos internos duplicados deben'} '
         'corregirse.',
       );
     }
@@ -653,8 +655,7 @@ class _Step7ReviewActivatePanelState extends State<Step7ReviewActivatePanel> {
             ? Step7CardState.warning
             : Step7CardState.complete,
         lines: [
-          'Lista ${price.listName} · ${price.currencyCode} · '
-              '${price.includesIgv ? 'incluye IGV' : 'sin IGV'}',
+          ...price.listSummaries,
           '${price.numericPriceCount} con precio · '
               '${price.quoteCount} por cotizar',
           if (price.pendingCount > 0) '${price.pendingCount} pendientes',
