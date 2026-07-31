@@ -13,79 +13,67 @@ class EstructuraCatalogoIntegradaView extends StatelessWidget {
   const EstructuraCatalogoIntegradaView({super.key});
 
   @override
-  Widget build(
-    BuildContext context,
-  ) => BlocListener<EstructuraCatalogoBloc, EstructuraCatalogoState>(
-    listenWhen: (previous, current) =>
-        previous.error != current.error || previous.mensaje != current.mensaje,
-    listener: (context, state) {
-      if (state.error != null) {
-        AppNotice.error(context, state.error!);
-      } else if (state.mensaje != null) {
-        AppNotice.success(context, state.mensaje!);
-      }
-      context.read<EstructuraCatalogoBloc>().add(
-        const MensajeEstructuraConsumido(),
-      );
-    },
-    child: Navigator(
-      onGenerateRoute: (_) => MaterialPageRoute<void>(
-        settings: const RouteSettings(name: 'estructura-catalogo'),
-        builder: (moduleContext) =>
-            BlocBuilder<EstructuraCatalogoBloc, EstructuraCatalogoState>(
-              builder: (context, state) {
-                if (state.loading) {
-                  return const Scaffold(
-                    backgroundColor: Color(0xFFF4F6F8),
-                    body: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                final snapshot = state.snapshot;
-                return Scaffold(
-                  backgroundColor: const Color(0xFFF4F6F8),
-                  body: Stack(
-                    children: [
-                      design.CatalogStructurePanel(
-                        key: ValueKey(snapshot),
-                        companies: _companies(snapshot),
-                        brands: _brands(snapshot),
-                        categories: _categories(snapshot),
-                        attributes: _simpleAttributes(snapshot),
-                        relations: _relations(snapshot),
-                        onCompaniesChanged: (items) =>
-                            _saveCompanies(context, snapshot, items),
-                        onBrandsChanged: (items) =>
-                            _saveBrands(context, snapshot, items),
-                        onCategoriesChanged: (items) =>
-                            _saveCategories(context, snapshot, items),
-                        onAttributesChanged: (items) =>
-                            _saveSimpleAttributes(context, snapshot, items),
-                        onRelationsChanged: (items) =>
-                            _saveRelations(context, snapshot, items),
-                        onManageCategoryAttributes: (id) =>
-                            _openAttributeManager(
-                              moduleContext,
-                              snapshot,
-                              int.parse(id),
-                            ),
-                      ),
-                      if (state.saving)
-                        const Positioned(
-                          top: 18,
-                          right: 20,
-                          child: SizedBox.square(
-                            dimension: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2.5),
-                          ),
-                        ),
-                    ],
+  Widget build(BuildContext context) =>
+      BlocConsumer<EstructuraCatalogoBloc, EstructuraCatalogoState>(
+        listenWhen: (previous, current) =>
+            previous.error != current.error ||
+            previous.mensaje != current.mensaje,
+        listener: (context, state) {
+          if (state.error != null) {
+            AppNotice.error(context, state.error!);
+          } else if (state.mensaje != null) {
+            AppNotice.success(context, state.mensaje!);
+          }
+          context.read<EstructuraCatalogoBloc>().add(
+            const MensajeEstructuraConsumido(),
+          );
+        },
+        builder: (context, state) {
+          if (state.loading) {
+            return const Scaffold(
+              backgroundColor: Color(0xFFF4F6F8),
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          final snapshot = state.snapshot;
+          return Scaffold(
+            backgroundColor: const Color(0xFFF4F6F8),
+            body: Stack(
+              children: [
+                design.CatalogStructurePanel(
+                  key: ValueKey(snapshot),
+                  companies: _companies(snapshot),
+                  brands: _brands(snapshot),
+                  categories: _categories(snapshot),
+                  attributes: _simpleAttributes(snapshot),
+                  relations: _relations(snapshot),
+                  onCompaniesChanged: (items) =>
+                      _saveCompanies(context, snapshot, items),
+                  onBrandsChanged: (items) =>
+                      _saveBrands(context, snapshot, items),
+                  onCategoriesChanged: (items) =>
+                      _saveCategories(context, snapshot, items),
+                  onAttributesChanged: (items) =>
+                      _saveSimpleAttributes(context, snapshot, items),
+                  onRelationsChanged: (items) =>
+                      _saveRelations(context, snapshot, items),
+                  onManageCategoryAttributes: (id) =>
+                      _openAttributeManager(context, snapshot, int.parse(id)),
+                ),
+                if (state.saving)
+                  const Positioned(
+                    top: 18,
+                    right: 20,
+                    child: SizedBox.square(
+                      dimension: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    ),
                   ),
-                );
-              },
+              ],
             ),
-      ),
-    ),
-  );
+          );
+        },
+      );
 
   static List<design.CatalogCompany> _companies(
     EstructuraCatalogoSnapshot snapshot,

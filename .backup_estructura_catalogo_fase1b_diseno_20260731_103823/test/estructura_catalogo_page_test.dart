@@ -29,8 +29,6 @@ void main() {
     await tester.tap(find.text('Ver marcas').first);
     await tester.pumpAndSettle();
     expect(find.text('DINA'), findsOneWidget);
-    expect(find.byKey(const Key('estructura_filtro_empresa')), findsOneWidget);
-    expect(find.widgetWithText(ChoiceChip, 'DINAFAST'), findsNothing);
 
     await tester.tap(find.text('Categorías').first);
     await tester.pumpAndSettle();
@@ -43,14 +41,6 @@ void main() {
     expect(find.text('Gestionar atributos · Pernería'), findsOneWidget);
     expect(find.text('Nuevo atributo'), findsOneWidget);
     expect(find.text('Agregar atributo'), findsNothing);
-
-    await tester.tap(find.text('Nuevo atributo'));
-    await tester.pumpAndSettle();
-    expect(find.text('Nombre del atributo *'), findsOneWidget);
-    expect(find.text('Clave interna'), findsNothing);
-    expect(find.text('Disponible como filtro del catálogo'), findsNothing);
-    expect(find.text('Activo para nuevos productos'), findsNothing);
-    expect(find.text('Configuración del texto'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

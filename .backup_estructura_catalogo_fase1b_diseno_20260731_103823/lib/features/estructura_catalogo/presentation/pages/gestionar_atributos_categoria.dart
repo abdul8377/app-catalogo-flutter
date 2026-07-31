@@ -23,68 +23,8 @@ const _green = Color(0xFF168A50);
 const _greenSoft = Color(0xFFE6F6EE);
 const _red = Color(0xFFB42318);
 const _redSoft = Color(0xFFFEECEB);
-const _blue = _yellow;
-const _blueSoft = Color(0xFFFFF4CC);
-
-ThemeData _attributeManagerTheme(BuildContext context) {
-  final base = Theme.of(context);
-  const overlay = Color(0x26FFC500);
-  const focusedBorder = OutlineInputBorder(
-    borderSide: BorderSide(color: _yellow, width: 1.6),
-    borderRadius: BorderRadius.all(Radius.circular(10)),
-  );
-
-  return base.copyWith(
-    colorScheme: base.colorScheme.copyWith(
-      primary: _yellow,
-      onPrimary: Colors.black,
-      secondary: _yellow,
-      onSecondary: Colors.black,
-      surfaceTint: _yellow,
-    ),
-    filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        backgroundColor: _yellow,
-        foregroundColor: Colors.black,
-        overlayColor: overlay,
-        shadowColor: const Color(0x52FFC500),
-        elevation: 1,
-      ),
-    ),
-    outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        foregroundColor: _text,
-        side: const BorderSide(color: _yellow),
-        overlayColor: overlay,
-      ),
-    ),
-    textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(
-        foregroundColor: _text,
-        overlayColor: overlay,
-      ),
-    ),
-    chipTheme: base.chipTheme.copyWith(
-      selectedColor: const Color(0xFFFFF4CC),
-      checkmarkColor: Colors.black,
-      side: const BorderSide(color: _yellow),
-      labelStyle: const TextStyle(color: _text),
-    ),
-    inputDecorationTheme: base.inputDecorationTheme.copyWith(
-      filled: true,
-      fillColor: Colors.white,
-      focusedBorder: focusedBorder,
-      enabledBorder: const OutlineInputBorder(
-        borderSide: BorderSide(color: _border),
-        borderRadius: BorderRadius.all(Radius.circular(10)),
-      ),
-      border: const OutlineInputBorder(
-        borderSide: BorderSide(color: _border),
-        borderRadius: BorderRadius.all(Radius.circular(10)),
-      ),
-    ),
-  );
-}
+const _blue = Color(0xFF2563EB);
+const _blueSoft = Color(0xFFEFF6FF);
 
 enum CategoryAttributeDataType {
   shortText,
@@ -676,7 +616,9 @@ class _CategoryAttributesManagerPageState
     final query = _searchController.text.trim().toLowerCase();
     return _effectiveAttributes.where((attribute) {
       final matchesQuery =
-          query.isEmpty || attribute.name.toLowerCase().contains(query);
+          query.isEmpty ||
+          attribute.name.toLowerCase().contains(query) ||
+          attribute.keyName.toLowerCase().contains(query);
       final matchesFilter = switch (_filter) {
         AttributeListFilter.all => true,
         AttributeListFilter.own => !attribute.inherited,
@@ -700,47 +642,44 @@ class _CategoryAttributesManagerPageState
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: _attributeManagerTheme(context),
-      child: Scaffold(
-        backgroundColor: _background,
-        body: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 900;
-              final compactEditor = !wide;
-              if (compactEditor && _editorOpen) {
-                return _buildCompactEditor();
-              }
+    return Scaffold(
+      backgroundColor: _background,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth >= 1100;
+            final compactEditor = constraints.maxWidth < 860;
+            if (compactEditor && _editorOpen) {
+              return _buildCompactEditor();
+            }
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildHeader(),
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        wide ? 24 : 16,
-                        16,
-                        wide ? 24 : 16,
-                        20,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(child: _buildListPanel()),
-                          if (wide && _editorOpen) ...[
-                            const SizedBox(width: 16),
-                            SizedBox(width: 470, child: _buildEditorPanel()),
-                          ],
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeader(),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      wide ? 24 : 16,
+                      16,
+                      wide ? 24 : 16,
+                      20,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: _buildListPanel()),
+                        if (wide && _editorOpen) ...[
+                          const SizedBox(width: 16),
+                          SizedBox(width: 430, child: _buildEditorPanel()),
                         ],
-                      ),
+                      ],
                     ),
                   ),
-                ],
-              );
-            },
-          ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -877,7 +816,7 @@ class _CategoryAttributesManagerPageState
                   controller: _searchController,
                   onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
-                    hintText: 'Buscar atributo',
+                    hintText: 'Buscar por nombre o clave',
                     prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: _searchController.text.isEmpty
                         ? null
@@ -1427,7 +1366,7 @@ class _AttributeEditorState extends State<_AttributeEditor> {
         source?.captureLevel ?? AttributeCaptureLevel.decideWhenRegistering;
     _requiredToActivate = source?.requiredToActivate ?? false;
     _visibleInTechnicalSheet = source?.visibleInTechnicalSheet ?? true;
-    _filterable = source?.filterable ?? true;
+    _filterable = source?.filterable ?? false;
     _canBeVariantAxis = source?.canBeVariantAxis ?? false;
     _activeForNewProducts = source?.activeForNewProducts ?? true;
     _active = source?.active ?? true;
@@ -1564,7 +1503,31 @@ class _AttributeEditorState extends State<_AttributeEditor> {
                     },
                   ),
                   const SizedBox(height: 12),
-
+                  TextFormField(
+                    controller: _keyController,
+                    enabled: !readOnly && !_structureLocked,
+                    onChanged: (_) => _keyEditedManually = true,
+                    decoration: InputDecoration(
+                      labelText: 'Clave interna',
+                      helperText: _structureLocked
+                          ? 'Protegida porque el atributo ya tiene valores.'
+                          : 'Se genera automáticamente y no se muestra al cliente.',
+                    ),
+                    validator: (value) {
+                      final normalized = value?.trim().toLowerCase() ?? '';
+                      if (normalized.isEmpty) {
+                        return 'La clave interna es obligatoria.';
+                      }
+                      if (!RegExp(r'^[a-z][a-z0-9_]*$').hasMatch(normalized)) {
+                        return 'Usa minúsculas, números y guion bajo.';
+                      }
+                      if (widget.reservedKeys.contains(normalized)) {
+                        return 'Ya existe en esta cadena de categorías.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: _helpController,
                     enabled: !readOnly,
@@ -1639,7 +1602,14 @@ class _AttributeEditorState extends State<_AttributeEditor> {
                       setState(() => _visibleInTechnicalSheet = value);
                     },
                   ),
-
+                  _EditorSwitch(
+                    title: 'Disponible como filtro del catálogo',
+                    value: _filterable,
+                    readOnly: readOnly,
+                    onChanged: (value) {
+                      setState(() => _filterable = value);
+                    },
+                  ),
                   _EditorSwitch(
                     title: 'Puede utilizarse como eje de variante',
                     subtitle: _supportsAxis(_type)
@@ -1657,8 +1627,25 @@ class _AttributeEditorState extends State<_AttributeEditor> {
                       setState(() => _canBeVariantAxis = value);
                     },
                   ),
-
-                  if (!readOnly && _source != null)
+                  _EditorSwitch(
+                    title: 'Activo para nuevos productos',
+                    subtitle:
+                        _source?.usedByProductCount != null &&
+                            _source!.usedByProductCount > 0
+                        ? 'Desactivarlo conserva los valores históricos.'
+                        : null,
+                    value: _activeForNewProducts,
+                    readOnly: readOnly,
+                    onChanged: (value) {
+                      if (!value &&
+                          (_source?.usedAsAxisByProductCount ?? 0) > 0) {
+                        _showAxisProtection();
+                        return;
+                      }
+                      setState(() => _activeForNewProducts = value);
+                    },
+                  ),
+                  if (!readOnly)
                     _EditorSwitch(
                       title: 'Atributo activo',
                       value: _active,
@@ -1724,8 +1711,35 @@ class _AttributeEditorState extends State<_AttributeEditor> {
   Widget _buildTypeConfiguration(bool readOnly) {
     switch (_type) {
       case CategoryAttributeDataType.shortText:
-        return const SizedBox.shrink();
-
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _SectionTitle('Configuración del texto'),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _textLengthController,
+                    enabled: !readOnly,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Longitud máxima',
+                    ),
+                    validator: _positiveIntegerValidator,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    controller: _exampleController,
+                    enabled: !readOnly,
+                    decoration: const InputDecoration(labelText: 'Ejemplo'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
       case CategoryAttributeDataType.number:
         return _numberConfiguration(
           readOnly: readOnly,
@@ -2023,21 +2037,13 @@ class _AttributeEditorState extends State<_AttributeEditor> {
       }
     }
 
-    final keyName = _keyController.text.trim().isEmpty
-        ? _toKey(_nameController.text)
-        : _toKey(_keyController.text);
-    if (keyName.isEmpty || widget.reservedKeys.contains(keyName)) {
-      _showError('Ya existe un atributo con ese identificador interno.');
-      return;
-    }
-
     final source = _source;
     final attribute = CategoryAttributeDefinition(
       id: source?.id ?? 'attribute-${DateTime.now().microsecondsSinceEpoch}',
       ownerCategoryId: source?.ownerCategoryId ?? widget.categoryId,
       ownerCategoryName: source?.ownerCategoryName ?? widget.categoryName,
       name: _nameController.text.trim(),
-      keyName: keyName,
+      keyName: _keyController.text.trim(),
       helpText: _emptyToNull(_helpController.text),
       dataType: _type,
       captureLevel: _captureLevel,
@@ -2481,6 +2487,10 @@ class _AttributeRow extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
+                        Text(
+                          attribute.keyName,
+                          style: const TextStyle(color: _muted, fontSize: 11),
+                        ),
                       ],
                     ),
                   ),
@@ -2685,14 +2695,8 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 22, bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8DD),
-        borderRadius: BorderRadius.circular(9),
-        border: const Border(left: BorderSide(color: _yellow, width: 5)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 22, bottom: 10),
       child: Text(
         label,
         style: const TextStyle(

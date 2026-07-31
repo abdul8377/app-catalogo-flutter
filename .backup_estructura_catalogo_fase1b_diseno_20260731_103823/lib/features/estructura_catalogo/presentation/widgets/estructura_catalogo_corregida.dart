@@ -22,69 +22,7 @@ const _catalogGreen = Color(0xFF168A50);
 const _catalogGreenSoft = Color(0xFFE6F6EE);
 const _catalogRed = Color(0xFFB42318);
 const _catalogRedSoft = Color(0xFFFEECEB);
-const _catalogYellowSoft = Color(0xFFFFF4CC);
-const _catalogBlueSoft = _catalogYellowSoft;
-
-ThemeData _catalogModuleTheme(BuildContext context) {
-  final base = Theme.of(context);
-  const overlay = Color(0x26FFC500);
-  const shadow = Color(0x52FFC500);
-  const focusedBorder = OutlineInputBorder(
-    borderSide: BorderSide(color: _catalogYellow, width: 1.6),
-    borderRadius: BorderRadius.all(Radius.circular(11)),
-  );
-
-  return base.copyWith(
-    colorScheme: base.colorScheme.copyWith(
-      primary: _catalogYellow,
-      onPrimary: Colors.black,
-      secondary: _catalogYellow,
-      onSecondary: Colors.black,
-      surfaceTint: _catalogYellow,
-    ),
-    filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        backgroundColor: _catalogYellow,
-        foregroundColor: Colors.black,
-        overlayColor: overlay,
-        shadowColor: shadow,
-        elevation: 1,
-      ),
-    ),
-    outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        foregroundColor: _catalogText,
-        side: const BorderSide(color: _catalogYellow),
-        overlayColor: overlay,
-      ),
-    ),
-    textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(
-        foregroundColor: _catalogText,
-        overlayColor: overlay,
-      ),
-    ),
-    chipTheme: base.chipTheme.copyWith(
-      selectedColor: _catalogYellowSoft,
-      checkmarkColor: Colors.black,
-      side: const BorderSide(color: _catalogYellow),
-      labelStyle: const TextStyle(color: _catalogText),
-    ),
-    inputDecorationTheme: base.inputDecorationTheme.copyWith(
-      filled: true,
-      fillColor: Colors.white,
-      focusedBorder: focusedBorder,
-      enabledBorder: const OutlineInputBorder(
-        borderSide: BorderSide(color: _catalogBorder),
-        borderRadius: BorderRadius.all(Radius.circular(11)),
-      ),
-      border: const OutlineInputBorder(
-        borderSide: BorderSide(color: _catalogBorder),
-        borderRadius: BorderRadius.all(Radius.circular(11)),
-      ),
-    ),
-  );
-}
+const _catalogBlueSoft = Color(0xFFEFF6FF);
 
 enum CatalogStructureTab { companies, brands, categories, brandCategories }
 
@@ -597,7 +535,6 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
   String? _selectedCategoryId;
   String? _selectedCompanyId;
   String? _selectedBrandId;
-  String? _brandCompanyFilterId;
 
   late Map<String, Set<String>> _savedRelations;
   late Map<String, Set<String>> _workingRelations;
@@ -614,7 +551,6 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     _selectedCategoryId = _categories.isEmpty ? null : _categories.first.id;
     _selectedCompanyId = _companies.isEmpty ? null : _companies.first.id;
     _selectedBrandId = _firstBrandIdFor(_selectedCompanyId);
-    _brandCompanyFilterId = null;
     _savedRelations = _relationMap(_relations);
     _workingRelations = _copyRelationMap(_savedRelations);
   }
@@ -665,44 +601,41 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: _catalogModuleTheme(context),
-      child: ColoredBox(
-        color: _catalogBackground,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight - 46,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildMainTabs(),
-                          const SizedBox(height: 18),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 180),
-                            child: KeyedSubtree(
-                              key: ValueKey(_tab),
-                              child: _buildCurrentTab(constraints.maxWidth),
-                            ),
-                          ),
-                        ],
-                      ),
+    return ColoredBox(
+      color: _catalogBackground,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildHeader(),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight - 46,
                     ),
-                  );
-                },
-              ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildMainTabs(),
+                        const SizedBox(height: 18),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 180),
+                          child: KeyedSubtree(
+                            key: ValueKey(_tab),
+                            child: _buildCurrentTab(constraints.maxWidth),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -795,9 +728,6 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
             _tab = value;
             _query = '';
             _filter = CatalogRecordFilter.all;
-            if (value == CatalogStructureTab.brands) {
-              _brandCompanyFilterId = null;
-            }
           });
         },
         child: AnimatedContainer(
@@ -978,7 +908,6 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                   setState(() {
                     _tab = CatalogStructureTab.brands;
                     _selectedCompanyId = company.id;
-                    _brandCompanyFilterId = company.id;
                     _query = '';
                   });
                 },
@@ -1011,8 +940,7 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
       final company = _companyById(brand.companyId);
       final text = '${brand.name} ${company?.name ?? ''}'.toLowerCase();
       final matchesCompany =
-          _brandCompanyFilterId == null ||
-          brand.companyId == _brandCompanyFilterId;
+          _selectedCompanyId == null || brand.companyId == _selectedCompanyId;
       return matchesCompany &&
           text.contains(_query.toLowerCase()) &&
           _matchesStatus(brand.active);
@@ -1062,50 +990,25 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
   }
 
   Widget _buildCompanyFilter() {
-    const allCompanies = '__all_companies__';
-    final selectedCompanyId =
-        _companies.any((company) => company.id == _brandCompanyFilterId)
-        ? _brandCompanyFilterId
-        : null;
-
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: KeyedSubtree(
-        key: const Key('estructura_filtro_empresa'),
-        child: SizedBox(
-          width: 360,
-          child: DropdownButtonFormField<String>(
-            key: ValueKey(
-              'estructura_filtro_empresa_${selectedCompanyId ?? allCompanies}',
-            ),
-            initialValue: selectedCompanyId ?? allCompanies,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Empresa',
-              prefixIcon: Icon(Icons.business_outlined),
-            ),
-            items: [
-              const DropdownMenuItem(
-                value: allCompanies,
-                child: Text('Todas las empresas'),
-              ),
-              ..._companies.map(
-                (company) => DropdownMenuItem(
-                  value: company.id,
-                  child: Text(company.name),
-                ),
-              ),
-            ],
-            onChanged: (value) {
-              setState(() {
-                _brandCompanyFilterId = value == null || value == allCompanies
-                    ? null
-                    : value;
-              });
-            },
-          ),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        ChoiceChip(
+          label: const Text('Todas las empresas'),
+          selected: _selectedCompanyId == null,
+          onSelected: (_) => setState(() => _selectedCompanyId = null),
         ),
-      ),
+        ..._companies.map((company) {
+          return ChoiceChip(
+            label: Text(company.name),
+            selected: _selectedCompanyId == company.id,
+            onSelected: (_) {
+              setState(() => _selectedCompanyId = company.id);
+            },
+          );
+        }),
+      ],
     );
   }
 
@@ -1125,7 +1028,10 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
         children: [
           Row(
             children: [
-              _InitialsAvatar(initials: brand.initials, color: _catalogYellow),
+              _InitialsAvatar(
+                initials: brand.initials,
+                color: const Color(0xFF2F66EB),
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -2164,49 +2070,66 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     String? secondaryLabel,
     VoidCallback? onSecondary,
   }) {
-    final actions = <Widget>[
-      if (secondaryLabel != null && onSecondary != null)
-        _SecondaryButton(label: secondaryLabel, onPressed: onSecondary),
-      _PrimaryButton(
-        label: createLabel,
-        icon: Icons.add_rounded,
-        onPressed: onCreate,
-      ),
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
-          key: const Key('estructura_busqueda'),
-          onChanged: (value) => setState(() => _query = value),
-          decoration: InputDecoration(
-            hintText: searchHint,
-            prefixIcon: const Icon(Icons.search_rounded),
-            filled: true,
-            fillColor: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 12),
         Wrap(
           spacing: 12,
-          runSpacing: 10,
+          runSpacing: 12,
           alignment: WrapAlignment.spaceBetween,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            if (showStatusFilters)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _filterChip(CatalogRecordFilter.all, 'Todas'),
-                  _filterChip(CatalogRecordFilter.active, 'Activas'),
-                  _filterChip(CatalogRecordFilter.inactive, 'Inactivas'),
-                ],
+            SizedBox(
+              width: (MediaQuery.sizeOf(context).width - 40)
+                  .clamp(240.0, 480.0)
+                  .toDouble(),
+              child: TextField(
+                onChanged: (value) => setState(() => _query = value),
+                decoration: InputDecoration(
+                  hintText: searchHint,
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(11),
+                    borderSide: const BorderSide(color: _catalogBorder),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(11),
+                    borderSide: const BorderSide(color: _catalogBorder),
+                  ),
+                ),
               ),
-            Wrap(spacing: 8, runSpacing: 8, children: actions),
+            ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (secondaryLabel != null && onSecondary != null)
+                  _SecondaryButton(
+                    label: secondaryLabel,
+                    onPressed: onSecondary,
+                  ),
+                _PrimaryButton(
+                  label: createLabel,
+                  icon: Icons.add_rounded,
+                  onPressed: onCreate,
+                ),
+              ],
+            ),
           ],
         ),
+        if (showStatusFilters) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            children: [
+              _filterChip(CatalogRecordFilter.all, 'Todas'),
+              _filterChip(CatalogRecordFilter.active, 'Activas'),
+              _filterChip(CatalogRecordFilter.inactive, 'Inactivas'),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -2215,10 +2138,6 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     return ChoiceChip(
       label: Text(label),
       selected: _filter == filter,
-      selectedColor: _catalogYellowSoft,
-      side: BorderSide(
-        color: _filter == filter ? _catalogYellow : _catalogBorder,
-      ),
       onSelected: (_) => setState(() => _filter = filter),
     );
   }
@@ -2368,21 +2287,15 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: _CatalogDialogHeader(
-            icon: Icons.business_outlined,
-            title: existing == null ? 'Nueva empresa' : 'Editar empresa',
-            subtitle: 'Identificación y datos de contacto',
-          ),
+          title: Text(existing == null ? 'Nueva empresa' : 'Editar empresa'),
           content: SizedBox(
-            width: 620,
+            width: 540,
             child: SingleChildScrollView(
               child: Form(
                 key: formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const _FormSectionTitle('Identificación'),
-                    const SizedBox(height: 10),
                     TextFormField(
                       key: const Key('estructura_empresa_nombre'),
                       controller: nameController,
@@ -2420,8 +2333,6 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                       },
                     ),
                     const SizedBox(height: 14),
-                    const _FormSectionTitle('Contacto'),
-                    const SizedBox(height: 10),
                     TextFormField(
                       controller: phoneController,
                       keyboardType: TextInputType.phone,
@@ -2436,6 +2347,12 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                       decoration: const InputDecoration(
                         labelText: 'Dirección (opcional)',
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'El estado se administra desde las acciones de la '
+                      'empresa para mostrar antes el impacto.',
+                      style: TextStyle(color: _catalogMuted, fontSize: 12),
                     ),
                   ],
                 ),
@@ -2521,7 +2438,6 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     final nameController = TextEditingController(text: existing?.name);
     var companyId =
         existing?.companyId ??
-        _brandCompanyFilterId ??
         _selectedCompanyId ??
         availableCompanies.first.id;
     final ownerLocked = existing != null && existing.productCount > 0;
@@ -2532,11 +2448,7 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: _CatalogDialogHeader(
-                icon: Icons.sell_outlined,
-                title: existing == null ? 'Nueva marca' : 'Editar marca',
-                subtitle: 'Identificación y empresa propietaria',
-              ),
+              title: Text(existing == null ? 'Nueva marca' : 'Editar marca'),
               content: SizedBox(
                 width: 520,
                 child: SingleChildScrollView(
@@ -2545,8 +2457,6 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const _FormSectionTitle('Empresa propietaria'),
-                        const SizedBox(height: 10),
                         DropdownButtonFormField<String>(
                           initialValue: companyId,
                           isExpanded: true,
@@ -2590,8 +2500,6 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                           ),
                         ],
                         const SizedBox(height: 14),
-                        const _FormSectionTitle('Identificación'),
-                        const SizedBox(height: 10),
                         TextFormField(
                           key: const Key('estructura_marca_nombre'),
                           controller: nameController,
@@ -2615,6 +2523,12 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                                 ? 'La empresa ya tiene una marca con ese nombre.'
                                 : null;
                           },
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Las categorías de la marca se administran en '
+                          'Categorías por marca.',
+                          style: TextStyle(color: _catalogMuted, fontSize: 12),
                         ),
                       ],
                     ),
@@ -2716,15 +2630,7 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: _CatalogDialogHeader(
-                icon: isSubcategory
-                    ? Icons.subdirectory_arrow_right_rounded
-                    : Icons.account_tree_outlined,
-                title: title,
-                subtitle: isSubcategory
-                    ? 'Ubicación e identificación de la subcategoría'
-                    : 'Información de la categoría principal',
-              ),
+              title: Text(title),
               content: SizedBox(
                 width: 560,
                 child: SingleChildScrollView(
@@ -2733,8 +2639,6 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const _FormSectionTitle('Ubicación'),
-                        const SizedBox(height: 10),
                         if (isSubcategory)
                           DropdownButtonFormField<String>(
                             initialValue: selectedParentId,
@@ -2767,8 +2671,6 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                             child: Text('Categoría principal'),
                           ),
                         const SizedBox(height: 14),
-                        const _FormSectionTitle('Información'),
-                        const SizedBox(height: 10),
                         TextFormField(
                           key: const Key('estructura_categoria_nombre'),
                           controller: nameController,
@@ -3237,99 +3139,6 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
   }
 }
 
-class _CatalogDialogHeader extends StatelessWidget {
-  const _CatalogDialogHeader({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            color: _catalogYellow,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x42FFC500),
-                blurRadius: 12,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Icon(icon, color: Colors.black),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: _catalogText,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  color: _catalogMuted,
-                  fontSize: 12,
-                  height: 1.35,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _FormSectionTitle extends StatelessWidget {
-  const _FormSectionTitle(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 5,
-          height: 20,
-          decoration: BoxDecoration(
-            color: _catalogYellow,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            color: _catalogText,
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _CatalogCard extends StatelessWidget {
   const _CatalogCard({
     required this.child,
@@ -3404,9 +3213,7 @@ class _SecondaryButton extends StatelessWidget {
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: _catalogText,
-          side: const BorderSide(color: _catalogYellow),
-          overlayColor: const Color(0x26FFC500),
-          shadowColor: const Color(0x42FFC500),
+          side: const BorderSide(color: _catalogBorder),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
