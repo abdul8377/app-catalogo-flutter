@@ -115,19 +115,14 @@ class RelacionMarcaCategoria extends Equatable {
     required this.marcaId,
     required this.categoriaId,
     required this.activa,
-    this.productosActivos = 0,
   });
 
   final int marcaId;
   final int categoriaId;
   final bool activa;
 
-  /// Productos activos que usan exactamente esta empresa, marca y
-  /// categoría principal. Es la cantidad que bloquea una desvinculación.
-  final int productosActivos;
-
   @override
-  List<Object?> get props => [marcaId, categoriaId, activa, productosActivos];
+  List<Object?> get props => [marcaId, categoriaId, activa];
 }
 
 class EstructuraCatalogoSnapshot extends Equatable {

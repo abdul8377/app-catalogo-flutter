@@ -154,7 +154,9 @@ class EstructuraCatalogoIntegradaView extends StatelessWidget {
         (item) => design.BrandCategoryRelation(
           brandId: '${item.marcaId}',
           categoryId: '${item.categoriaId}',
-          activeProductCount: item.productosActivos,
+          activeProductCount: snapshot.categorias
+              .where((category) => category.id == item.categoriaId)
+              .fold(0, (total, category) => total + category.cantidadProductos),
         ),
       )
       .toList();

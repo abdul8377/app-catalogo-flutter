@@ -260,7 +260,6 @@ class CatalogStructurePanel extends StatefulWidget {
     this.onCompaniesChanged,
     this.onBrandsChanged,
     this.onCategoriesChanged,
-    this.onAttributesChanged,
     this.onRelationsChanged,
     this.onManageCategoryAttributes,
   });
@@ -275,7 +274,6 @@ class CatalogStructurePanel extends StatefulWidget {
   final ValueChanged<List<CatalogCompany>>? onCompaniesChanged;
   final ValueChanged<List<CatalogBrand>>? onBrandsChanged;
   final ValueChanged<List<CatalogCategory>>? onCategoriesChanged;
-  final ValueChanged<List<CategoryAttributeDefinition>>? onAttributesChanged;
   final ValueChanged<List<BrandCategoryRelation>>? onRelationsChanged;
   final ValueChanged<String>? onManageCategoryAttributes;
 
@@ -555,7 +553,9 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     _workingRelations = _copyRelationMap(_savedRelations);
   }
 
-  Map<String, Set<String>> _relationMap(List<BrandCategoryRelation> source) {
+  Map<String, Set<String>> _relationMap(
+    List<BrandCategoryRelation> source,
+  ) {
     final rootIds = _categories
         .where((category) => category.parentId == null)
         .map((category) => category.id)
@@ -923,7 +923,9 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                   PopupMenuItem(
                     value: 'status',
                     child: Text(
-                      company.active ? 'Desactivar empresa' : 'Activar empresa',
+                      company.active
+                          ? 'Desactivar empresa'
+                          : 'Activar empresa',
                     ),
                   ),
                 ],
@@ -1018,7 +1020,8 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     final related = _categories
         .where(
           (category) =>
-              category.parentId == null && relationIds.contains(category.id),
+              category.parentId == null &&
+              relationIds.contains(category.id),
         )
         .toList();
 
@@ -1124,7 +1127,9 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                   PopupMenuItem(
                     value: 'status',
                     child: Text(
-                      brand.active ? 'Desactivar marca' : 'Activar marca',
+                      brand.active
+                          ? 'Desactivar marca'
+                          : 'Activar marca',
                     ),
                   ),
                 ],
@@ -1227,7 +1232,9 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
       (item) => _matchesStatus(item.active),
     );
 
-    if (_query.isNotEmpty && !selfMatchesQuery && !descendantMatchesQuery) {
+    if (_query.isNotEmpty &&
+        !selfMatchesQuery &&
+        !descendantMatchesQuery) {
       return;
     }
     if (_filter != CatalogRecordFilter.all &&
@@ -1553,7 +1560,71 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     );
   }
 
-  Widget _buildAttributePreviewCard(EffectiveCategoryAttribute item) {
+  Widget _buildAttributeManager(CatalogCategory category) {
+    final effective = _effectiveAttributesFor(category.id);
+    final ownCount = effective.where((item) => !item.inherited).length;
+    final inheritedCount = effective.where((item) => item.inherited).length;
+    final callback = widget.onManageCategoryAttributes;
+
+    return Padding(
+      key: const ValueKey('attributes'),
+      padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _catalogBlueSoft,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Text(
+              'Esta es una vista previa. La creación, edición, orden y '
+              'configuración avanzada se realizan únicamente en la '
+              'subpantalla Gestionar atributos.',
+              style: TextStyle(
+                color: _catalogText,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _InfoPill(label: '$ownCount propios'),
+              _InfoPill(
+                label: '$inheritedCount heredados',
+                color: _catalogBlueSoft,
+              ),
+              _PrimaryButton(
+                label: 'Abrir gestión de atributos',
+                icon: Icons.tune_rounded,
+                onPressed: callback == null
+                    ? null
+                    : () => callback(category.id),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (effective.isEmpty)
+            const _EmptyState(
+              title: 'Sin atributos definidos',
+              message:
+                  'Abre Gestionar atributos para definir los datos técnicos.',
+              compact: true,
+            )
+          else
+            ...effective.map(_buildAttributeCard),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttributeCard(EffectiveCategoryAttribute item) {
     final attribute = item.definition;
     final details = <String>[
       _attributeTypeLabel(attribute.type),
@@ -1637,172 +1708,6 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAttributeManager(CatalogCategory category) {
-    final effective = _effectiveAttributesFor(category.id);
-    final ownCount = effective.where((item) => !item.inherited).length;
-    final inheritedCount = effective.where((item) => item.inherited).length;
-    final callback = widget.onManageCategoryAttributes;
-
-    return Padding(
-      key: const ValueKey('attributes'),
-      padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: _catalogBlueSoft,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Text(
-              'Esta es una vista previa. La creación, edición, orden y '
-              'configuración avanzada se realizan únicamente en la '
-              'subpantalla Gestionar atributos.',
-              style: TextStyle(color: _catalogText, fontSize: 13, height: 1.4),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _InfoPill(label: '$ownCount propios'),
-              _InfoPill(
-                label: '$inheritedCount heredados',
-                color: _catalogBlueSoft,
-              ),
-              _PrimaryButton(
-                label: 'Abrir gestión de atributos',
-                icon: Icons.tune_rounded,
-                onPressed: callback == null
-                    ? null
-                    : () => callback(category.id),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          if (effective.isEmpty)
-            const _EmptyState(
-              title: 'Sin atributos definidos',
-              message:
-                  'Abre Gestionar atributos para definir los datos técnicos.',
-              compact: true,
-            )
-          else
-            ...effective.map(_buildAttributePreviewCard),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAttributeCard(EffectiveCategoryAttribute item) {
-    final attribute = item.definition;
-    final details = <String>[
-      _attributeTypeLabel(attribute.type),
-      if (attribute.units.isNotEmpty) attribute.units.join(', '),
-      if (attribute.required) 'Obligatorio',
-      if (attribute.filterable) 'Filtrable',
-      if (attribute.variantAxis) 'Eje de variante',
-      if (attribute.multiple) 'Selección múltiple',
-    ];
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: item.inherited ? const Color(0xFFF8FAFC) : Colors.white,
-        border: Border.all(color: _catalogBorder),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            attribute.variantAxis
-                ? Icons.grid_view_rounded
-                : Icons.data_object_rounded,
-            color: attribute.active ? _catalogText : _catalogMuted,
-            size: 21,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 7,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      attribute.name,
-                      style: const TextStyle(
-                        color: _catalogText,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    if (item.inherited)
-                      _InfoPill(
-                        label: 'Heredado de ${item.originCategory.name}',
-                        color: _catalogBlueSoft,
-                      ),
-                    if (!attribute.active)
-                      const _InfoPill(
-                        label: 'Inactivo',
-                        color: _catalogRedSoft,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  details.join(' · '),
-                  style: const TextStyle(
-                    color: _catalogMuted,
-                    fontSize: 12,
-                    height: 1.4,
-                  ),
-                ),
-                if (attribute.options.isNotEmpty) ...[
-                  const SizedBox(height: 7),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: attribute.options
-                        .map((value) => _InfoPill(label: value))
-                        .toList(),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          if (!item.inherited)
-            PopupMenuButton<String>(
-              tooltip: 'Acciones para ${attribute.name}',
-              onSelected: (value) {
-                if (value == 'edit') {
-                  _showAttributeForm(item.originCategory, existing: attribute);
-                } else if (value == 'status') {
-                  _toggleAttributeStatus(attribute);
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'edit',
-                  child: Text('Editar atributo'),
-                ),
-                PopupMenuItem(
-                  value: 'status',
-                  child: Text(attribute.active ? 'Desactivar' : 'Activar'),
-                ),
-              ],
-            ),
         ],
       ),
     );
@@ -1953,7 +1858,9 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     final childMatches = children.any(
       (item) => item.name.toLowerCase().contains(query),
     );
-    if (_relationCategoryQuery.isNotEmpty && !selfMatches && !childMatches) {
+    if (_relationCategoryQuery.isNotEmpty &&
+        !selfMatches &&
+        !childMatches) {
       return;
     }
 
@@ -2002,7 +1909,10 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
             children: [
               const Text(
                 'Incluye:',
-                style: TextStyle(color: _catalogMuted, fontSize: 11),
+                style: TextStyle(
+                  color: _catalogMuted,
+                  fontSize: 11,
+                ),
               ),
               ...children.map(
                 (child) => _InfoPill(
@@ -2235,9 +2145,39 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     }
 
     setState(() {
+      final working = _workingRelations.putIfAbsent(
+        brand.id,
+        () => <String>{},
+      );
+      if (selected) {
+        working.add(category.id);
+      } else {
+        working.remove(category.id);
+      }
+    });
+  }
+) {
+    final relation = _relationFor(brand.id, category.id);
+    if (!selected && (relation?.isLocked ?? false)) {
+      _showMessage(
+        'No puede retirarse: ${relation!.activeProductCount} productos activos '
+        'usan esta relación.',
+        error: true,
+      );
+      return;
+    }
+
+    setState(() {
       final working = _workingRelations.putIfAbsent(brand.id, () => <String>{});
       if (selected) {
         working.add(category.id);
+        if (_includeChildrenWhenSelecting) {
+          working.addAll(
+            _descendantsOf(
+              category.id,
+            ).where((item) => item.active).map((item) => item.id),
+          );
+        }
       } else {
         working.remove(category.id);
       }
@@ -2287,7 +2227,9 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text(existing == null ? 'Nueva empresa' : 'Editar empresa'),
+          title: Text(
+            existing == null ? 'Nueva empresa' : 'Editar empresa',
+          ),
           content: SizedBox(
             width: 540,
             child: SingleChildScrollView(
@@ -2300,7 +2242,9 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                       key: const Key('estructura_empresa_nombre'),
                       controller: nameController,
                       textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(labelText: 'Nombre *'),
+                      decoration: const InputDecoration(
+                        labelText: 'Nombre *',
+                      ),
                       validator: (value) {
                         final name = value?.trim() ?? '';
                         if (name.isEmpty) {
@@ -2352,7 +2296,10 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                     const Text(
                       'El estado se administra desde las acciones de la '
                       'empresa para mostrar antes el impacto.',
-                      style: TextStyle(color: _catalogMuted, fontSize: 12),
+                      style: TextStyle(
+                        color: _catalogMuted,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -2411,7 +2358,9 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
           ),
         );
       } else {
-        final index = _companies.indexWhere((item) => item.id == existing.id);
+        final index = _companies.indexWhere(
+          (item) => item.id == existing.id,
+        );
         _companies[index] = existing.copyWith(
           name: name,
           initials: _initialsFor(name),
@@ -2424,10 +2373,121 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     });
     widget.onCompaniesChanged?.call(List.unmodifiable(_companies));
   }
+) async {
+    final nameController = TextEditingController(text: existing?.name);
+    final rucController = TextEditingController(text: existing?.ruc);
+    final phoneController = TextEditingController(text: existing?.phone);
+    final addressController = TextEditingController(text: existing?.address);
+    var active = existing?.active ?? true;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(
+                existing == null ? 'Nueva empresa' : 'Editar empresa',
+              ),
+              content: SizedBox(
+                width: 520,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nombre *',
+                        ),
+                      ),
+                      TextField(
+                        controller: rucController,
+                        decoration: const InputDecoration(
+                          labelText: 'RUC (opcional)',
+                        ),
+                      ),
+                      TextField(
+                        controller: phoneController,
+                        decoration: const InputDecoration(
+                          labelText: 'Teléfono (opcional)',
+                        ),
+                      ),
+                      TextField(
+                        controller: addressController,
+                        decoration: const InputDecoration(
+                          labelText: 'Dirección (opcional)',
+                        ),
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Empresa activa'),
+                        value: active,
+                        onChanged: (value) {
+                          setDialogState(() => active = value);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    if (nameController.text.trim().isEmpty) return;
+                    Navigator.pop(dialogContext, true);
+                  },
+                  child: const Text('Guardar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (saved != true || !mounted) return;
+
+    setState(() {
+      final name = nameController.text.trim();
+      if (existing == null) {
+        _companies.add(
+          CatalogCompany(
+            id: 'company-${DateTime.now().microsecondsSinceEpoch}',
+            name: name,
+            initials: _initialsFor(name),
+            ruc: _emptyToNull(rucController.text),
+            phone: _emptyToNull(phoneController.text),
+            address: _emptyToNull(addressController.text),
+            brandCount: 0,
+            productCount: 0,
+            active: active,
+          ),
+        );
+      } else {
+        final index = _companies.indexWhere((item) => item.id == existing.id);
+        _companies[index] = existing.copyWith(
+          name: name,
+          initials: _initialsFor(name),
+          ruc: _emptyToNull(rucController.text),
+          phone: _emptyToNull(phoneController.text),
+          address: _emptyToNull(addressController.text),
+          active: active,
+        );
+      }
+    });
+    widget.onCompaniesChanged?.call(List.unmodifiable(_companies));
+  }
 
   Future<void> _showBrandForm({CatalogBrand? existing}) async {
     final availableCompanies = _companies
-        .where((company) => company.active || company.id == existing?.companyId)
+        .where(
+          (company) =>
+              company.active || company.id == existing?.companyId,
+        )
         .toList();
     if (availableCompanies.isEmpty) {
       _showMessage('Primero registra una empresa activa.', error: true);
@@ -2448,7 +2508,9 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(existing == null ? 'Nueva marca' : 'Editar marca'),
+              title: Text(
+                existing == null ? 'Nueva marca' : 'Editar marca',
+              ),
               content: SizedBox(
                 width: 520,
                 child: SingleChildScrollView(
@@ -2471,8 +2533,9 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                                 ),
                               )
                               .toList(),
-                          validator: (value) =>
-                              value == null ? 'Selecciona una empresa.' : null,
+                          validator: (value) => value == null
+                              ? 'Selecciona una empresa.'
+                              : null,
                           onChanged: ownerLocked
                               ? null
                               : (value) {
@@ -2528,7 +2591,10 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                         const Text(
                           'Las categorías de la marca se administran en '
                           'Categorías por marca.',
-                          style: TextStyle(color: _catalogMuted, fontSize: 12),
+                          style: TextStyle(
+                            color: _catalogMuted,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
@@ -2577,12 +2643,116 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
           ),
         );
       } else {
-        final index = _brands.indexWhere((item) => item.id == existing.id);
+        final index = _brands.indexWhere(
+          (item) => item.id == existing.id,
+        );
         _brands[index] = existing.copyWith(
           companyId: companyId,
           name: name,
           initials: _initialsFor(name),
           active: existing.active,
+        );
+      }
+    });
+    widget.onBrandsChanged?.call(List.unmodifiable(_brands));
+  }
+) async {
+    if (_companies.isEmpty) {
+      _showMessage('Primero registra una empresa.', error: true);
+      return;
+    }
+    final nameController = TextEditingController(text: existing?.name);
+    var companyId =
+        existing?.companyId ?? _selectedCompanyId ?? _companies.first.id;
+    var active = existing?.active ?? true;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(existing == null ? 'Nueva marca' : 'Editar marca'),
+              content: SizedBox(
+                width: 500,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: companyId,
+                      decoration: const InputDecoration(
+                        labelText: 'Empresa propietaria *',
+                      ),
+                      items: _companies
+                          .where((company) => company.active)
+                          .map(
+                            (company) => DropdownMenuItem(
+                              value: company.id,
+                              child: Text(company.name),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setDialogState(() => companyId = value);
+                        }
+                      },
+                    ),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'Nombre *'),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Marca activa'),
+                      value: active,
+                      onChanged: (value) {
+                        setDialogState(() => active = value);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    if (nameController.text.trim().isEmpty) return;
+                    Navigator.pop(dialogContext, true);
+                  },
+                  child: const Text('Guardar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (saved != true || !mounted) return;
+
+    setState(() {
+      final name = nameController.text.trim();
+      if (existing == null) {
+        _brands.add(
+          CatalogBrand(
+            id: 'brand-${DateTime.now().microsecondsSinceEpoch}',
+            companyId: companyId,
+            name: name,
+            initials: _initialsFor(name),
+            productCount: 0,
+            active: active,
+          ),
+        );
+      } else {
+        final index = _brands.indexWhere((item) => item.id == existing.id);
+        _brands[index] = existing.copyWith(
+          companyId: companyId,
+          name: name,
+          initials: _initialsFor(name),
+          active: active,
         );
       }
     });
@@ -2599,7 +2769,10 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     var selectedParentId = existing?.parentId ?? parentId;
 
     if (isSubcategory && selectedParentId == null) {
-      _showMessage('Selecciona primero una categoría principal.', error: true);
+      _showMessage(
+        'Selecciona primero una categoría principal.',
+        error: true,
+      );
       return;
     }
 
@@ -2667,7 +2840,9 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
                           )
                         else
                           const InputDecorator(
-                            decoration: InputDecoration(labelText: 'Nivel'),
+                            decoration: InputDecoration(
+                              labelText: 'Nivel',
+                            ),
                             child: Text('Categoría principal'),
                           ),
                         const SizedBox(height: 14),
@@ -2781,7 +2956,9 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
         _categories.add(created);
         _selectedCategoryId = created.id;
       } else {
-        final index = _categories.indexWhere((item) => item.id == existing.id);
+        final index = _categories.indexWhere(
+          (item) => item.id == existing.id,
+        );
         _categories[index] = existing.copyWith(
           parentId: isExistingChild ? selectedParentId : null,
           clearParent: !isExistingChild,
@@ -2795,11 +2972,151 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     });
     widget.onCategoriesChanged?.call(List.unmodifiable(_categories));
   }
+) async {
+    final nameController = TextEditingController(text: existing?.name);
+    final descriptionController = TextEditingController(
+      text: existing?.description,
+    );
+    var parentId = existing?.parentId;
+    var active = existing?.active ?? true;
 
-  Future<void> _showAttributeForm(
-    CatalogCategory category, {
-    CategoryAttributeDefinition? existing,
-  }) async {
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final invalidParents = existing == null
+                ? const <String>{}
+                : <String>{
+                    existing.id,
+                    ..._descendantsOf(existing.id).map((item) => item.id),
+                  };
+            return AlertDialog(
+              title: Text(
+                existing == null ? 'Nueva categoría' : 'Editar categoría',
+              ),
+              content: SizedBox(
+                width: 520,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nombre *',
+                        ),
+                      ),
+                      DropdownButtonFormField<String?>(
+                        value: parentId,
+                        decoration: const InputDecoration(
+                          labelText: 'Categoría superior (opcional)',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Nivel raíz'),
+                          ),
+                          ..._categories
+                              .where(
+                                (item) =>
+                                    item.active &&
+                                    !invalidParents.contains(item.id),
+                              )
+                              .map(
+                                (item) => DropdownMenuItem<String?>(
+                                  value: item.id,
+                                  child: Text(item.name),
+                                ),
+                              ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => parentId = value);
+                        },
+                      ),
+                      TextField(
+                        controller: descriptionController,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: 'Descripción (opcional)',
+                        ),
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Categoría activa'),
+                        value: active,
+                        onChanged: (value) {
+                          setDialogState(() => active = value);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final name = nameController.text.trim();
+                    final duplicate = _categories.any(
+                      (item) =>
+                          item.id != existing?.id &&
+                          item.parentId == parentId &&
+                          item.name.toLowerCase() == name.toLowerCase(),
+                    );
+                    if (name.isEmpty || duplicate) {
+                      _showMessage(
+                        duplicate
+                            ? 'Ya existe una categoría con ese nombre dentro del mismo nivel.'
+                            : 'El nombre es obligatorio.',
+                        error: true,
+                      );
+                      return;
+                    }
+                    Navigator.pop(dialogContext, true);
+                  },
+                  child: const Text('Guardar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (saved != true || !mounted) return;
+
+    setState(() {
+      final name = nameController.text.trim();
+      if (existing == null) {
+        final created = CatalogCategory(
+          id: 'category-${DateTime.now().microsecondsSinceEpoch}',
+          parentId: parentId,
+          name: name,
+          description: _emptyToNull(descriptionController.text),
+          directProductCount: 0,
+          includingDescendantProductCount: 0,
+          active: active,
+        );
+        _categories.add(created);
+        _selectedCategoryId = created.id;
+      } else {
+        final index = _categories.indexWhere((item) => item.id == existing.id);
+        _categories[index] = existing.copyWith(
+          parentId: parentId,
+          clearParent: parentId == null,
+          name: name,
+          description: _emptyToNull(descriptionController.text),
+          active: active,
+        );
+      }
+    });
+    widget.onCategoriesChanged?.call(List.unmodifiable(_categories));
+  }
+
+) async {
     final nameController = TextEditingController(text: existing?.name);
     final unitsController = TextEditingController(
       text: existing?.units.join(', '),
@@ -3027,10 +3344,15 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     widget.onCompaniesChanged?.call(List.unmodifiable(_companies));
   }
 
-  Future<void> _confirmBrandStatusChange(CatalogBrand brand) async {
+  Future<void> _confirmBrandStatusChange(
+    CatalogBrand brand,
+  ) async {
     final company = _companyById(brand.companyId);
     if (!brand.active && (company == null || !company.active)) {
-      _showMessage('Activa primero la empresa propietaria.', error: true);
+      _showMessage(
+        'Activa primero la empresa propietaria.',
+        error: true,
+      );
       return;
     }
 
@@ -3053,7 +3375,9 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     widget.onBrandsChanged?.call(List.unmodifiable(_brands));
   }
 
-  Future<void> _confirmCategoryStatusChange(CatalogCategory category) async {
+  Future<void> _confirmCategoryStatusChange(
+    CatalogCategory category,
+  ) async {
     if (category.active) {
       final descendants = _descendantsOf(category.id);
       final confirmed = await _confirm(
@@ -3081,24 +3405,12 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     }
 
     setState(() {
-      final index = _categories.indexWhere((item) => item.id == category.id);
+      final index = _categories.indexWhere(
+        (item) => item.id == category.id,
+      );
       _categories[index] = category.copyWith(active: !category.active);
     });
     widget.onCategoriesChanged?.call(List.unmodifiable(_categories));
-  }
-
-  void _toggleAttributeStatus(CategoryAttributeDefinition attribute) {
-    setState(() {
-      final index = _attributes.indexWhere((item) => item.id == attribute.id);
-      _attributes[index] = attribute.copyWith(active: !attribute.active);
-    });
-    widget.onAttributesChanged?.call(List.unmodifiable(_attributes));
-    if (attribute.active && attribute.usedByProductCount > 0) {
-      _showMessage(
-        'Atributo desactivado. ${attribute.usedByProductCount} productos '
-        'conservan sus valores históricos.',
-      );
-    }
   }
 
   Future<bool> _confirm({
@@ -3442,15 +3754,22 @@ class _CategoryTreeTile extends StatelessWidget {
                 child: Text(
                   category.name,
                   style: TextStyle(
-                    color: category.active ? _catalogText : _catalogMuted,
+                    color: category.active
+                        ? _catalogText
+                        : _catalogMuted,
                     fontSize: 13,
-                    fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                    fontWeight: selected
+                        ? FontWeight.w800
+                        : FontWeight.w500,
                   ),
                 ),
               ),
               Text(
                 '${category.includingDescendantProductCount} prod.',
-                style: const TextStyle(color: _catalogMuted, fontSize: 12),
+                style: const TextStyle(
+                  color: _catalogMuted,
+                  fontSize: 12,
+                ),
               ),
               PopupMenuButton<String>(
                 tooltip: 'Acciones para ${category.name}',
@@ -3460,7 +3779,10 @@ class _CategoryTreeTile extends StatelessWidget {
                   if (value == 'status') onToggleStatus();
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Text('Editar'),
+                  ),
                   if (onAddChild != null)
                     const PopupMenuItem(
                       value: 'add_child',
@@ -3468,7 +3790,9 @@ class _CategoryTreeTile extends StatelessWidget {
                     ),
                   PopupMenuItem(
                     value: 'status',
-                    child: Text(category.active ? 'Desactivar' : 'Activar'),
+                    child: Text(
+                      category.active ? 'Desactivar' : 'Activar',
+                    ),
                   ),
                 ],
               ),
@@ -3749,12 +4073,3 @@ String? _emptyToNull(String value) {
   return trimmed.isEmpty ? null : trimmed;
 }
 
-List<String> _splitValues(String value) {
-  final seen = <String>{};
-  return value
-      .split(',')
-      .map((item) => item.trim())
-      .where((item) => item.isNotEmpty)
-      .where((item) => seen.add(item.toLowerCase()))
-      .toList();
-}

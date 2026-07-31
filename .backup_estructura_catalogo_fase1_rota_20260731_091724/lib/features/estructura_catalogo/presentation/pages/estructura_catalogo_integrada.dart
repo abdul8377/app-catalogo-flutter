@@ -53,8 +53,6 @@ class EstructuraCatalogoIntegradaView extends StatelessWidget {
                       _saveBrands(context, snapshot, items),
                   onCategoriesChanged: (items) =>
                       _saveCategories(context, snapshot, items),
-                  onAttributesChanged: (items) =>
-                      _saveSimpleAttributes(context, snapshot, items),
                   onRelationsChanged: (items) =>
                       _saveRelations(context, snapshot, items),
                   onManageCategoryAttributes: (id) =>
@@ -154,7 +152,9 @@ class EstructuraCatalogoIntegradaView extends StatelessWidget {
         (item) => design.BrandCategoryRelation(
           brandId: '${item.marcaId}',
           categoryId: '${item.categoriaId}',
-          activeProductCount: item.productosActivos,
+          activeProductCount: snapshot.categorias
+              .where((category) => category.id == item.categoriaId)
+              .fold(0, (total, category) => total + category.cantidadProductos),
         ),
       )
       .toList();
@@ -232,80 +232,6 @@ class EstructuraCatalogoIntegradaView extends StatelessWidget {
       if (previous == null || !_sameCategory(previous, draft)) {
         bloc.add(CategoriaCatalogoGuardada(draft, id: previous?.id));
       }
-    }
-  }
-
-  static void _saveSimpleAttributes(
-    BuildContext context,
-    EstructuraCatalogoSnapshot snapshot,
-    List<design.CategoryAttributeDefinition> items,
-  ) {
-    final grouped = <int, List<AtributoCategoriaCatalogo>>{};
-    for (final item in items) {
-      final categoryId = int.tryParse(item.categoryId);
-      if (categoryId == null) continue;
-      final previous = snapshot.atributos
-          .where((value) => value.id == item.id)
-          .firstOrNull;
-      grouped
-          .putIfAbsent(categoryId, () => [])
-          .add(
-            previous == null
-                ? _domainFromSimple(snapshot, categoryId, item)
-                : AtributoCategoriaCatalogo(
-                    id: previous.id,
-                    categoriaId: previous.categoriaId,
-                    categoriaNombre: previous.categoriaNombre,
-                    nombre: item.name,
-                    clave: previous.clave,
-                    tipoDato: _domainSimpleType(
-                      item.type,
-                      item.multiple,
-                      hasUnits: item.units.isNotEmpty,
-                    ),
-                    nivelCaptura: previous.nivelCaptura,
-                    requeridoActivar: item.required,
-                    visibleFicha: previous.visibleFicha,
-                    filtrable: item.filterable,
-                    puedeSerEje: item.variantAxis,
-                    activoNuevos: previous.activoNuevos,
-                    orden: previous.orden,
-                    activo: item.active,
-                    ayuda: previous.ayuda,
-                    longitudMaxima: previous.longitudMaxima,
-                    ejemplo: previous.ejemplo,
-                    minimo: previous.minimo,
-                    maximo: previous.maximo,
-                    decimales: previous.decimales,
-                    magnitud: previous.magnitud,
-                    codigosUnidad: item.units,
-                    unidadPredeterminada:
-                        item.units.contains(previous.unidadPredeterminada)
-                        ? previous.unidadPredeterminada
-                        : item.units.firstOrNull,
-                    opciones: _optionsFromSimple(
-                      previous.opciones,
-                      item.id,
-                      item.options,
-                    ),
-                    maximoSelecciones: previous.maximoSelecciones,
-                    etiquetaVerdadero: previous.etiquetaVerdadero,
-                    etiquetaFalso: previous.etiquetaFalso,
-                    usadoPorProductos: previous.usadoPorProductos,
-                    categoriasAfectadas: previous.categoriasAfectadas,
-                    usadoComoEje: previous.usadoComoEje,
-                    sincronizacionPendiente: previous.sincronizacionPendiente,
-                  ),
-          );
-    }
-    final bloc = context.read<EstructuraCatalogoBloc>();
-    for (final entry in grouped.entries) {
-      bloc.add(
-        AtributosCategoriaGuardados(
-          categoriaId: entry.key,
-          atributos: entry.value,
-        ),
-      );
     }
   }
 
@@ -519,58 +445,6 @@ class EstructuraCatalogoIntegradaView extends StatelessWidget {
     );
   }
 
-  static AtributoCategoriaCatalogo _domainFromSimple(
-    EstructuraCatalogoSnapshot snapshot,
-    int categoryId,
-    design.CategoryAttributeDefinition item,
-  ) => AtributoCategoriaCatalogo(
-    id: item.id,
-    categoriaId: categoryId,
-    categoriaNombre:
-        snapshot.categorias
-            .where((value) => value.id == categoryId)
-            .map((value) => value.nombre)
-            .firstOrNull ??
-        '',
-    nombre: item.name,
-    clave: _key(item.name),
-    tipoDato: _domainSimpleType(
-      item.type,
-      item.multiple,
-      hasUnits: item.units.isNotEmpty,
-    ),
-    nivelCaptura: item.variantAxis ? 'variante' : 'familia',
-    requeridoActivar: item.required,
-    visibleFicha: true,
-    filtrable: item.filterable,
-    puedeSerEje: item.variantAxis,
-    activoNuevos: true,
-    orden: snapshot.atributos
-        .where((value) => value.categoriaId == categoryId)
-        .length,
-    activo: item.active,
-    codigosUnidad: item.units,
-    opciones: _optionsFromSimple(const [], item.id, item.options),
-  );
-
-  static List<OpcionAtributoCategoriaCatalogo> _optionsFromSimple(
-    List<OpcionAtributoCategoriaCatalogo> existing,
-    String attributeId,
-    List<String> labels,
-  ) => labels.asMap().entries.map((entry) {
-    final previous = existing
-        .where((item) => _key(item.etiqueta) == _key(entry.value))
-        .firstOrNull;
-    return OpcionAtributoCategoriaCatalogo(
-      id: previous?.id ?? '$attributeId-${entry.key}',
-      etiqueta: entry.value,
-      codigo: previous?.codigo ?? _key(entry.value),
-      activa: previous?.activa ?? true,
-      orden: entry.key,
-      usadaPorProductos: previous?.usadaPorProductos ?? 0,
-    );
-  }).toList();
-
   static List<CategoriaCatalogo> _categoryPath(
     EstructuraCatalogoSnapshot snapshot,
     CategoriaCatalogo category,
@@ -672,11 +546,7 @@ class EstructuraCatalogoIntegradaView extends StatelessWidget {
         _ => design.CategoryAttributeType.text,
       };
 
-  static String _domainSimpleType(
-    design.CategoryAttributeType value,
-    bool multiple, {
-    bool hasUnits = false,
-  }) => switch (value) {
+) => switch (value) {
     design.CategoryAttributeType.number =>
       hasUnits ? 'numero_unidad' : 'numero',
     design.CategoryAttributeType.list =>

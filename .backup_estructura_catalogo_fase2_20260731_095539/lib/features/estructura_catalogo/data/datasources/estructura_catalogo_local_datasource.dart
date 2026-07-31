@@ -72,30 +72,7 @@ class EstructuraCatalogoLocalDatasource {
                  c.categoria_padre_id IS NOT NULL,
                  c.nombre COLLATE NOCASE
       '''),
-      db.rawQuery('''
-        SELECT mc.marca_id,
-               mc.categoria_id,
-               mc.estado,
-               (
-                 SELECT COUNT(*)
-                 FROM productos p
-                 INNER JOIN marcas relacion_marca
-                   ON relacion_marca.id = mc.marca_id
-                 INNER JOIN empresas relacion_empresa
-                   ON relacion_empresa.id = relacion_marca.empresa_id
-                 INNER JOIN categorias relacion_categoria
-                   ON relacion_categoria.id = mc.categoria_id
-                 WHERE p.activo = 1
-                   AND LOWER(TRIM(p.empresa)) =
-                       LOWER(TRIM(relacion_empresa.nombre))
-                   AND LOWER(TRIM(p.marca)) =
-                       LOWER(TRIM(relacion_marca.nombre))
-                   AND LOWER(TRIM(p.categoria)) =
-                       LOWER(TRIM(relacion_categoria.nombre))
-               ) AS productos_activos
-        FROM marca_categorias mc
-        ORDER BY mc.marca_id, mc.categoria_id
-      '''),
+      db.query('marca_categorias'),
     ]);
     final atributos = await _obtenerAtributos(db);
     final unidades = (await db.query(
@@ -113,7 +90,6 @@ class EstructuraCatalogoLocalDatasource {
               marcaId: row['marca_id'] as int,
               categoriaId: row['categoria_id'] as int,
               activa: (row['estado'] as int? ?? 1) == 1,
-              productosActivos: row['productos_activos'] as int? ?? 0,
             ),
           )
           .toList(),
@@ -140,6 +116,12 @@ class EstructuraCatalogoLocalDatasource {
           'telefono': empresa.telefono.trim(),
           'direccion': empresa.direccion.trim(),
           'estado': empresa.activa ? 1 : 0,
+          'actualizado_en': now,
+        });
+        await txn.insert('marcas', {
+          'empresa_id': entityId,
+          'nombre': 'Sin marca',
+          'estado': 1,
           'actualizado_en': now,
         });
       } else {
@@ -232,9 +214,7 @@ class EstructuraCatalogoLocalDatasource {
       } else {
         final previous = await txn.rawQuery(
           '''
-          SELECT m.nombre,
-                 m.empresa_id,
-                 e.nombre AS empresa
+          SELECT m.nombre, e.nombre AS empresa
           FROM marcas m
           INNER JOIN empresas e ON e.id = m.empresa_id
           WHERE m.id = ?
@@ -242,34 +222,6 @@ class EstructuraCatalogoLocalDatasource {
           [id],
         );
         if (previous.isEmpty) throw StateError('La marca ya no existe.');
-        final previousCompanyId = previous.first['empresa_id'] as int;
-        if (previousCompanyId != marca.empresaId) {
-          final productCount =
-              Sqflite.firstIntValue(
-                await txn.rawQuery(
-                  '''
-                  SELECT COUNT(*)
-                  FROM productos
-                  WHERE LOWER(TRIM(empresa)) =
-                        LOWER(TRIM(?))
-                    AND LOWER(TRIM(marca)) =
-                        LOWER(TRIM(?))
-                  ''',
-                  [
-                    previous.first['empresa'] as String,
-                    previous.first['nombre'] as String,
-                  ],
-                ),
-              ) ??
-              0;
-          if (productCount > 0) {
-            throw StateError(
-              'La empresa propietaria no puede cambiarse porque la marca '
-              'tiene $productCount producto(s). Utiliza un proceso de '
-              'migración administrativa.',
-            );
-          }
-        }
         await txn.update(
           'marcas',
           {
@@ -759,8 +711,7 @@ class EstructuraCatalogoLocalDatasource {
           0;
       if (validCount != categoriaIds.length) {
         throw StateError(
-          'La marca solo puede relacionarse con categorías principales '
-          'activas. Las subcategorías se habilitan automáticamente.',
+          'Solo se pueden relacionar categorías principales activas.',
         );
       }
     }

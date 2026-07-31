@@ -26,9 +26,9 @@ void main() {
     expect(find.text('DINAFAST'), findsOneWidget);
     expect(find.text('Nueva empresa'), findsOneWidget);
 
-    await tester.tap(find.text('Ver marcas').first);
+    await tester.tap(find.text('Ver').first);
     await tester.pumpAndSettle();
-    expect(find.text('DINA'), findsOneWidget);
+    expect(find.text('Detalle de DINAFAST'), findsOneWidget);
 
     await tester.tap(find.text('Categorías').first);
     await tester.pumpAndSettle();
@@ -40,7 +40,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Gestionar atributos · Pernería'), findsOneWidget);
     expect(find.text('Nuevo atributo'), findsOneWidget);
-    expect(find.text('Agregar atributo'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
