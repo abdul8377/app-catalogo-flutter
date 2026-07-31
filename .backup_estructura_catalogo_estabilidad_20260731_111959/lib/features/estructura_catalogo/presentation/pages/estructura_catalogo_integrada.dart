@@ -46,6 +46,7 @@ class EstructuraCatalogoIntegradaView extends StatelessWidget {
                   body: Stack(
                     children: [
                       design.CatalogStructurePanel(
+                        key: ValueKey(snapshot),
                         companies: _companies(snapshot),
                         brands: _brands(snapshot),
                         categories: _categories(snapshot),

@@ -54,36 +54,6 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('crear una categoría conserva la pestaña y no rompe el diálogo', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(1000, 800));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(
-      RepositoryProvider<EstructuraCatalogoRepository>.value(
-        value: _EstructuraRepositoryFake(),
-        child: const MaterialApp(home: EstructuraCatalogoPage()),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Categorías').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Nueva categoría raíz'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('estructura_categoria_nombre')),
-      'Categoría temporal',
-    );
-    await tester.tap(find.text('Crear'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Nueva categoría raíz'), findsOneWidget);
-    expect(find.text('Nueva empresa'), findsNothing);
-    expect(find.text('Categoría temporal'), findsWidgets);
-    expect(tester.takeException(), isNull);
-  });
-
   testWidgets('el modo vendedor no presenta acciones administrativas', (
     tester,
   ) async {

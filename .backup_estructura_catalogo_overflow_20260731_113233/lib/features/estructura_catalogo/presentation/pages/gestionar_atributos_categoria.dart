@@ -1602,7 +1602,6 @@ class _AttributeEditorState extends State<_AttributeEditor> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<CategoryAttributeDataType>(
-                    isExpanded: true,
                     value: _type,
                     decoration: const InputDecoration(
                       labelText: 'Tipo de dato *',
@@ -1611,11 +1610,7 @@ class _AttributeEditorState extends State<_AttributeEditor> {
                         .map(
                           (type) => DropdownMenuItem(
                             value: type,
-                            child: Text(
-                              _dataTypeLabel(type),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            child: Text(_dataTypeLabel(type)),
                           ),
                         )
                         .toList(),
@@ -1633,7 +1628,6 @@ class _AttributeEditorState extends State<_AttributeEditor> {
                   ),
                   const _SectionTitle('Comportamiento'),
                   DropdownButtonFormField<AttributeCaptureLevel>(
-                    isExpanded: true,
                     value: _captureLevel,
                     decoration: const InputDecoration(
                       labelText: 'Nivel de captura recomendado',
@@ -1642,11 +1636,7 @@ class _AttributeEditorState extends State<_AttributeEditor> {
                         .map(
                           (level) => DropdownMenuItem(
                             value: level,
-                            child: Text(
-                              _captureLevelLabel(level),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            child: Text(_captureLevelLabel(level)),
                           ),
                         )
                         .toList(),

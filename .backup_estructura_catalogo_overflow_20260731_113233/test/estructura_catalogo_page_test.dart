@@ -80,7 +80,7 @@ void main() {
 
     expect(find.text('Nueva categoría raíz'), findsOneWidget);
     expect(find.text('Nueva empresa'), findsNothing);
-    expect(find.text('Categoría temporal'), findsWidgets);
+    expect(find.text('Categoría temporal'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

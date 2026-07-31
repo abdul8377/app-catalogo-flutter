@@ -760,11 +760,10 @@ class _CategoryAttributesManagerPageState
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 980;
-
-          final heading = Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               IconButton(
@@ -784,7 +783,6 @@ class _CategoryAttributesManagerPageState
                   children: [
                     Text(
                       'Gestionar atributos · ${widget.categoryName}',
-                      softWrap: true,
                       style: const TextStyle(
                         color: _text,
                         fontSize: 24,
@@ -793,9 +791,8 @@ class _CategoryAttributesManagerPageState
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      'Define los datos técnicos que se solicitarán al '
-                      'registrar productos de esta categoría.',
-                      softWrap: true,
+                      'Define los datos técnicos que se solicitarán al registrar '
+                      'productos de esta categoría.',
                       style: TextStyle(
                         color: _muted,
                         fontSize: 14,
@@ -805,74 +802,51 @@ class _CategoryAttributesManagerPageState
                   ],
                 ),
               ),
-            ],
-          );
-
-          final actions = Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: compact ? WrapAlignment.start : WrapAlignment.end,
-            children: [
-              _SecondaryButton(
-                label: 'Vista previa del formulario',
-                icon: Icons.visibility_outlined,
-                onPressed: _showFormPreview,
-              ),
-              _PrimaryButton(
-                label: 'Nuevo atributo',
-                icon: Icons.add_rounded,
-                onPressed: _startCreating,
-              ),
-            ],
-          );
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (compact) ...[
-                heading,
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.only(left: 52),
-                  child: actions,
-                ),
-              ] else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: heading),
-                    const SizedBox(width: 20),
-                    Flexible(child: actions),
-                  ],
-                ),
-              const SizedBox(height: 14),
+              const SizedBox(width: 12),
               Wrap(
-                spacing: 10,
+                spacing: 8,
                 runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
+                alignment: WrapAlignment.end,
                 children: [
-                  _InfoPill(
-                    icon: Icons.account_tree_outlined,
-                    label: 'Ruta: ${widget.categoryPath.join(' > ')}',
+                  _SecondaryButton(
+                    label: 'Vista previa del formulario',
+                    icon: Icons.visibility_outlined,
+                    onPressed: _showFormPreview,
                   ),
-                  _InfoPill(
-                    icon: Icons.data_object_rounded,
-                    label:
-                        '${_effectiveAttributes.length} atributos · '
-                        '$ownCount propios · $inheritedCount heredados',
+                  _PrimaryButton(
+                    label: 'Nuevo atributo',
+                    icon: Icons.add_rounded,
+                    onPressed: _startCreating,
                   ),
-                  if (hasPendingSync)
-                    const _InfoPill(
-                      icon: Icons.cloud_upload_outlined,
-                      label:
-                          'Guardada localmente · Pendiente de sincronización',
-                      background: Color(0xFFFFF4CC),
-                    ),
                 ],
               ),
             ],
-          );
-        },
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _InfoPill(
+                icon: Icons.account_tree_outlined,
+                label: 'Ruta: ${widget.categoryPath.join(' > ')}',
+              ),
+              _InfoPill(
+                icon: Icons.data_object_rounded,
+                label:
+                    '${_effectiveAttributes.length} atributos · '
+                    '$ownCount propios · $inheritedCount heredados',
+              ),
+              if (hasPendingSync)
+                const _InfoPill(
+                  icon: Icons.cloud_upload_outlined,
+                  label: 'Guardada localmente · Pendiente de sincronización',
+                  background: Color(0xFFFFF4CC),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1602,7 +1576,6 @@ class _AttributeEditorState extends State<_AttributeEditor> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<CategoryAttributeDataType>(
-                    isExpanded: true,
                     value: _type,
                     decoration: const InputDecoration(
                       labelText: 'Tipo de dato *',
@@ -1611,11 +1584,7 @@ class _AttributeEditorState extends State<_AttributeEditor> {
                         .map(
                           (type) => DropdownMenuItem(
                             value: type,
-                            child: Text(
-                              _dataTypeLabel(type),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            child: Text(_dataTypeLabel(type)),
                           ),
                         )
                         .toList(),
@@ -1633,7 +1602,6 @@ class _AttributeEditorState extends State<_AttributeEditor> {
                   ),
                   const _SectionTitle('Comportamiento'),
                   DropdownButtonFormField<AttributeCaptureLevel>(
-                    isExpanded: true,
                     value: _captureLevel,
                     decoration: const InputDecoration(
                       labelText: 'Nivel de captura recomendado',
@@ -1642,11 +1610,7 @@ class _AttributeEditorState extends State<_AttributeEditor> {
                         .map(
                           (level) => DropdownMenuItem(
                             value: level,
-                            child: Text(
-                              _captureLevelLabel(level),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            child: Text(_captureLevelLabel(level)),
                           ),
                         )
                         .toList(),
@@ -2669,17 +2633,14 @@ class _PreviewField extends StatelessWidget {
           ),
         );
       case CategoryAttributeDataType.yesNo:
-        return Material(
-          color: Colors.transparent,
-          child: SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(label),
-            subtitle: attribute.helpText == null
-                ? null
-                : Text(attribute.helpText!),
-            value: false,
-            onChanged: null,
-          ),
+        return SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(label),
+          subtitle: attribute.helpText == null
+              ? null
+              : Text(attribute.helpText!),
+          value: false,
+          onChanged: null,
         );
     }
   }
@@ -2702,20 +2663,17 @@ class _EditorSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        title: Text(
-          title,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        ),
-        subtitle: subtitle == null
-            ? null
-            : Text(subtitle!, style: const TextStyle(fontSize: 12)),
-        value: value,
-        onChanged: readOnly ? null : onChanged,
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        title,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       ),
+      subtitle: subtitle == null
+          ? null
+          : Text(subtitle!, style: const TextStyle(fontSize: 12)),
+      value: value,
+      onChanged: readOnly ? null : onChanged,
     );
   }
 }

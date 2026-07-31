@@ -619,156 +619,6 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     _workingRelations = _copyRelationMap(_savedRelations);
   }
 
-  @override
-  void didUpdateWidget(covariant CatalogStructurePanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    final companiesChanged =
-        _companiesFingerprint(oldWidget.companies) !=
-        _companiesFingerprint(widget.companies);
-    final brandsChanged =
-        _brandsFingerprint(oldWidget.brands) !=
-        _brandsFingerprint(widget.brands);
-    final categoriesChanged =
-        _categoriesFingerprint(oldWidget.categories) !=
-        _categoriesFingerprint(widget.categories);
-    final attributesChanged =
-        _attributesFingerprint(oldWidget.attributes) !=
-        _attributesFingerprint(widget.attributes);
-    final relationsChanged =
-        _relationsFingerprint(oldWidget.relations) !=
-        _relationsFingerprint(widget.relations);
-
-    final selectedCategoryName = _firstWhereOrNull(
-      _categories,
-      (item) => item.id == _selectedCategoryId,
-    )?.name;
-    final selectedCompanyName = _firstWhereOrNull(
-      _companies,
-      (item) => item.id == _selectedCompanyId,
-    )?.name;
-    final selectedBrandName = _firstWhereOrNull(
-      _brands,
-      (item) => item.id == _selectedBrandId,
-    )?.name;
-
-    if (companiesChanged) _companies = [...widget.companies];
-    if (brandsChanged) _brands = [...widget.brands];
-    if (categoriesChanged) _categories = [...widget.categories];
-    if (attributesChanged) _attributes = [...widget.attributes];
-    if (relationsChanged) {
-      _relations = [...widget.relations];
-      _savedRelations = _relationMap(_relations);
-      _workingRelations = _copyRelationMap(_savedRelations);
-    }
-
-    if (_selectedCategoryId != null &&
-        !_categories.any((item) => item.id == _selectedCategoryId)) {
-      _selectedCategoryId = _firstWhereOrNull(
-        _categories,
-        (item) => item.name == selectedCategoryName,
-      )?.id;
-      _selectedCategoryId ??= _categories.isEmpty ? null : _categories.first.id;
-    }
-
-    if (_selectedCompanyId != null &&
-        !_companies.any((item) => item.id == _selectedCompanyId)) {
-      _selectedCompanyId = _firstWhereOrNull(
-        _companies,
-        (item) => item.name == selectedCompanyName,
-      )?.id;
-      _selectedCompanyId ??= _companies.isEmpty ? null : _companies.first.id;
-    }
-
-    if (_selectedBrandId != null &&
-        !_brands.any((item) => item.id == _selectedBrandId)) {
-      _selectedBrandId = _firstWhereOrNull(
-        _brands,
-        (item) => item.name == selectedBrandName,
-      )?.id;
-      _selectedBrandId ??= _firstBrandIdFor(_selectedCompanyId);
-    }
-
-    if (_brandCompanyFilterId != null &&
-        !_companies.any((item) => item.id == _brandCompanyFilterId)) {
-      _brandCompanyFilterId = null;
-    }
-  }
-
-  int _companiesFingerprint(List<CatalogCompany> items) => Object.hashAll(
-    items.map(
-      (item) => Object.hash(
-        item.id,
-        item.name,
-        item.initials,
-        item.ruc,
-        item.phone,
-        item.address,
-        item.brandCount,
-        item.productCount,
-        item.active,
-      ),
-    ),
-  );
-
-  int _brandsFingerprint(List<CatalogBrand> items) => Object.hashAll(
-    items.map(
-      (item) => Object.hash(
-        item.id,
-        item.companyId,
-        item.name,
-        item.initials,
-        item.productCount,
-        item.active,
-      ),
-    ),
-  );
-
-  int _categoriesFingerprint(List<CatalogCategory> items) => Object.hashAll(
-    items.map(
-      (item) => Object.hash(
-        item.id,
-        item.parentId,
-        item.name,
-        item.description,
-        item.directProductCount,
-        item.includingDescendantProductCount,
-        item.active,
-      ),
-    ),
-  );
-
-  int _attributesFingerprint(List<CategoryAttributeDefinition> items) =>
-      Object.hashAll(
-        items.map(
-          (item) => Object.hash(
-            item.id,
-            item.categoryId,
-            item.name,
-            item.type,
-            Object.hashAll(item.units),
-            Object.hashAll(item.options),
-            item.required,
-            item.filterable,
-            item.variantAxis,
-            item.multiple,
-            item.active,
-            item.usedByProductCount,
-          ),
-        ),
-      );
-
-  int _relationsFingerprint(List<BrandCategoryRelation> items) =>
-      Object.hashAll(
-        items.map(
-          (item) => Object.hash(
-            item.brandId,
-            item.categoryId,
-            item.activeProductCount,
-          ),
-        ),
-      );
-
   Map<String, Set<String>> _relationMap(List<BrandCategoryRelation> source) {
     final rootIds = _categories
         .where((category) => category.parentId == null)
@@ -2612,6 +2462,10 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     );
 
     if (saved != true || !mounted) {
+      nameController.dispose();
+      rucController.dispose();
+      phoneController.dispose();
+      addressController.dispose();
       return;
     }
 
@@ -2619,6 +2473,11 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     final ruc = _emptyToNull(rucController.text);
     final phone = _emptyToNull(phoneController.text);
     final address = _emptyToNull(addressController.text);
+    nameController.dispose();
+    rucController.dispose();
+    phoneController.dispose();
+    addressController.dispose();
+
     setState(() {
       if (existing == null) {
         _companies.add(
@@ -2784,10 +2643,13 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     );
 
     if (saved != true || !mounted) {
+      nameController.dispose();
       return;
     }
 
     final name = nameController.text.trim();
+    nameController.dispose();
+
     setState(() {
       if (existing == null) {
         _brands.add(
@@ -2993,11 +2855,16 @@ class _CatalogStructurePanelState extends State<CatalogStructurePanel> {
     );
 
     if (saved != true || !mounted) {
+      nameController.dispose();
+      descriptionController.dispose();
       return;
     }
 
     final savedName = nameController.text.trim();
     final savedDescription = _emptyToNull(descriptionController.text);
+    nameController.dispose();
+    descriptionController.dispose();
+
     setState(() {
       if (existing == null) {
         final created = CatalogCategory(
@@ -3860,36 +3727,33 @@ class _SelectionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
         color: selected ? const Color(0xFFFFF5CC) : Colors.white,
-        shape: RoundedRectangleBorder(
-          side: BorderSide(color: selected ? _catalogYellow : _catalogBorder),
-          borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: selected ? _catalogYellow : _catalogBorder),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: ListTile(
+        enabled: enabled,
+        minTileHeight: 58,
+        leading: Icon(
+          selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+          color: selected ? const Color(0xFFE7AD00) : _catalogBorder,
         ),
-        clipBehavior: Clip.antiAlias,
-        child: ListTile(
-          enabled: enabled,
-          minTileHeight: 58,
-          leading: Icon(
-            selected ? Icons.check_circle_rounded : Icons.circle_outlined,
-            color: selected ? const Color(0xFFE7AD00) : _catalogBorder,
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: _catalogText,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
           ),
-          title: Text(
-            title,
-            style: const TextStyle(
-              color: _catalogText,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          subtitle: Text(
-            subtitle,
-            style: const TextStyle(color: _catalogMuted, fontSize: 11),
-          ),
-          onTap: enabled ? onTap : null,
         ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(color: _catalogMuted, fontSize: 11),
+        ),
+        onTap: enabled ? onTap : null,
       ),
     );
   }
@@ -3931,61 +3795,58 @@ class _RelationCategoryTile extends StatelessWidget {
         : checked
         ? 'Ya vinculada'
         : 'Disponible';
-    final background = removalPending
-        ? _catalogRedSoft
-        : added
-        ? _catalogGreenSoft
-        : checked
-        ? const Color(0xFFFFFAE8)
-        : Colors.white;
-    final borderColor = removalPending
-        ? const Color(0xFFF4A6A1)
-        : added
-        ? const Color(0xFF99D6B7)
-        : checked
-        ? _catalogYellow
-        : _catalogBorder;
 
-    return Padding(
-      padding: EdgeInsets.only(left: depth * 20.0, bottom: 7),
-      child: Material(
-        color: background,
-        shape: RoundedRectangleBorder(
-          side: BorderSide(color: borderColor),
-          borderRadius: BorderRadius.circular(10),
+    return Container(
+      margin: EdgeInsets.only(left: depth * 20.0, bottom: 7),
+      decoration: BoxDecoration(
+        color: removalPending
+            ? _catalogRedSoft
+            : added
+            ? _catalogGreenSoft
+            : checked
+            ? const Color(0xFFFFFAE8)
+            : Colors.white,
+        border: Border.all(
+          color: removalPending
+              ? const Color(0xFFF4A6A1)
+              : added
+              ? const Color(0xFF99D6B7)
+              : checked
+              ? _catalogYellow
+              : _catalogBorder,
         ),
-        clipBehavior: Clip.antiAlias,
-        child: CheckboxListTile(
-          value: checked,
-          onChanged: onChanged == null
-              ? null
-              : (value) => onChanged!(value ?? false),
-          controlAffinity: ListTileControlAffinity.leading,
-          secondary: locked
-              ? IconButton(
-                  tooltip: 'Ver productos afectados de $brandName',
-                  onPressed: onViewProducts,
-                  icon: const Icon(Icons.lock_outline_rounded),
-                )
-              : null,
-          title: Text(
-            category.name,
-            style: const TextStyle(
-              color: _catalogText,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: CheckboxListTile(
+        value: checked,
+        onChanged: onChanged == null
+            ? null
+            : (value) => onChanged!(value ?? false),
+        controlAffinity: ListTileControlAffinity.leading,
+        secondary: locked
+            ? IconButton(
+                tooltip: 'Ver productos afectados de $brandName',
+                onPressed: onViewProducts,
+                icon: const Icon(Icons.lock_outline_rounded),
+              )
+            : null,
+        title: Text(
+          category.name,
+          style: const TextStyle(
+            color: _catalogText,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
           ),
-          subtitle: Text(
-            status,
-            style: TextStyle(
-              color: removalPending
-                  ? _catalogRed
-                  : added
-                  ? _catalogGreen
-                  : _catalogMuted,
-              fontSize: 11,
-            ),
+        ),
+        subtitle: Text(
+          status,
+          style: TextStyle(
+            color: removalPending
+                ? _catalogRed
+                : added
+                ? _catalogGreen
+                : _catalogMuted,
+            fontSize: 11,
           ),
         ),
       ),
