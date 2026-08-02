@@ -5,7 +5,6 @@ import 'package:app_catalogo/features/catalogo/domain/entities/producto_resumen.
 import 'package:app_catalogo/features/catalogo/domain/repositories/catalogo_repository.dart';
 import 'package:app_catalogo/features/catalogo/presentation/bloc/catalogo_bloc.dart';
 import 'package:app_catalogo/features/catalogo/presentation/bloc/catalogo_event.dart';
-import 'package:app_catalogo/features/catalogo/presentation/bloc/catalogo_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -29,23 +28,6 @@ void main() {
       (state) => state.filtrosRapidos.contains('Sin precio'),
     );
     expect(bloc.state.productosFiltrados.single.codigo, 'TAL-020');
-
-    bloc.add(const CatalogoFiltroRapidoCambiado('Todos'));
-    await bloc.stream.firstWhere(
-      (state) => state.filtrosRapidos.contains('Todos'),
-    );
-    bloc.add(
-      const CatalogoFiltrosAplicados(
-        CatalogoFiltros(
-          categoria: 'Pernería',
-          subcategoria: 'Pernos hexagonales',
-        ),
-      ),
-    );
-    await bloc.stream.firstWhere(
-      (state) => state.filtros.subcategoria == 'Pernos hexagonales',
-    );
-    expect(bloc.state.productosFiltrados.single.codigo, 'PER-001');
   });
 }
 
@@ -58,7 +40,6 @@ class _CatalogoRepositoryFake implements CatalogoRepository {
       empresa: 'DINA',
       marca: 'DINA',
       categoria: 'Pernería',
-      subcategoria: 'Pernos hexagonales',
       unidadVenta: 'Ciento',
       precio: 18,
       sinPrecio: false,
@@ -73,7 +54,6 @@ class _CatalogoRepositoryFake implements CatalogoRepository {
       empresa: 'Garibaldi',
       marca: 'Garibaldi',
       categoria: 'Herramientas eléctricas',
-      subcategoria: 'Taladros',
       unidadVenta: 'UND',
       precio: null,
       sinPrecio: true,

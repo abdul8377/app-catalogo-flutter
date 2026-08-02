@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -64,10 +62,6 @@ class _DashboardView extends StatelessWidget {
           previous.error != current.error ||
           previous.message != current.message,
       listener: (context, state) {
-        final initialLoadFailed =
-            state.error != null && state.data == const DashboardData.empty();
-        if (initialLoadFailed) return;
-
         final text = state.error ?? state.message;
         if (text == null) return;
         ScaffoldMessenger.of(context)
@@ -149,23 +143,34 @@ class _DashboardView extends StatelessWidget {
       );
       return;
     }
-
     final now = DateTime.now();
     final initialStart =
         state.filtro.fechaInicio ?? now.subtract(const Duration(days: 6));
     final initialEnd = state.filtro.fechaFin ?? now;
-
-    final range = await showDialog<DateTimeRange>(
+    final range = await showDateRangePicker(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.58),
-      builder: (_) => _DashboardRangeDialog(
-        firstDate: DateTime(2020),
-        lastDate: now,
-        initialStart: initialStart.isAfter(now) ? now : initialStart,
-        initialEnd: initialEnd.isAfter(now) ? now : initialEnd,
+      firstDate: DateTime(2020),
+      lastDate: now,
+      initialDateRange: DateTimeRange(
+        start: initialStart.isAfter(now) ? now : initialStart,
+        end: initialEnd.isAfter(now) ? now : initialEnd,
+      ),
+      helpText: 'Selecciona el periodo del Dashboard',
+      cancelText: 'Cancelar',
+      confirmText: 'Aplicar',
+      saveText: 'Aplicar',
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: _yellow,
+            onPrimary: Colors.black,
+            surface: Colors.white,
+            onSurface: _ink,
+          ),
+        ),
+        child: child!,
       ),
     );
-
     if (!context.mounted || range == null) return;
     context.read<DashboardBloc>().add(
       DashboardPeriodoCambiado(
@@ -177,338 +182,6 @@ class _DashboardView extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DashboardRangeDialog extends StatefulWidget {
-  const _DashboardRangeDialog({
-    required this.firstDate,
-    required this.lastDate,
-    required this.initialStart,
-    required this.initialEnd,
-  });
-
-  final DateTime firstDate;
-  final DateTime lastDate;
-  final DateTime initialStart;
-  final DateTime initialEnd;
-
-  @override
-  State<_DashboardRangeDialog> createState() => _DashboardRangeDialogState();
-}
-
-class _DashboardRangeDialogState extends State<_DashboardRangeDialog> {
-  late DateTime _start;
-  late DateTime _end;
-
-  @override
-  void initState() {
-    super.initState();
-    _start = DateUtils.dateOnly(widget.initialStart);
-    _end = DateUtils.dateOnly(widget.initialEnd);
-    if (_end.isBefore(_start)) _end = _start;
-  }
-
-  void _setQuickRange(int days) {
-    final end = DateUtils.dateOnly(widget.lastDate);
-    final start = end.subtract(Duration(days: days - 1));
-    setState(() {
-      _start = start.isBefore(widget.firstDate) ? widget.firstDate : start;
-      _end = end;
-    });
-  }
-
-  void _setCurrentMonth() {
-    final end = DateUtils.dateOnly(widget.lastDate);
-    setState(() {
-      _start = DateTime(end.year, end.month);
-      _end = end;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final format = DateFormat('dd/MM/yyyy');
-    final calendarTheme = Theme.of(context).copyWith(
-      colorScheme: Theme.of(context).colorScheme.copyWith(
-        primary: _yellow,
-        onPrimary: Colors.black,
-        secondary: _yellow,
-        onSecondary: Colors.black,
-        surface: Colors.white,
-        onSurface: _ink,
-      ),
-    );
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 840, maxHeight: 760),
-        child: Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(22, 18, 14, 18),
-                color: _ink,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: _yellow,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.calendar_month_rounded,
-                        color: _ink,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Seleccionar periodo',
-                            style: GoogleFonts.inter(
-                              color: Colors.white,
-                              fontSize: 19,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          Text(
-                            'Elige una fecha inicial y una fecha final.',
-                            style: GoogleFonts.inter(
-                              color: const Color(0xFFB7BAC1),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Cerrar',
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _RangeQuickButton(
-                            label: 'Últimos 7 días',
-                            onPressed: () => _setQuickRange(7),
-                          ),
-                          _RangeQuickButton(
-                            label: 'Últimos 30 días',
-                            onPressed: () => _setQuickRange(30),
-                          ),
-                          _RangeQuickButton(
-                            label: 'Este mes',
-                            onPressed: _setCurrentMonth,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final startCalendar = _CalendarPanel(
-                            title: 'Desde',
-                            value: format.format(_start),
-                            theme: calendarTheme,
-                            child: CalendarDatePicker(
-                              key: ValueKey('dashboard-start-$_start'),
-                              initialDate: _start,
-                              firstDate: widget.firstDate,
-                              lastDate: widget.lastDate,
-                              onDateChanged: (value) {
-                                final date = DateUtils.dateOnly(value);
-                                setState(() {
-                                  _start = date;
-                                  if (_end.isBefore(date)) _end = date;
-                                });
-                              },
-                            ),
-                          );
-                          final endCalendar = _CalendarPanel(
-                            title: 'Hasta',
-                            value: format.format(_end),
-                            theme: calendarTheme,
-                            child: CalendarDatePicker(
-                              key: ValueKey('dashboard-end-$_end'),
-                              initialDate: _end,
-                              firstDate: widget.firstDate,
-                              lastDate: widget.lastDate,
-                              onDateChanged: (value) {
-                                final date = DateUtils.dateOnly(value);
-                                setState(() {
-                                  _end = date;
-                                  if (_start.isAfter(date)) _start = date;
-                                });
-                              },
-                            ),
-                          );
-
-                          if (constraints.maxWidth >= 700) {
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(child: startCalendar),
-                                const SizedBox(width: 14),
-                                Expanded(child: endCalendar),
-                              ],
-                            );
-                          }
-                          return Column(
-                            children: [
-                              startCalendar,
-                              const SizedBox(height: 14),
-                              endCalendar,
-                            ],
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const Divider(height: 1),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancelar'),
-                    ),
-                    const SizedBox(width: 10),
-                    FilledButton.icon(
-                      onPressed: () => Navigator.pop(
-                        context,
-                        DateTimeRange(start: _start, end: _end),
-                      ),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: _yellow,
-                        foregroundColor: _ink,
-                        minimumSize: const Size(140, 46),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(Icons.check_rounded),
-                      label: const Text(
-                        'Aplicar periodo',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CalendarPanel extends StatelessWidget {
-  const _CalendarPanel({
-    required this.title,
-    required this.value,
-    required this.theme,
-    required this.child,
-  });
-
-  final String title;
-  final String value;
-  final ThemeData theme;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: const Color(0xFFF8F9FB),
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: const Color(0xFFEAECF0)),
-    ),
-    child: Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-          child: Row(
-            children: [
-              Text(
-                title,
-                style: GoogleFonts.inter(
-                  color: _muted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF4CC),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  value,
-                  style: GoogleFonts.inter(
-                    color: _ink,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Theme(data: theme, child: child),
-      ],
-    ),
-  );
-}
-
-class _RangeQuickButton extends StatelessWidget {
-  const _RangeQuickButton({required this.label, required this.onPressed});
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => OutlinedButton(
-    onPressed: onPressed,
-    style: OutlinedButton.styleFrom(
-      foregroundColor: _ink,
-      side: const BorderSide(color: _yellow),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-    ),
-    child: Text(label),
-  );
 }
 
 class _DashboardHeader extends StatelessWidget {
@@ -756,7 +429,7 @@ class _DashboardBody extends StatelessWidget {
                   onValorizacion: () => _abrirPedidos(0),
                   onPreparacion: () => _abrirPedidos(2),
                   onCarga: () => _abrirPedidos(2),
-                  onSync: () => _showSyncPending(context),
+                  onSync: () => onNavigate?.call(4),
                 ),
               ),
               const SizedBox(height: 16),
@@ -806,7 +479,7 @@ class _DashboardBody extends StatelessWidget {
                 onRefresh: () => context.read<DashboardBloc>().add(
                   const DashboardRefreshed(),
                 ),
-                onViewPending: () => _showSyncPending(context),
+                onViewPending: () => onNavigate?.call(4),
               ),
               const SizedBox(height: 10),
               Text(
@@ -853,12 +526,6 @@ class _DashboardBody extends StatelessWidget {
       onNavigate?.call(5);
     }
   }
-
-  Future<void> _showSyncPending(BuildContext context) => showDialog<void>(
-    context: context,
-    barrierColor: Colors.black.withValues(alpha: 0.58),
-    builder: (_) => _SyncPendingDialog(sync: data.sincronizacion),
-  );
 
   Future<void> _registrarCarga(
     BuildContext context,
@@ -930,7 +597,7 @@ class _KpiGrid extends StatelessWidget {
       _Kpi(
         _KpiType.preparacion,
         '${(data.progresoPreparacion * 100).round()}%',
-        'Preparación de presentaciones',
+        'Preparación física',
         Icons.inventory_2_outlined,
         const Color(0xFF026AA2),
       ),
@@ -1317,173 +984,81 @@ class _PedidosEstadoCard extends StatelessWidget {
   final Map<String, int> estados;
   final VoidCallback onViewOrders;
 
-  static const _colors = {
-    'Pendiente': Color(0xFFFDB022),
-    'En proceso': Color(0xFF2E90FA),
-    'Listo para entregar': Color(0xFF06AED4),
-    'Entregado': Color(0xFF12B76A),
-    'Cancelado': Color(0xFFF04438),
-  };
-
   @override
   Widget build(BuildContext context) {
-    final slices = estados.entries
-        .where((entry) => entry.value > 0)
-        .map(
-          (entry) => _DonutSlice(
-            value: entry.value,
-            color: _colors[entry.key] ?? _muted,
-          ),
-        )
-        .toList();
-
-    final chart = SizedBox.square(
-      dimension: 168,
-      child: CustomPaint(
-        painter: _DonutPainter(slices),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '$total',
-                style: GoogleFonts.inter(
-                  color: _ink,
-                  fontSize: 29,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Text(
-                total == 1 ? 'pedido' : 'pedidos',
-                style: GoogleFonts.inter(color: _muted, fontSize: 11),
-              ),
-            ],
-          ),
-        ),
-      ),
+    const colors = {
+      'Pendiente': Color(0xFFFDB022),
+      'En proceso': Color(0xFF2E90FA),
+      'Listo para entregar': Color(0xFF06AED4),
+      'Entregado': Color(0xFF12B76A),
+      'Cancelado': Color(0xFFF04438),
+    };
+    final maxValue = estados.values.fold<int>(
+      0,
+      (max, value) => value > max ? value : max,
     );
-
-    final legend = Column(
-      children: estados.entries.map((entry) {
-        final percentage = total == 0 ? 0 : (entry.value / total * 100).round();
-        final color = _colors[entry.key] ?? _muted;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 9),
-          child: Row(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  entry.key,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(
-                '${entry.value}',
-                style: GoogleFonts.inter(
-                  color: _ink,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(width: 7),
-              SizedBox(
-                width: 34,
-                child: Text(
-                  '$percentage%',
-                  textAlign: TextAlign.end,
-                  style: GoogleFonts.inter(color: _muted, fontSize: 10),
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-
     return _Panel(
       child: Column(
         children: [
           _SectionTitle(
             title: 'Pedidos por estado',
-            subtitle: 'Distribución del periodo seleccionado',
+            subtitle: '$total pedidos en el periodo',
             action: onViewOrders,
             actionLabel: 'Ver pedidos',
           ),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth >= 520) {
-                return Row(
-                  children: [
-                    chart,
-                    const SizedBox(width: 22),
-                    Expanded(child: legend),
-                  ],
-                );
-              }
-              return Column(
-                children: [chart, const SizedBox(height: 18), legend],
-              );
-            },
+          const SizedBox(height: 14),
+          ...estados.entries.map(
+            (entry) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: colors[entry.key],
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          entry.key,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${entry.value}',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: maxValue == 0 ? 0 : entry.value / maxValue,
+                      minHeight: 7,
+                      color: colors[entry.key],
+                      backgroundColor: const Color(0xFFF0F1F3),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-}
-
-class _DonutSlice {
-  const _DonutSlice({required this.value, required this.color});
-
-  final int value;
-  final Color color;
-}
-
-class _DonutPainter extends CustomPainter {
-  const _DonutPainter(this.slices);
-
-  final List<_DonutSlice> slices;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final strokeWidth = size.shortestSide * 0.12;
-    final rect = Offset.zero & size;
-    final arcRect = rect.deflate(strokeWidth / 2);
-    final background = Paint()
-      ..color = const Color(0xFFF0F1F3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-    canvas.drawArc(arcRect, 0, math.pi * 2, false, background);
-
-    final total = slices.fold<int>(0, (sum, item) => sum + item.value);
-    if (total <= 0) return;
-
-    var start = -math.pi / 2;
-    const gap = 0.035;
-    for (final slice in slices) {
-      final sweep = math.pi * 2 * slice.value / total;
-      final paint = Paint()
-        ..color = slice.color
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = strokeWidth;
-      final drawableSweep = (sweep - gap).clamp(0.0, math.pi * 2);
-      canvas.drawArc(arcRect, start, drawableSweep, false, paint);
-      start += sweep;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DonutPainter oldDelegate) => true;
 }
 
 class _ProgresoOperativoCard extends StatelessWidget {
@@ -1494,69 +1069,48 @@ class _ProgresoOperativoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final total = data.totalPedidos;
-    final valorizados = (total - data.pedidosPendientesValorizar).clamp(
-      0,
-      total,
-    );
-    final valorizacion = total == 0 ? 0.0 : valorizados / total;
-    final preparacion = data.progresoPreparacion;
-
     return _Panel(
       child: Column(
         children: [
           const _SectionTitle(
             title: 'Progreso operativo',
-            subtitle: 'Lectura rápida del avance comercial y físico',
+            subtitle: 'Avance real de valorización, preparación y entrega',
           ),
-          const SizedBox(height: 18),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 18,
-            runSpacing: 18,
-            children: [
-              _RadialMetric(
-                label: 'Valorizados',
-                detail: '$valorizados de $total pedidos',
-                progress: valorizacion,
-                color: const Color(0xFF2E90FA),
-                icon: Icons.price_check_rounded,
-              ),
-              _RadialMetric(
-                label: 'Preparación',
-                detail:
-                    '${data.presentacionesPreparadas} de '
-                    '${data.presentacionesRequeridas} presentaciones',
-                progress: preparacion,
-                color: const Color(0xFFF79009),
-                icon: Icons.inventory_2_outlined,
-              ),
-            ],
+          const SizedBox(height: 15),
+          _ProgressRow(
+            label: 'Valorización',
+            detail:
+                '${(total - data.pedidosPendientesValorizar).clamp(0, total)} de $total',
+            progress: total == 0
+                ? 0
+                : (total - data.pedidosPendientesValorizar) / total,
+            color: const Color(0xFF2E90FA),
           ),
-          const Divider(height: 30),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _StageMetric(
-                value: data.pedidosListosCargar,
-                label: 'Listos para carga',
-                icon: Icons.inventory_outlined,
-                color: const Color(0xFF087E8B),
-              ),
-              _StageMetric(
-                value: data.pedidosCargados,
-                label: 'Cargados',
-                icon: Icons.local_shipping_outlined,
-                color: const Color(0xFF175CD3),
-              ),
-              _StageMetric(
-                value: data.pedidosEntregados,
-                label: 'Entregados',
-                icon: Icons.task_alt_rounded,
-                color: const Color(0xFF067647),
-              ),
-            ],
+          _ProgressRow(
+            label: 'Preparación física',
+            detail:
+                '${data.unidadesPreparadas} de ${data.unidadesRequeridas} UND',
+            progress: data.progresoPreparacion,
+            color: const Color(0xFFF79009),
+          ),
+          _ProgressRow(
+            label: 'Listos para carga',
+            detail: '${data.pedidosListosCargar} de $total',
+            progress: total == 0 ? 0 : data.pedidosListosCargar / total,
+            color: const Color(0xFF06AED4),
+          ),
+          _ProgressRow(
+            label: 'Cargados',
+            detail: '${data.pedidosCargados} de $total',
+            progress: total == 0 ? 0 : data.pedidosCargados / total,
+            color: const Color(0xFF667085),
+          ),
+          _ProgressRow(
+            label: 'Entregados',
+            detail: '${data.pedidosEntregados} de $total',
+            progress: total == 0 ? 0 : data.pedidosEntregados / total,
+            color: const Color(0xFF12B76A),
+            bottomPadding: 0,
           ),
         ],
       ),
@@ -1564,141 +1118,55 @@ class _ProgresoOperativoCard extends StatelessWidget {
   }
 }
 
-class _RadialMetric extends StatelessWidget {
-  const _RadialMetric({
+class _ProgressRow extends StatelessWidget {
+  const _ProgressRow({
     required this.label,
     required this.detail,
     required this.progress,
     required this.color,
-    required this.icon,
+    this.bottomPadding = 13,
   });
 
   final String label;
   final String detail;
   final double progress;
   final Color color;
-  final IconData icon;
+  final double bottomPadding;
 
   @override
-  Widget build(BuildContext context) {
-    final normalized = progress.clamp(0.0, 1.0);
-    return SizedBox(
-      width: 170,
-      child: Column(
-        children: [
-          SizedBox.square(
-            dimension: 116,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox.square(
-                  dimension: 104,
-                  child: CircularProgressIndicator(
-                    value: normalized,
-                    strokeWidth: 10,
-                    strokeCap: StrokeCap.round,
-                    color: color,
-                    backgroundColor: const Color(0xFFF0F1F3),
-                  ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icon, color: color, size: 20),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${(normalized * 100).round()}%',
-                      style: GoogleFonts.inter(
-                        color: _ink,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              color: _ink,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            detail,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(color: _muted, fontSize: 10, height: 1.3),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StageMetric extends StatelessWidget {
-  const _StageMetric({
-    required this.value,
-    required this.label,
-    required this.icon,
-    required this.color,
-  });
-
-  final int value;
-  final String label;
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 142,
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.08),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: color.withValues(alpha: 0.18)),
-    ),
-    child: Row(
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.only(bottom: bottomPadding),
+    child: Column(
       children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: color, size: 18),
-        ),
-        const SizedBox(width: 9),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '$value',
-                style: GoogleFonts.inter(
-                  color: color,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Text(
+        Row(
+          children: [
+            Expanded(
+              child: Text(
                 label,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
-                  color: _ink,
-                  fontSize: 9,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-            ],
+            ),
+            Text(
+              '$detail • ${(progress.clamp(0, 1) * 100).round()}%',
+              style: GoogleFonts.inter(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 5),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: progress.clamp(0, 1),
+            minHeight: 7,
+            color: color,
+            backgroundColor: const Color(0xFFF0F1F3),
           ),
         ),
       ],
@@ -1866,7 +1334,7 @@ class _ProductosTopCard extends StatelessWidget {
       children: [
         _SectionTitle(
           title: 'Productos más solicitados',
-          subtitle: 'Agrupados por la presentación realmente pedida',
+          subtitle: 'Cantidades convertidas a la unidad base',
           action: onView,
           actionLabel: 'Consolidado',
         ),
@@ -1879,33 +1347,24 @@ class _ProductosTopCard extends StatelessWidget {
         else
           ...items.asMap().entries.map((entry) {
             final item = entry.value;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(11),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8F9FB),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFEAECF0)),
-              ),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 13),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: 30,
+                    height: 30,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: entry.key == 0
                           ? const Color(0xFFFFF3C4)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(10),
+                          : const Color(0xFFF2F4F7),
+                      borderRadius: BorderRadius.circular(9),
                     ),
                     child: Text(
                       '${entry.key + 1}',
-                      style: GoogleFonts.inter(
-                        color: _ink,
-                        fontWeight: FontWeight.w900,
-                      ),
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w800),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -1918,9 +1377,8 @@ class _ProductosTopCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.inter(
-                            color: _ink,
                             fontSize: 12,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -1929,27 +1387,23 @@ class _ProductosTopCard extends StatelessWidget {
                           '${item.pedidos} pedidos',
                           style: GoogleFonts.inter(color: _muted, fontSize: 10),
                         ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            _QuantityTag(
-                              label:
-                                  '${item.cantidadRequerida} × '
-                                  '${item.presentacion}',
-                              color: const Color(0xFF175CD3),
-                            ),
-                            _QuantityTag(
-                              label: '${item.cantidadPreparada} preparadas',
-                              color: const Color(0xFF067647),
-                            ),
-                            if (item.cantidadPendiente > 0)
-                              _QuantityTag(
-                                label: '${item.cantidadPendiente} pendientes',
-                                color: const Color(0xFFB54708),
-                              ),
-                          ],
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: item.progreso,
+                            minHeight: 6,
+                            color: item.cantidadPendiente == 0
+                                ? const Color(0xFF12B76A)
+                                : _yellow,
+                            backgroundColor: const Color(0xFFF0F1F3),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${item.cantidadRequerida} ${item.unidadBase} '
+                          'requeridas • ${item.cantidadPendiente} pendientes',
+                          style: GoogleFonts.inter(color: _muted, fontSize: 10),
                         ),
                       ],
                     ),
@@ -1959,30 +1413,6 @@ class _ProductosTopCard extends StatelessWidget {
             );
           }),
       ],
-    ),
-  );
-}
-
-class _QuantityTag extends StatelessWidget {
-  const _QuantityTag({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.09),
-      borderRadius: BorderRadius.circular(999),
-    ),
-    child: Text(
-      label,
-      style: GoogleFonts.inter(
-        color: color,
-        fontSize: 9,
-        fontWeight: FontWeight.w800,
-      ),
     ),
   );
 }
@@ -2389,8 +1819,7 @@ class _FaltantesCard extends StatelessWidget {
       children: [
         _SectionTitle(
           title: 'Pendientes de preparación',
-          subtitle:
-              '${data.presentacionesPendientes} presentaciones por preparar',
+          subtitle: '${data.unidadesPendientes} unidades base por preparar',
           action: onView,
           actionLabel: 'Ver consolidado',
         ),
@@ -2408,29 +1837,23 @@ class _FaltantesCard extends StatelessWidget {
               const SizedBox(width: 8),
               _SummaryBox(
                 '${data.pedidosPreparacionParcial}',
-                'Pedidos parciales',
+                'Parciales',
                 const Color(0xFF175CD3),
               ),
             ],
           ),
           const SizedBox(height: 10),
           ...data.principalesFaltantes.map(
-            (item) => Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFAEB),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFED7AA)),
-              ),
+            (item) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 7),
               child: Row(
                 children: [
                   const Icon(
-                    Icons.inventory_2_outlined,
-                    color: Color(0xFFB54708),
-                    size: 19,
+                    Icons.warning_amber_rounded,
+                    color: Color(0xFFF79009),
+                    size: 18,
                   ),
-                  const SizedBox(width: 9),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2441,7 +1864,7 @@ class _FaltantesCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.inter(
                             fontSize: 11,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         Text(
@@ -2451,23 +1874,12 @@ class _FaltantesCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFEAD5),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      '${item.cantidadPendiente} × ${item.presentacion}',
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFFB42318),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                      ),
+                  Text(
+                    '${item.cantidadPendiente} ${item.unidadBase}',
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFFB42318),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ],
@@ -2648,412 +2060,118 @@ class _SyncCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _Panel(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final status = Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color:
-                        (sync.sincronizado
-                                ? const Color(0xFF067647)
-                                : const Color(0xFFB54708))
-                            .withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(
-                    sync.sincronizado
-                        ? Icons.cloud_done_outlined
-                        : Icons.cloud_queue_outlined,
-                    color: sync.sincronizado
-                        ? const Color(0xFF067647)
-                        : const Color(0xFFB54708),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Sincronización offline',
-                        style: GoogleFonts.inter(
-                          color: _ink,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        sync.sincronizado
-                            ? 'La información local está al día.'
-                            : 'Los cambios permanecen protegidos en la tablet '
-                                  'hasta recuperar conexión.',
-                        style: GoogleFonts.inter(
-                          color: _muted,
-                          fontSize: 11,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-
-            final actions = Wrap(
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final content = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              sync.sincronizado
+                  ? 'La información local está al día'
+                  : 'Cambios protegidos en la tablet',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              sync.sincronizado
+                  ? 'No hay operaciones pendientes de sincronización.'
+                  : 'La aplicación continúa funcionando offline. Los cambios '
+                        'permanecen en cola hasta que el servicio remoto esté disponible.',
+              style: GoogleFonts.inter(color: _muted, fontSize: 11),
+            ),
+            const SizedBox(height: 9),
+            Wrap(
               spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.end,
+              runSpacing: 7,
               children: [
-                OutlinedButton.icon(
-                  key: const ValueKey('dashboard-sync-pending'),
-                  onPressed: onViewPending,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _ink,
-                    side: const BorderSide(color: _yellow),
-                  ),
-                  icon: const Icon(Icons.list_alt_rounded, size: 18),
-                  label: const Text('Ver pendientes'),
+                _StatusPill(
+                  label: '${sync.pedidosPendientes} pedidos',
+                  color: const Color(0xFF175CD3),
                 ),
-                FilledButton.icon(
-                  onPressed: onRefresh,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _yellow,
-                    foregroundColor: _ink,
-                  ),
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Actualizar estado'),
+                _StatusPill(
+                  label: '${sync.hojasPendientes} hojas',
+                  color: const Color(0xFF6941C6),
                 ),
-              ],
-            );
-
-            if (constraints.maxWidth >= 720) {
-              return Row(
-                children: [
-                  Expanded(child: status),
-                  const SizedBox(width: 16),
-                  actions,
-                ],
-              );
-            }
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [status, const SizedBox(height: 14), actions],
-            );
-          },
-        ),
-        const SizedBox(height: 14),
-        Wrap(
-          spacing: 9,
-          runSpacing: 9,
-          children: [
-            _SyncMetric(
-              value: sync.pedidosPendientes,
-              label: 'Pedidos',
-              icon: Icons.receipt_long_outlined,
-              color: const Color(0xFF175CD3),
-            ),
-            _SyncMetric(
-              value: sync.hojasPendientes,
-              label: 'Hojas',
-              icon: Icons.description_outlined,
-              color: const Color(0xFF6941C6),
-            ),
-            _SyncMetric(
-              value: sync.operacionesEnCola,
-              label: 'Operaciones',
-              icon: Icons.sync_alt_rounded,
-              color: const Color(0xFFB54708),
-            ),
-            if (sync.errores > 0)
-              _SyncMetric(
-                value: sync.errores,
-                label: 'Con error',
-                icon: Icons.error_outline_rounded,
-                color: const Color(0xFFB42318),
-              ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
-class _SyncMetric extends StatelessWidget {
-  const _SyncMetric({
-    required this.value,
-    required this.label,
-    required this.icon,
-    required this.color,
-  });
-
-  final int value;
-  final String label;
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 145,
-    padding: const EdgeInsets.all(10),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.07),
-      borderRadius: BorderRadius.circular(13),
-    ),
-    child: Row(
-      children: [
-        Icon(icon, color: color, size: 19),
-        const SizedBox(width: 8),
-        Text(
-          '$value',
-          style: GoogleFonts.inter(
-            color: color,
-            fontSize: 17,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(
-              color: _ink,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _SyncPendingDialog extends StatelessWidget {
-  const _SyncPendingDialog({required this.sync});
-
-  final DashboardSincronizacion sync;
-
-  @override
-  Widget build(BuildContext context) => Dialog(
-    backgroundColor: Colors.transparent,
-    insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 720, maxHeight: 720),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(22, 18, 14, 18),
-              color: _ink,
-              child: Row(
-                children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: _yellow,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.cloud_queue_outlined, color: _ink),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Pendientes de sincronización',
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        Text(
-                          '${sync.totalPendiente} cambios protegidos localmente',
-                          style: GoogleFonts.inter(
-                            color: const Color(0xFFB7BAC1),
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Cerrar',
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded, color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
+                _StatusPill(
+                  label: '${sync.operacionesEnCola} en cola',
+                  color: const Color(0xFFB54708),
+                ),
+                if (sync.errores > 0)
                   _StatusPill(
-                    label: '${sync.pedidosPendientes} pedidos',
-                    color: const Color(0xFF175CD3),
+                    label: '${sync.errores} errores',
+                    color: const Color(0xFFB42318),
                   ),
-                  _StatusPill(
-                    label: '${sync.hojasPendientes} hojas',
-                    color: const Color(0xFF6941C6),
-                  ),
-                  _StatusPill(
-                    label: '${sync.operacionesEnCola} operaciones',
-                    color: const Color(0xFFB54708),
-                  ),
-                  if (sync.errores > 0)
-                    _StatusPill(
-                      label: '${sync.errores} errores',
-                      color: const Color(0xFFB42318),
-                    ),
-                ],
-              ),
-            ),
-            Flexible(
-              child: sync.pendientes.isEmpty
-                  ? const _EmptyLine(
-                      icon: Icons.cloud_done_outlined,
-                      message: 'No hay detalles pendientes para mostrar.',
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(20, 6, 20, 18),
-                      itemCount: sync.pendientes.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) =>
-                          _SyncPendingTile(item: sync.pendientes[index]),
-                    ),
-            ),
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'La app puede continuar trabajando sin conexión.',
-                      style: GoogleFonts.inter(color: _muted, fontSize: 11),
-                    ),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _yellow,
-                      foregroundColor: _ink,
-                    ),
-                    child: const Text('Entendido'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-class _SyncPendingTile extends StatelessWidget {
-  const _SyncPendingTile({required this.item});
-
-  final DashboardSyncPendiente item;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = item.estado.toLowerCase() == 'error'
-        ? const Color(0xFFB42318)
-        : const Color(0xFFB54708);
-    final icon = switch (item.tipo) {
-      'pedido' => Icons.receipt_long_outlined,
-      'hoja' => Icons.description_outlined,
-      _ => Icons.sync_alt_rounded,
-    };
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FB),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFEAECF0)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.09),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 19),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.titulo,
-                  style: GoogleFonts.inter(
-                    color: _ink,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  item.detalle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    color: _muted,
-                    fontSize: 10,
-                    height: 1.3,
-                  ),
-                ),
-                if (item.error.trim().isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    item.error,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFFB42318),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            DateFormat('dd/MM HH:mm').format(item.fecha),
-            style: GoogleFonts.inter(color: _muted, fontSize: 9),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        );
+        final actions = Wrap(
+          spacing: 8,
+          runSpacing: 7,
+          children: [
+            OutlinedButton.icon(
+              onPressed: onViewPending,
+              style: OutlinedButton.styleFrom(foregroundColor: _ink),
+              icon: const Icon(Icons.list_alt_rounded, size: 18),
+              label: const Text('Ver pendientes'),
+            ),
+            FilledButton.icon(
+              onPressed: onRefresh,
+              style: FilledButton.styleFrom(
+                backgroundColor: _yellow,
+                foregroundColor: _ink,
+              ),
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Actualizar estado'),
+            ),
+          ],
+        );
+        if (constraints.maxWidth >= 760) {
+          return Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color:
+                      (sync.sincronizado
+                              ? const Color(0xFF067647)
+                              : const Color(0xFFB54708))
+                          .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  sync.sincronizado
+                      ? Icons.cloud_done_outlined
+                      : Icons.cloud_queue_outlined,
+                  color: sync.sincronizado
+                      ? const Color(0xFF067647)
+                      : const Color(0xFFB54708),
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(child: content),
+              const SizedBox(width: 14),
+              actions,
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _SectionTitle(title: 'Sincronización offline'),
+            const SizedBox(height: 10),
+            content,
+            const SizedBox(height: 12),
+            actions,
+          ],
+        );
+      },
+    ),
+  );
 }
 
 class _StatusPill extends StatelessWidget {
@@ -3321,120 +2439,48 @@ class _ErrorState extends StatelessWidget {
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final availableHeight = constraints.maxHeight > 40
-            ? constraints.maxHeight - 40
-            : 0.0;
-
-        return SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(20),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: availableHeight),
-            child: Center(
-              child: Container(
-                width: double.infinity,
-                constraints: const BoxConstraints(maxWidth: 560),
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 22),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFEAECF0)),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x14000000),
-                      blurRadius: 18,
-                      offset: Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 58,
-                      height: 58,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFEECEB),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.dashboard_customize_outlined,
-                        size: 30,
-                        color: Color(0xFFB42318),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No pudimos preparar el Dashboard',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        color: _ink,
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      message,
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        color: _muted,
-                        fontSize: 13,
-                        height: 1.45,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF8DD),
-                        borderRadius: BorderRadius.circular(12),
-                        border: const Border(
-                          left: BorderSide(color: _yellow, width: 4),
-                        ),
-                      ),
-                      child: Text(
-                        'La información comercial sigue disponible en Pedidos, '
-                        'Hojas de pedido y Clientes.',
-                        style: GoogleFonts.inter(
-                          color: _ink,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    FilledButton.icon(
-                      onPressed: onRetry,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: _yellow,
-                        foregroundColor: _ink,
-                        minimumSize: const Size(170, 46),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: const Text(
-                        'Reintentar',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ],
-                ),
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(28),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 54,
+              color: Color(0xFFB42318),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No pudimos preparar el Dashboard',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
               ),
             ),
-          ),
-        );
-      },
-    );
-  }
+            const SizedBox(height: 6),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(color: _muted, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onRetry,
+              style: FilledButton.styleFrom(
+                backgroundColor: _yellow,
+                foregroundColor: _ink,
+              ),
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Reintentar'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 Color _estadoColor(String estado) {

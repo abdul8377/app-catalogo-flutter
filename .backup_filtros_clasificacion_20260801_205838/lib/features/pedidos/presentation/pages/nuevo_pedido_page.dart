@@ -89,7 +89,6 @@ class _NuevoPedidoViewState extends State<_NuevoPedidoView> {
                 if (state.hojaActiva == null) const _SinHojaBanner(),
                 FiltrosCatalogo(
                   state: _catalogoState(state),
-                  modoPedido: true,
                   onBusquedaCambiada: (value) => context
                       .read<PedidosBloc>()
                       .add(PedidosBusquedaCambiada(value)),

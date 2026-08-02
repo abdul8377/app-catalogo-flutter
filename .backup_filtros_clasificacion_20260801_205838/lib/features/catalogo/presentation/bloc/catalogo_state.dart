@@ -7,65 +7,25 @@ class CatalogoFiltros extends Equatable {
     this.empresa,
     this.marca,
     this.categoria,
-    this.subcategoria,
     this.estado,
     this.precio,
     this.imagen,
     this.orden = 'Nombre A-Z',
   });
-  final String? empresa, marca, categoria, subcategoria, estado, precio, imagen;
+  final String? empresa, marca, categoria, estado, precio, imagen;
   final String orden;
   bool get tieneActivos =>
       empresa != null ||
       marca != null ||
       categoria != null ||
-      subcategoria != null ||
       estado != null ||
       precio != null ||
       imagen != null;
-  int get cantidadActivos => [
-    empresa,
-    marca,
-    categoria,
-    subcategoria,
-    estado,
-    precio,
-    imagen,
-  ].whereType<String>().length;
-
-  CatalogoFiltros copyWith({
-    String? empresa,
-    bool clearEmpresa = false,
-    String? marca,
-    bool clearMarca = false,
-    String? categoria,
-    bool clearCategoria = false,
-    String? subcategoria,
-    bool clearSubcategoria = false,
-    String? estado,
-    bool clearEstado = false,
-    String? precio,
-    bool clearPrecio = false,
-    String? imagen,
-    bool clearImagen = false,
-    String? orden,
-  }) => CatalogoFiltros(
-    empresa: clearEmpresa ? null : empresa ?? this.empresa,
-    marca: clearMarca ? null : marca ?? this.marca,
-    categoria: clearCategoria ? null : categoria ?? this.categoria,
-    subcategoria: clearSubcategoria ? null : subcategoria ?? this.subcategoria,
-    estado: clearEstado ? null : estado ?? this.estado,
-    precio: clearPrecio ? null : precio ?? this.precio,
-    imagen: clearImagen ? null : imagen ?? this.imagen,
-    orden: orden ?? this.orden,
-  );
-
   @override
   List<Object?> get props => [
     empresa,
     marca,
     categoria,
-    subcategoria,
     estado,
     precio,
     imagen,
@@ -107,9 +67,6 @@ class CatalogoState extends Equatable {
   List<String> get empresas => _unicos(productos.map((p) => p.empresa));
   List<String> get marcas => _unicos(productos.map((p) => p.marca));
   List<String> get categorias => _unicos(productos.map((p) => p.categoria));
-  List<String> get subcategorias => _unicos(
-    productos.map((p) => p.subcategoria).where((value) => value.isNotEmpty),
-  );
   static List<String> _unicos(Iterable<String> values) =>
       (values.toSet().toList()..sort());
 

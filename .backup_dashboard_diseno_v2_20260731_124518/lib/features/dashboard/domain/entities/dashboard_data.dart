@@ -111,10 +111,6 @@ class DashboardData extends Equatable {
   final DashboardSincronizacion sincronizacion;
   final DashboardHojaActiva? hojaActiva;
 
-  int get presentacionesRequeridas => unidadesRequeridas;
-  int get presentacionesPreparadas => unidadesPreparadas;
-  int get presentacionesPendientes => unidadesPendientes;
-
   double get progresoPreparacion {
     if (unidadesRequeridas <= 0) return 0;
     return (unidadesPreparadas / unidadesRequeridas).clamp(0, 1).toDouble();
@@ -204,7 +200,6 @@ class DashboardProductoTop extends Equatable {
     required this.cantidadRequerida,
     required this.cantidadPreparada,
     required this.pedidos,
-    this.presentacion = 'Presentación',
   });
 
   final String productoId;
@@ -212,7 +207,6 @@ class DashboardProductoTop extends Equatable {
   final String codigo;
   final String marca;
   final String unidadBase;
-  final String presentacion;
   final int cantidadRequerida;
   final int cantidadPreparada;
   final int pedidos;
@@ -232,7 +226,6 @@ class DashboardProductoTop extends Equatable {
     codigo,
     marca,
     unidadBase,
-    presentacion,
     cantidadRequerida,
     cantidadPreparada,
     pedidos,
@@ -370,14 +363,12 @@ class DashboardFaltante extends Equatable {
     required this.unidadBase,
     required this.cantidadPendiente,
     required this.pedidosAfectados,
-    this.presentacion = 'Presentación',
   });
 
   final String productoId;
   final String nombre;
   final String codigo;
   final String unidadBase;
-  final String presentacion;
   final int cantidadPendiente;
   final int pedidosAfectados;
 
@@ -387,7 +378,6 @@ class DashboardFaltante extends Equatable {
     nombre,
     codigo,
     unidadBase,
-    presentacion,
     cantidadPendiente,
     pedidosAfectados,
   ];
@@ -412,29 +402,6 @@ class DashboardPedidoListo extends Equatable {
   List<Object?> get props => [id, codigo, cliente, productos, direccion];
 }
 
-class DashboardSyncPendiente extends Equatable {
-  const DashboardSyncPendiente({
-    required this.id,
-    required this.tipo,
-    required this.titulo,
-    required this.detalle,
-    required this.estado,
-    required this.fecha,
-    this.error = '',
-  });
-
-  final String id;
-  final String tipo;
-  final String titulo;
-  final String detalle;
-  final String estado;
-  final DateTime fecha;
-  final String error;
-
-  @override
-  List<Object?> get props => [id, tipo, titulo, detalle, estado, fecha, error];
-}
-
 class DashboardSincronizacion extends Equatable {
   const DashboardSincronizacion({
     this.pedidosPendientes = 0,
@@ -442,7 +409,6 @@ class DashboardSincronizacion extends Equatable {
     this.operacionesEnCola = 0,
     this.errores = 0,
     this.ultimaSincronizacion,
-    this.pendientes = const [],
   });
 
   final int pedidosPendientes;
@@ -450,7 +416,6 @@ class DashboardSincronizacion extends Equatable {
   final int operacionesEnCola;
   final int errores;
   final DateTime? ultimaSincronizacion;
-  final List<DashboardSyncPendiente> pendientes;
 
   int get totalPendiente =>
       pedidosPendientes + hojasPendientes + operacionesEnCola;
@@ -464,6 +429,5 @@ class DashboardSincronizacion extends Equatable {
     operacionesEnCola,
     errores,
     ultimaSincronizacion,
-    pendientes,
   ];
 }

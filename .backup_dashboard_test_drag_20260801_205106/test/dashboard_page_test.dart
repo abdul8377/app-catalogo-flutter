@@ -93,13 +93,15 @@ void main() {
     await tester.pumpAndSettle();
 
     final pendingButton = find.byKey(const ValueKey('dashboard-sync-pending'));
-    expect(pendingButton, findsOneWidget);
-
-    final pendingAction = tester
-        .widget<OutlinedButton>(pendingButton)
-        .onPressed;
-    expect(pendingAction, isNotNull);
-    pendingAction!.call();
+    await tester.scrollUntilVisible(
+      pendingButton,
+      300,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('dashboard-body-list')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.tap(pendingButton);
     await tester.pumpAndSettle();
 
     expect(find.text('Pendientes de sincronización'), findsOneWidget);

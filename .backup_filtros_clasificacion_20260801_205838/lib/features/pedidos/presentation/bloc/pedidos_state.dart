@@ -22,7 +22,6 @@ class PedidosState extends Equatable {
     this.empresa,
     this.marca,
     this.categoria,
-    this.subcategoria,
     this.estado,
     this.imagen,
     this.filtrosRapidos = const {'Todos'},
@@ -51,7 +50,6 @@ class PedidosState extends Equatable {
   final String? empresa;
   final String? marca;
   final String? categoria;
-  final String? subcategoria;
   final String? estado;
   final String? imagen;
   final Set<String> filtrosRapidos;
@@ -72,7 +70,6 @@ class PedidosState extends Equatable {
           producto.marca.toLowerCase().contains(query) ||
           producto.empresa.toLowerCase().contains(query) ||
           producto.categoria.toLowerCase().contains(query) ||
-          producto.subcategoria.toLowerCase().contains(query) ||
           producto.atributosClave.any(
             (atributo) => atributo.toLowerCase().contains(query),
           );
@@ -96,7 +93,6 @@ class PedidosState extends Equatable {
           (empresa == null || producto.empresa == empresa) &&
           (marca == null || producto.marca == marca) &&
           (categoria == null || producto.categoria == categoria) &&
-          (subcategoria == null || producto.subcategoria == subcategoria) &&
           (estado == null || estado == 'Activo') &&
           (imagen == null ||
               (imagen == 'Con imagen'
@@ -126,23 +122,12 @@ class PedidosState extends Equatable {
       ({for (final item in productos) item.marca}.toList()..sort());
   List<String> get categorias =>
       ({for (final item in productos) item.categoria}.toList()..sort());
-  List<String> get subcategorias => ({
-    for (final item in productos)
-      if (item.subcategoria.isNotEmpty) item.subcategoria,
-  }.toList()..sort());
-  int get filtrosAvanzadosActivos => [
-    empresa,
-    marca,
-    categoria,
-    subcategoria,
-    estado,
-    imagen,
-  ].whereType<String>().length;
+  int get filtrosAvanzadosActivos =>
+      [empresa, marca, categoria, estado, imagen].whereType<String>().length;
   CatalogoFiltros get catalogoFiltros => CatalogoFiltros(
     empresa: empresa,
     marca: marca,
     categoria: categoria,
-    subcategoria: subcategoria,
     estado: estado,
     precio: filtroPrecio == 'Todos' ? null : filtroPrecio,
     imagen: imagen,
@@ -168,7 +153,6 @@ class PedidosState extends Equatable {
     String? empresa,
     String? marca,
     String? categoria,
-    String? subcategoria,
     String? estado,
     String? imagen,
     Set<String>? filtrosRapidos,
@@ -194,7 +178,6 @@ class PedidosState extends Equatable {
     empresa: limpiarFiltros ? null : empresa ?? this.empresa,
     marca: limpiarFiltros ? null : marca ?? this.marca,
     categoria: limpiarFiltros ? null : categoria ?? this.categoria,
-    subcategoria: limpiarFiltros ? null : subcategoria ?? this.subcategoria,
     estado: limpiarFiltros ? null : estado ?? this.estado,
     imagen: limpiarFiltros ? null : imagen ?? this.imagen,
     filtrosRapidos: filtrosRapidos ?? this.filtrosRapidos,
@@ -218,7 +201,6 @@ class PedidosState extends Equatable {
     empresa,
     marca,
     categoria,
-    subcategoria,
     estado,
     imagen,
     filtrosRapidos,

@@ -19,14 +19,8 @@ class CatalogoBloc extends Bloc<CatalogoEvent, CatalogoState> {
       (event, emit) => emit(_filtrar(state.copyWith(filtros: event.filtros))),
     );
     on<CatalogoFiltrosLimpiados>(
-      (_, emit) => emit(
-        _filtrar(
-          state.copyWith(
-            filtros: const CatalogoFiltros(),
-            filtrosRapidos: const {'Todos'},
-          ),
-        ),
-      ),
+      (_, emit) =>
+          emit(_filtrar(state.copyWith(filtros: const CatalogoFiltros()))),
     );
     on<CatalogoVistaCambiada>(
       (event, emit) => emit(state.copyWith(vistaGrilla: event.vistaGrilla)),
@@ -111,7 +105,6 @@ class CatalogoBloc extends Bloc<CatalogoEvent, CatalogoState> {
           p.empresa.toLowerCase().contains(texto) ||
           p.marca.toLowerCase().contains(texto) ||
           p.categoria.toLowerCase().contains(texto) ||
-          p.subcategoria.toLowerCase().contains(texto) ||
           p.atributosClave.any((a) => a.toLowerCase().contains(texto));
       final r = estado.filtrosRapidos;
       return textoOk &&
@@ -131,7 +124,6 @@ class CatalogoBloc extends Bloc<CatalogoEvent, CatalogoState> {
               (f.empresa == null || p.empresa == f.empresa) &&
               (f.marca == null || p.marca == f.marca) &&
               (f.categoria == null || p.categoria == f.categoria) &&
-              (f.subcategoria == null || p.subcategoria == f.subcategoria) &&
               (f.estado == null ||
                   (f.estado == 'Activo' ? p.activo : !p.activo)) &&
               (f.precio == null ||

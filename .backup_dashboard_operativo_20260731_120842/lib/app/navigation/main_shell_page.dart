@@ -32,7 +32,6 @@ class _MainShellPageState extends State<MainShellPage> {
   int _hojasRevision = 0;
   int _clientesRevision = 0;
   int _dashboardRevision = 0;
-  final Set<int> _mountedPageIndexes = <int>{0};
   String? _clienteInicialId;
   String? _hojaInicialCodigo;
 
@@ -83,7 +82,6 @@ class _MainShellPageState extends State<MainShellPage> {
   void _onItemSelected(int index) {
     setState(() {
       selectedIndex = index;
-      _mountedPageIndexes.add(index);
       if (index == 0) {
         context.read<HomeBloc>().add(const HomeRefreshed());
       }
@@ -113,7 +111,6 @@ class _MainShellPageState extends State<MainShellPage> {
     setState(() {
       _clientesRevision++;
       _clienteInicialId = clienteId;
-      _mountedPageIndexes.add(2);
       selectedIndex = 2;
     });
   }
@@ -122,7 +119,6 @@ class _MainShellPageState extends State<MainShellPage> {
     setState(() {
       _hojasRevision++;
       _hojaInicialCodigo = hojaCodigo;
-      _mountedPageIndexes.add(5);
       selectedIndex = 5;
     });
   }
@@ -132,14 +128,12 @@ class _MainShellPageState extends State<MainShellPage> {
       _pedidosRevision++;
       _pedidosInitialTab = tab.clamp(0, 2);
       _pedidosHojaCodigo = hojaCodigo;
-      _mountedPageIndexes.add(4);
       selectedIndex = 4;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final pages = _buildPages();
     return Scaffold(
       body: Row(
         children: [
@@ -154,16 +148,7 @@ class _MainShellPageState extends State<MainShellPage> {
           ),
           Container(width: 1, color: const Color(0xFFE0E0E0)),
           Expanded(
-            child: IndexedStack(
-              index: selectedIndex,
-              children: List<Widget>.generate(pages.length, (index) {
-                final mounted = _mountedPageIndexes.contains(index);
-                return HeroMode(
-                  enabled: index == selectedIndex,
-                  child: mounted ? pages[index] : const SizedBox.shrink(),
-                );
-              }),
-            ),
+            child: IndexedStack(index: selectedIndex, children: _buildPages()),
           ),
         ],
       ),

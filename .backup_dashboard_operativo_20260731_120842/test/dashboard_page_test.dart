@@ -47,66 +47,6 @@ void main() {
     expect(navigationIndex, 2);
   });
 
-  testWidgets('el error inicial es breve, recuperable y no desborda', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(800, 1280);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(
-      const _TestApp(
-        repository: _DashboardRepositoryFailing(),
-        child: DashboardPage(),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('No pudimos preparar el Dashboard'), findsOneWidget);
-    expect(find.text('Reintentar'), findsOneWidget);
-    expect(find.textContaining('SELECT ph.evento'), findsNothing);
-    expect(find.textContaining('SQLITE_ERROR'), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('abre el periodo personalizado y los pendientes offline', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(800, 1180);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    final repository = _DashboardRepositoryFake(_dashboardData());
-    await tester.pumpWidget(
-      _TestApp(repository: repository, child: const DashboardPage()),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Personalizado'));
-    await tester.pumpAndSettle();
-    expect(find.text('Seleccionar periodo'), findsOneWidget);
-    expect(find.text('Desde'), findsOneWidget);
-    expect(find.text('Hasta'), findsOneWidget);
-    await tester.tap(find.text('Cancelar'));
-    await tester.pumpAndSettle();
-
-    final pendingButton = find.byKey(const ValueKey('dashboard-sync-pending'));
-    expect(pendingButton, findsOneWidget);
-
-    final pendingAction = tester
-        .widget<OutlinedButton>(pendingButton)
-        .onPressed;
-    expect(pendingAction, isNotNull);
-    pendingAction!.call();
-    await tester.pumpAndSettle();
-
-    expect(find.text('Pendientes de sincronización'), findsOneWidget);
-    expect(find.text('Entendido'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
   testWidgets('registra una carga desde un pedido completamente preparado', (
     tester,
   ) async {
@@ -158,24 +98,6 @@ class _TestApp extends StatelessWidget {
         value: repository,
         child: MaterialApp(theme: ThemeData(useMaterial3: true), home: child),
       );
-}
-
-class _DashboardRepositoryFailing implements DashboardRepository {
-  const _DashboardRepositoryFailing();
-
-  @override
-  Future<DashboardData> obtenerDashboard(DashboardFiltro filtro) {
-    throw Exception(
-      'DatabaseException(SQLITE_ERROR): SELECT ph.evento FROM pedido_historial',
-    );
-  }
-
-  @override
-  Future<void> marcarPedidoCargado({
-    required String pedidoId,
-    required int paquetes,
-    String observacion = '',
-  }) async {}
 }
 
 class _DashboardRepositoryFake implements DashboardRepository {

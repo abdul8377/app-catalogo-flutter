@@ -68,17 +68,17 @@ class DashboardLocalDatasource {
     ''', scope.args)).first;
 
     final preparacion = (await db.rawQuery('''
-      SELECT COALESCE(SUM(i.cantidad), 0) AS requerida,
+      SELECT COALESCE(SUM(i.cantidad * i.factor_unidad_base), 0) AS requerida,
              COALESCE(SUM(
                MIN(
-                 i.cantidad,
+                 i.cantidad * i.factor_unidad_base,
                  COALESCE(prep.preparada, 0)
                )
              ), 0) AS preparada
       FROM pedido_items i
       INNER JOIN pedidos p ON p.id = i.pedido_id
       LEFT JOIN (
-        SELECT pedido_item_id, SUM(cantidad) AS preparada
+        SELECT pedido_item_id, SUM(cantidad_base) AS preparada
         FROM preparacion_productos
         GROUP BY pedido_item_id
       ) prep ON prep.pedido_item_id = i.id
@@ -92,17 +92,17 @@ class DashboardLocalDatasource {
             SELECT COUNT(*)
             FROM (
               SELECT p.id,
-                     SUM(i.cantidad) AS requerida,
+                     SUM(i.cantidad * i.factor_unidad_base) AS requerida,
                      SUM(
                        MIN(
-                         i.cantidad,
+                         i.cantidad * i.factor_unidad_base,
                          COALESCE(prep.preparada, 0)
                        )
                      ) AS preparada
               FROM pedidos p
               INNER JOIN pedido_items i ON i.pedido_id = p.id
               LEFT JOIN (
-                SELECT pedido_item_id, SUM(cantidad) AS preparada
+                SELECT pedido_item_id, SUM(cantidad_base) AS preparada
                 FROM preparacion_productos
                 GROUP BY pedido_item_id
               ) prep ON prep.pedido_item_id = i.id
@@ -144,11 +144,11 @@ class DashboardLocalDatasource {
              i.codigo,
              i.nombre,
              COALESCE(pr.marca, '') AS marca,
-             i.presentacion,
-             SUM(i.cantidad) AS requerida,
+             i.unidad_base,
+             SUM(i.cantidad * i.factor_unidad_base) AS requerida,
              SUM(
                MIN(
-                 i.cantidad,
+                 i.cantidad * i.factor_unidad_base,
                  COALESCE(prep.preparada, 0)
                )
              ) AS preparada,
@@ -157,18 +157,13 @@ class DashboardLocalDatasource {
       INNER JOIN pedidos p ON p.id = i.pedido_id
       LEFT JOIN productos pr ON pr.id = i.producto_id
       LEFT JOIN (
-        SELECT pedido_item_id, SUM(cantidad) AS preparada
+        SELECT pedido_item_id, SUM(cantidad_base) AS preparada
         FROM preparacion_productos
         GROUP BY pedido_item_id
       ) prep ON prep.pedido_item_id = i.id
       WHERE ${scope.where}
         AND LOWER(p.estado) <> 'cancelado'
-      GROUP BY
-        i.producto_id,
-        i.codigo,
-        i.nombre,
-        pr.marca,
-        i.presentacion
+      GROUP BY i.producto_id, i.codigo, i.nombre, pr.marca, i.unidad_base
       ORDER BY requerida DESC, pedidos DESC, i.nombre COLLATE NOCASE
       LIMIT 5
     ''', scope.args);
@@ -295,31 +290,29 @@ class DashboardLocalDatasource {
       SELECT i.producto_id,
              i.codigo,
              i.nombre,
-             i.presentacion,
+             i.unidad_base,
              SUM(
                MAX(
-                 i.cantidad - COALESCE(prep.preparada, 0),
+                 (i.cantidad * i.factor_unidad_base) -
+                   COALESCE(prep.preparada, 0),
                  0
                )
              ) AS pendiente,
              COUNT(DISTINCT CASE
-               WHEN COALESCE(prep.preparada, 0) < i.cantidad
+               WHEN COALESCE(prep.preparada, 0) <
+                    i.cantidad * i.factor_unidad_base
                THEN p.id
              END) AS pedidos_afectados
       FROM pedido_items i
       INNER JOIN pedidos p ON p.id = i.pedido_id
       LEFT JOIN (
-        SELECT pedido_item_id, SUM(cantidad) AS preparada
+        SELECT pedido_item_id, SUM(cantidad_base) AS preparada
         FROM preparacion_productos
         GROUP BY pedido_item_id
       ) prep ON prep.pedido_item_id = i.id
       WHERE ${scope.where}
         AND LOWER(p.estado) <> 'cancelado'
-      GROUP BY
-        i.producto_id,
-        i.codigo,
-        i.nombre,
-        i.presentacion
+      GROUP BY i.producto_id, i.codigo, i.nombre, i.unidad_base
       HAVING pendiente > 0
       ORDER BY pendiente DESC, pedidos_afectados DESC
       LIMIT 5
@@ -336,7 +329,7 @@ class DashboardLocalDatasource {
       INNER JOIN clientes c ON c.id = p.cliente_id
       INNER JOIN pedido_items i ON i.pedido_id = p.id
       LEFT JOIN (
-        SELECT pedido_item_id, SUM(cantidad) AS preparada
+        SELECT pedido_item_id, SUM(cantidad_base) AS preparada
         FROM preparacion_productos
         GROUP BY pedido_item_id
       ) prep ON prep.pedido_item_id = i.id
@@ -353,7 +346,8 @@ class DashboardLocalDatasource {
       GROUP BY p.id
       HAVING SUM(
         CASE
-          WHEN COALESCE(prep.preparada, 0) < i.cantidad
+          WHEN COALESCE(prep.preparada, 0) <
+               i.cantidad * i.factor_unidad_base
           THEN 1 ELSE 0
         END
       ) = 0
@@ -361,63 +355,17 @@ class DashboardLocalDatasource {
       LIMIT 5
     ''', scope.args);
 
-    final syncPendientesRows = await db.rawQuery('''
-      SELECT pendiente.id,
-             pendiente.tipo,
-             pendiente.titulo,
-             pendiente.detalle,
-             pendiente.estado,
-             pendiente.error,
-             pendiente.fecha
-      FROM (
-        SELECT p.id AS id,
-               'pedido' AS tipo,
-               p.codigo AS titulo,
-               'Pedido ' || p.estado AS detalle,
-               CASE
-                 WHEN COALESCE(p.sync_error, '') = '' THEN 'pendiente'
-                 ELSE 'error'
-               END AS estado,
-               COALESCE(p.sync_error, '') AS error,
-               p.creado_en AS fecha
-        FROM pedidos p
-        WHERE p.sincronizado = 0
-        UNION ALL
-        SELECT h.id AS id,
-               'hoja' AS tipo,
-               h.codigo AS titulo,
-               'Hoja ' || h.estado AS detalle,
-               'pendiente' AS estado,
-               '' AS error,
-               h.creado_en AS fecha
-        FROM hojas_pedido h
-        WHERE h.sincronizado = 0
-        UNION ALL
-        SELECT sq.id AS id,
-               'operacion' AS tipo,
-               sq.entidad || ' · ' || sq.accion AS titulo,
-               'Operación guardada en la cola local' AS detalle,
-               sq.estado AS estado,
-               COALESCE(sq.error, '') AS error,
-               sq.actualizado_en AS fecha
-        FROM sync_queue sq
-        WHERE sq.estado IN ('pendiente', 'error')
-      ) AS pendiente
-      ORDER BY pendiente.fecha DESC
-      LIMIT 40
-    ''');
-
     final syncRow = (await db.rawQuery('''
       SELECT
         (
           SELECT COUNT(*)
-          FROM pedidos
-          WHERE sincronizado = 0
+          FROM pedidos p
+          WHERE ${scope.where} AND p.sincronizado = 0
         ) AS pedidos_pendientes,
         (
           SELECT COUNT(*)
-          FROM hojas_pedido
-          WHERE sincronizado = 0
+          FROM hojas_pedido h
+          WHERE h.sincronizado = 0
         ) AS hojas_pendientes,
         (
           SELECT COUNT(*)
@@ -434,7 +382,7 @@ class DashboardLocalDatasource {
           FROM pedido_historial
           WHERE LOWER(evento) LIKE '%sincronizaci%'
         ) AS ultima_sincronizacion
-    ''')).first;
+    ''', scope.args)).first;
 
     return DashboardData(
       totalPedidos: _int(metricas['total_pedidos']),
@@ -463,7 +411,6 @@ class DashboardLocalDatasource {
         operacionesEnCola: _int(syncRow['cola_pendiente']),
         errores: _int(syncRow['errores']),
         ultimaSincronizacion: _dateOrNull(syncRow['ultima_sincronizacion']),
-        pendientes: syncPendientesRows.map(_syncPendiente).toList(),
       ),
       hojaActiva: await _obtenerHojaActiva(db, hojaRow),
     );
@@ -601,7 +548,6 @@ class DashboardLocalDatasource {
         codigo: row['codigo'] as String? ?? '',
         marca: row['marca'] as String? ?? '',
         unidadBase: row['unidad_base'] as String? ?? 'UND',
-        presentacion: row['presentacion'] as String? ?? 'Presentación',
         cantidadRequerida: _int(row['requerida']),
         cantidadPreparada: _int(row['preparada']),
         pedidos: _int(row['pedidos']),
@@ -654,21 +600,9 @@ class DashboardLocalDatasource {
     nombre: row['nombre'] as String? ?? '',
     codigo: row['codigo'] as String? ?? '',
     unidadBase: row['unidad_base'] as String? ?? 'UND',
-    presentacion: row['presentacion'] as String? ?? 'Presentación',
     cantidadPendiente: _int(row['pendiente']),
     pedidosAfectados: _int(row['pedidos_afectados']),
   );
-
-  DashboardSyncPendiente _syncPendiente(Map<String, Object?> row) =>
-      DashboardSyncPendiente(
-        id: row['id'] as String? ?? '',
-        tipo: row['tipo'] as String? ?? 'operacion',
-        titulo: row['titulo'] as String? ?? '',
-        detalle: row['detalle'] as String? ?? '',
-        estado: row['estado'] as String? ?? 'pendiente',
-        fecha: _date(row['fecha']),
-        error: row['error'] as String? ?? '',
-      );
 
   DashboardPedidoListo _pedidoListo(Map<String, Object?> row) =>
       DashboardPedidoListo(

@@ -3,6 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../bloc/catalogo_state.dart';
 
+const _filterYellow = Color(0xFFFFC500);
+const _filterInk = Color(0xFF1F1F1F);
+const _filterMuted = Color(0xFF667085);
+const _filterBorder = Color(0xFFE1E5EA);
+const _filterSurface = Color(0xFFF7F8FA);
+
 class FiltrosCatalogo extends StatefulWidget {
   const FiltrosCatalogo({
     required this.state,
@@ -10,6 +16,7 @@ class FiltrosCatalogo extends StatefulWidget {
     required this.onFiltroRapido,
     required this.onFiltrosAplicados,
     required this.onFiltrosLimpiados,
+    this.modoPedido = false,
     super.key,
   });
 
@@ -18,6 +25,7 @@ class FiltrosCatalogo extends StatefulWidget {
   final ValueChanged<String> onFiltroRapido;
   final ValueChanged<CatalogoFiltros> onFiltrosAplicados;
   final VoidCallback onFiltrosLimpiados;
+  final bool modoPedido;
 
   @override
   State<FiltrosCatalogo> createState() => _FiltrosCatalogoState();
@@ -33,120 +41,302 @@ class _FiltrosCatalogoState extends State<FiltrosCatalogo> {
   }
 
   @override
+  void didUpdateWidget(covariant FiltrosCatalogo oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_busqueda.text != widget.state.busqueda) {
+      _busqueda.value = TextEditingValue(
+        text: widget.state.busqueda,
+        selection: TextSelection.collapsed(
+          offset: widget.state.busqueda.length,
+        ),
+      );
+    }
+  }
+
+  @override
   void dispose() {
     _busqueda.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.white,
-    child: Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: TextField(
-            controller: _busqueda,
-            onChanged: widget.onBusquedaCambiada,
-            decoration: InputDecoration(
-              hintText: 'Buscar por nombre, código, marca o atributo…',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: widget.state.busqueda.isEmpty
-                  ? null
-                  : IconButton(
-                      tooltip: 'Limpiar búsqueda',
-                      onPressed: () {
-                        _busqueda.clear();
-                        widget.onBusquedaCambiada('');
-                      },
-                      icon: const Icon(Icons.clear),
-                    ),
-              filled: true,
-              fillColor: const Color(0xFFF5F5F5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 52,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            children: _filtrosRapidos.map((filtro) {
-              final selected = widget.state.filtrosRapidos.contains(filtro);
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 7),
-                child: FilterChip(
-                  label: Text(filtro),
-                  selected: selected,
-                  onSelected: (_) => widget.onFiltroRapido(filtro),
-                  selectedColor: const Color(0xFFFFC500),
-                  checkmarkColor: Colors.black,
-                  side: BorderSide.none,
-                  visualDensity: VisualDensity.compact,
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  key: const Key('abrir_filtros_avanzados'),
-                  onPressed: _abrirFiltros,
-                  icon: Badge(
-                    isLabelVisible: widget.state.filtros.tieneActivos,
-                    child: const Icon(Icons.filter_list, size: 18),
-                  ),
-                  label: const Text('Filtros avanzados'),
-                  style: _buttonStyle,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  key: const Key('abrir_ordenamiento'),
-                  onPressed: _abrirOrden,
-                  icon: const Icon(Icons.sort, size: 18),
-                  label: Text(
-                    MediaQuery.sizeOf(context).width < 520
-                        ? 'Ordenar'
-                        : widget.state.filtros.orden,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  style: _buttonStyle,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
+  List<String> _unique(Iterable<String> values) {
+    final result =
+        values
+            .map((value) => value.trim())
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+    return result;
+  }
+
+  List<String> _categories(CatalogoFiltros filters) => _unique(
+    widget.state.productos
+        .where(
+          (item) =>
+              (filters.empresa == null || item.empresa == filters.empresa) &&
+              (filters.marca == null || item.marca == filters.marca),
+        )
+        .map((item) => item.categoria),
   );
 
-  ButtonStyle get _buttonStyle => OutlinedButton.styleFrom(
-    foregroundColor: const Color(0xFF1F1F1F),
-    side: const BorderSide(color: Color(0xFFE0E0E0)),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  List<String> _subcategories(CatalogoFiltros filters) => _unique(
+    widget.state.productos
+        .where(
+          (item) =>
+              (filters.empresa == null || item.empresa == filters.empresa) &&
+              (filters.marca == null || item.marca == filters.marca) &&
+              (filters.categoria == null ||
+                  item.categoria == filters.categoria),
+        )
+        .map((item) => item.subcategoria),
   );
+
+  void _changeCategory(String? value) {
+    var next = widget.state.filtros.copyWith(
+      categoria: value,
+      clearCategoria: value == null,
+    );
+    final available = _subcategories(next);
+    if (!available.contains(next.subcategoria)) {
+      next = next.copyWith(clearSubcategoria: true);
+    }
+    widget.onFiltrosAplicados(next);
+  }
+
+  void _changeSubcategory(String? value) {
+    widget.onFiltrosAplicados(
+      widget.state.filtros.copyWith(
+        subcategoria: value,
+        clearSubcategoria: value == null,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final categories = _categories(widget.state.filtros);
+    final subcategories = _subcategories(widget.state.filtros);
+    final quickFilters = widget.modoPedido
+        ? const ['Todos', 'Con precio', 'Sin precio']
+        : const ['Todos', 'Activos', 'Inactivos'];
+
+    return Material(
+      color: Colors.white,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: _filterBorder)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              key: const Key('catalogo_busqueda'),
+              controller: _busqueda,
+              onChanged: widget.onBusquedaCambiada,
+              decoration: InputDecoration(
+                hintText: widget.modoPedido
+                    ? 'Buscar producto para agregar al pedido…'
+                    : 'Buscar por nombre, código, marca o característica…',
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: widget.state.busqueda.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Limpiar búsqueda',
+                        onPressed: () {
+                          _busqueda.clear();
+                          widget.onBusquedaCambiada('');
+                        },
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                filled: true,
+                fillColor: _filterSurface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(13),
+                  borderSide: const BorderSide(color: _filterBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(13),
+                  borderSide: const BorderSide(color: _filterBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(13),
+                  borderSide: const BorderSide(
+                    color: _filterYellow,
+                    width: 1.6,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final narrow = constraints.maxWidth < 690;
+                final fieldWidth = narrow
+                    ? constraints.maxWidth
+                    : (constraints.maxWidth - 12) / 2;
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 10,
+                  children: [
+                    SizedBox(
+                      width: fieldWidth,
+                      child: _ClassificationSelect(
+                        key: const Key('catalogo_filtro_categoria'),
+                        label: 'Categoría',
+                        icon: Icons.category_outlined,
+                        value:
+                            categories.contains(widget.state.filtros.categoria)
+                            ? widget.state.filtros.categoria
+                            : null,
+                        options: categories,
+                        allLabel: 'Todas las categorías',
+                        onChanged: _changeCategory,
+                      ),
+                    ),
+                    SizedBox(
+                      width: fieldWidth,
+                      child: _ClassificationSelect(
+                        key: const Key('catalogo_filtro_subcategoria'),
+                        label: 'Subcategoría',
+                        icon: Icons.subdirectory_arrow_right_rounded,
+                        value:
+                            subcategories.contains(
+                              widget.state.filtros.subcategoria,
+                            )
+                            ? widget.state.filtros.subcategoria
+                            : null,
+                        options: subcategories,
+                        allLabel: widget.state.filtros.categoria == null
+                            ? 'Todas las subcategorías'
+                            : 'Todas en ${widget.state.filtros.categoria}',
+                        onChanged: _changeSubcategory,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final actions = Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      key: const Key('abrir_filtros_avanzados'),
+                      onPressed: _abrirFiltros,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _filterInk,
+                        side: const BorderSide(color: _filterYellow),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                      ),
+                      icon: Badge(
+                        isLabelVisible:
+                            widget.state.filtros.cantidadActivos > 0,
+                        label: Text('${widget.state.filtros.cantidadActivos}'),
+                        backgroundColor: _filterYellow,
+                        textColor: Colors.black,
+                        child: const Icon(Icons.tune_rounded, size: 18),
+                      ),
+                      label: const Text('Más filtros'),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key('abrir_ordenamiento'),
+                      onPressed: _abrirOrden,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _filterInk,
+                        side: const BorderSide(color: _filterBorder),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                      ),
+                      icon: const Icon(Icons.sort_rounded, size: 18),
+                      label: Text(
+                        constraints.maxWidth < 560
+                            ? 'Ordenar'
+                            : widget.state.filtros.orden,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                );
+
+                final quick = SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: quickFilters.map((filter) {
+                      final selected = widget.state.filtrosRapidos.contains(
+                        filter,
+                      );
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 7),
+                        child: FilterChip(
+                          label: Text(filter),
+                          selected: selected,
+                          showCheckmark: false,
+                          onSelected: (_) => widget.onFiltroRapido(filter),
+                          selectedColor: _filterYellow,
+                          backgroundColor: _filterSurface,
+                          side: BorderSide(
+                            color: selected ? _filterYellow : _filterBorder,
+                          ),
+                          labelStyle: GoogleFonts.inter(
+                            color: _filterInk,
+                            fontSize: 12,
+                            fontWeight: selected
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                );
+
+                if (constraints.maxWidth >= 760) {
+                  return Row(
+                    children: [
+                      Expanded(child: quick),
+                      const SizedBox(width: 12),
+                      actions,
+                    ],
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [quick, const SizedBox(height: 9), actions],
+                );
+              },
+            ),
+            if (widget.state.filtros.tieneActivos) ...[
+              const SizedBox(height: 10),
+              _ActiveFilters(
+                filters: widget.state.filtros,
+                onChanged: widget.onFiltrosAplicados,
+                onClear: widget.onFiltrosLimpiados,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
   Future<void> _abrirFiltros() async {
     final result = await showDialog<CatalogoFiltros>(
       context: context,
-      barrierColor: Colors.black54,
+      barrierColor: Colors.black.withValues(alpha: 0.58),
       builder: (_) => _FiltrosAvanzadosDialog(
-        inicial: widget.state.filtros,
-        empresas: widget.state.empresas,
-        marcas: widget.state.marcas,
-        categorias: widget.state.categorias,
+        state: widget.state,
+        modoPedido: widget.modoPedido,
       ),
     );
     if (result != null) widget.onFiltrosAplicados(result);
@@ -155,48 +345,166 @@ class _FiltrosCatalogoState extends State<FiltrosCatalogo> {
   Future<void> _abrirOrden() async {
     final result = await showDialog<String>(
       context: context,
-      barrierColor: Colors.black54,
-      builder: (_) =>
-          _OrdenamientoDialog(ordenActual: widget.state.filtros.orden),
+      barrierColor: Colors.black.withValues(alpha: 0.58),
+      builder: (_) => _OrdenamientoDialog(
+        ordenActual: widget.state.filtros.orden,
+        modoPedido: widget.modoPedido,
+      ),
     );
     if (result != null) {
-      final f = widget.state.filtros;
-      widget.onFiltrosAplicados(
-        CatalogoFiltros(
-          empresa: f.empresa,
-          marca: f.marca,
-          categoria: f.categoria,
-          estado: f.estado,
-          precio: f.precio,
-          imagen: f.imagen,
-          orden: result,
-        ),
-      );
+      widget.onFiltrosAplicados(widget.state.filtros.copyWith(orden: result));
     }
   }
+}
 
-  static const _filtrosRapidos = [
-    'Todos',
-    'Activos',
-    'Inactivos',
-    'Con precio',
-    'Sin precio',
-    'Con imagen',
-    'Sin imagen',
-    'Con variantes',
-    'Sin variantes',
-  ];
+class _ClassificationSelect extends StatelessWidget {
+  const _ClassificationSelect({
+    required super.key,
+    required this.label,
+    required this.icon,
+    required this.value,
+    required this.options,
+    required this.allLabel,
+    required this.onChanged,
+  });
+
+  final String label;
+  final IconData icon;
+  final String? value;
+  final List<String> options;
+  final String allLabel;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) => DropdownButtonFormField<String>(
+    key: ValueKey('$label-$value-${options.length}'),
+    initialValue: options.contains(value) ? value : null,
+    isExpanded: true,
+    decoration: InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, size: 19),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _filterBorder),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _filterYellow, width: 1.6),
+      ),
+    ),
+    items: [
+      DropdownMenuItem<String>(
+        value: '__all__',
+        child: Text(allLabel, overflow: TextOverflow.ellipsis),
+      ),
+      ...options.map(
+        (item) => DropdownMenuItem<String>(
+          value: item,
+          child: Text(item, overflow: TextOverflow.ellipsis),
+        ),
+      ),
+    ],
+    onChanged: (selected) {
+      onChanged(selected == '__all__' ? null : selected);
+    },
+  );
+}
+
+class _ActiveFilters extends StatelessWidget {
+  const _ActiveFilters({
+    required this.filters,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  final CatalogoFiltros filters;
+  final ValueChanged<CatalogoFiltros> onChanged;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = <Widget>[
+      if (filters.empresa != null)
+        _chip(
+          'Empresa: ${filters.empresa}',
+          () =>
+              onChanged(filters.copyWith(clearEmpresa: true, clearMarca: true)),
+        ),
+      if (filters.marca != null)
+        _chip(
+          'Marca: ${filters.marca}',
+          () => onChanged(filters.copyWith(clearMarca: true)),
+        ),
+      if (filters.categoria != null)
+        _chip(
+          'Categoría: ${filters.categoria}',
+          () => onChanged(
+            filters.copyWith(clearCategoria: true, clearSubcategoria: true),
+          ),
+        ),
+      if (filters.subcategoria != null)
+        _chip(
+          'Subcategoría: ${filters.subcategoria}',
+          () => onChanged(filters.copyWith(clearSubcategoria: true)),
+        ),
+      if (filters.estado != null)
+        _chip(
+          filters.estado!,
+          () => onChanged(filters.copyWith(clearEstado: true)),
+        ),
+      if (filters.precio != null)
+        _chip(
+          filters.precio!,
+          () => onChanged(filters.copyWith(clearPrecio: true)),
+        ),
+      if (filters.imagen != null)
+        _chip(
+          filters.imagen!,
+          () => onChanged(filters.copyWith(clearImagen: true)),
+        ),
+    ];
+
+    return Wrap(
+      spacing: 7,
+      runSpacing: 7,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        ...chips,
+        TextButton.icon(
+          onPressed: onClear,
+          style: TextButton.styleFrom(foregroundColor: _filterMuted),
+          icon: const Icon(Icons.clear_all_rounded, size: 17),
+          label: const Text('Limpiar'),
+        ),
+      ],
+    );
+  }
+
+  Widget _chip(String label, VoidCallback onDeleted) => InputChip(
+    label: Text(label),
+    onDeleted: onDeleted,
+    deleteIcon: const Icon(Icons.close_rounded, size: 16),
+    backgroundColor: const Color(0xFFFFF8DD),
+    side: const BorderSide(color: _filterYellow),
+    labelStyle: GoogleFonts.inter(
+      color: _filterInk,
+      fontSize: 10,
+      fontWeight: FontWeight.w700,
+    ),
+  );
 }
 
 class _FiltrosAvanzadosDialog extends StatefulWidget {
   const _FiltrosAvanzadosDialog({
-    required this.inicial,
-    required this.empresas,
-    required this.marcas,
-    required this.categorias,
+    required this.state,
+    required this.modoPedido,
   });
-  final CatalogoFiltros inicial;
-  final List<String> empresas, marcas, categorias;
+
+  final CatalogoState state;
+  final bool modoPedido;
 
   @override
   State<_FiltrosAvanzadosDialog> createState() =>
@@ -204,260 +512,379 @@ class _FiltrosAvanzadosDialog extends StatefulWidget {
 }
 
 class _FiltrosAvanzadosDialogState extends State<_FiltrosAvanzadosDialog> {
-  String? empresa, marca, categoria, estado, precio, imagen;
-  late String orden;
+  late CatalogoFiltros _draft;
 
   @override
   void initState() {
     super.initState();
-    final f = widget.inicial;
-    empresa = f.empresa;
-    marca = f.marca;
-    categoria = f.categoria;
-    estado = f.estado;
-    precio = f.precio;
-    imagen = f.imagen;
-    orden = f.orden;
+    _draft = widget.state.filtros;
+  }
+
+  List<String> _unique(Iterable<String> values) {
+    final result =
+        values
+            .map((value) => value.trim())
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+    return result;
+  }
+
+  List<String> get _companies =>
+      _unique(widget.state.productos.map((item) => item.empresa));
+
+  List<String> _brands(CatalogoFiltros filters) => _unique(
+    widget.state.productos
+        .where(
+          (item) => filters.empresa == null || item.empresa == filters.empresa,
+        )
+        .map((item) => item.marca),
+  );
+
+  List<String> _categories(CatalogoFiltros filters) => _unique(
+    widget.state.productos
+        .where(
+          (item) =>
+              (filters.empresa == null || item.empresa == filters.empresa) &&
+              (filters.marca == null || item.marca == filters.marca),
+        )
+        .map((item) => item.categoria),
+  );
+
+  List<String> _subcategories(CatalogoFiltros filters) => _unique(
+    widget.state.productos
+        .where(
+          (item) =>
+              (filters.empresa == null || item.empresa == filters.empresa) &&
+              (filters.marca == null || item.marca == filters.marca) &&
+              (filters.categoria == null ||
+                  item.categoria == filters.categoria),
+        )
+        .map((item) => item.subcategoria),
+  );
+
+  CatalogoFiltros _normalize(CatalogoFiltros value) {
+    var result = value;
+    if (!_brands(result).contains(result.marca)) {
+      result = result.copyWith(clearMarca: true);
+    }
+    if (!_categories(result).contains(result.categoria)) {
+      result = result.copyWith(clearCategoria: true, clearSubcategoria: true);
+    }
+    if (!_subcategories(result).contains(result.subcategoria)) {
+      result = result.copyWith(clearSubcategoria: true);
+    }
+    return result;
+  }
+
+  void _update(CatalogoFiltros value) {
+    setState(() => _draft = _normalize(value));
   }
 
   @override
-  Widget build(BuildContext context) => Dialog(
-    backgroundColor: Colors.transparent,
-    insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 680, maxHeight: 720),
-      child: Container(
-        decoration: BoxDecoration(
+  Widget build(BuildContext context) {
+    final brands = _brands(_draft);
+    final categories = _categories(_draft);
+    final subcategories = _subcategories(_draft);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760, maxHeight: 760),
+        child: Material(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: .12),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 14, 16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFC500),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Filtros avanzados',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 20,
-                        color: const Color(0xFF1F1F1F),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(22, 18, 14, 18),
+                color: _filterInk,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: _filterYellow,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.tune_rounded,
+                        color: Colors.black,
                       ),
                     ),
-                  ),
-                  IconButton.filledTonal(
-                    tooltip: 'Cerrar',
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, size: 20),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final fieldWidth = constraints.maxWidth < 520
-                        ? constraints.maxWidth
-                        : (constraints.maxWidth - 12) / 2;
-                    return Wrap(
-                      spacing: 12,
-                      runSpacing: 16,
-                      children: [
-                        _tile(
-                          fieldWidth,
-                          Icons.business,
-                          'Empresa',
-                          empresa,
-                          widget.empresas,
-                          (v) => empresa = v,
-                        ),
-                        _tile(
-                          fieldWidth,
-                          Icons.bookmark_outline,
-                          'Marca',
-                          marca,
-                          widget.marcas,
-                          (v) => marca = v,
-                        ),
-                        _tile(
-                          fieldWidth,
-                          Icons.category_outlined,
-                          'Categoría',
-                          categoria,
-                          widget.categorias,
-                          (v) => categoria = v,
-                        ),
-                        _tile(
-                          fieldWidth,
-                          Icons.toggle_on_outlined,
-                          'Estado',
-                          estado,
-                          const ['Activo', 'Inactivo'],
-                          (v) => estado = v,
-                        ),
-                        _tile(
-                          fieldWidth,
-                          Icons.attach_money,
-                          'Precio',
-                          precio,
-                          const ['Con precio', 'Sin precio'],
-                          (v) => precio = v,
-                        ),
-                        _tile(
-                          fieldWidth,
-                          Icons.image_outlined,
-                          'Imagen',
-                          imagen,
-                          const ['Con imagen', 'Sin imagen'],
-                          (v) => imagen = v,
-                        ),
-                      ],
-                    );
-                  },
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.modoPedido
+                                ? 'Filtros para el pedido'
+                                : 'Más filtros del catálogo',
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            'Combina origen comercial y clasificación sin '
+                            'saturar la pantalla principal.',
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFFB7BAC1),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Cerrar',
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () =>
-                          Navigator.pop(context, const CatalogoFiltros()),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF757575),
-                        side: const BorderSide(color: Color(0xFFE0E0E0)),
-                        backgroundColor: const Color(0xFFF8F9FA),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _DialogSectionTitle(
+                        'Origen comercial',
+                        Icons.business_outlined,
                       ),
-                      icon: const Icon(Icons.clear_all, size: 18),
-                      label: const Text('Limpiar todo'),
-                    ),
+                      _DialogGrid(
+                        children: [
+                          _DialogSelect(
+                            label: 'Empresa',
+                            value: _companies.contains(_draft.empresa)
+                                ? _draft.empresa
+                                : null,
+                            options: _companies,
+                            allLabel: 'Todas las empresas',
+                            onChanged: (value) => _update(
+                              _draft.copyWith(
+                                empresa: value,
+                                clearEmpresa: value == null,
+                              ),
+                            ),
+                          ),
+                          _DialogSelect(
+                            label: 'Marca',
+                            value: brands.contains(_draft.marca)
+                                ? _draft.marca
+                                : null,
+                            options: brands,
+                            allLabel: _draft.empresa == null
+                                ? 'Todas las marcas'
+                                : 'Todas en ${_draft.empresa}',
+                            onChanged: (value) => _update(
+                              _draft.copyWith(
+                                marca: value,
+                                clearMarca: value == null,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      const _DialogSectionTitle(
+                        'Clasificación',
+                        Icons.account_tree_outlined,
+                      ),
+                      _DialogGrid(
+                        children: [
+                          _DialogSelect(
+                            label: 'Categoría',
+                            value: categories.contains(_draft.categoria)
+                                ? _draft.categoria
+                                : null,
+                            options: categories,
+                            allLabel: 'Todas las categorías',
+                            onChanged: (value) => _update(
+                              _draft.copyWith(
+                                categoria: value,
+                                clearCategoria: value == null,
+                              ),
+                            ),
+                          ),
+                          _DialogSelect(
+                            label: 'Subcategoría',
+                            value: subcategories.contains(_draft.subcategoria)
+                                ? _draft.subcategoria
+                                : null,
+                            options: subcategories,
+                            allLabel: 'Todas las subcategorías',
+                            onChanged: (value) => _update(
+                              _draft.copyWith(
+                                subcategoria: value,
+                                clearSubcategoria: value == null,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      _DialogSectionTitle(
+                        widget.modoPedido
+                            ? 'Condición de venta'
+                            : 'Disponibilidad y contenido',
+                        Icons.inventory_2_outlined,
+                      ),
+                      _DialogGrid(
+                        children: [
+                          if (!widget.modoPedido)
+                            _DialogSelect(
+                              label: 'Estado',
+                              value: _draft.estado,
+                              options: const ['Activo', 'Inactivo'],
+                              allLabel: 'Todos los estados',
+                              onChanged: (value) => _update(
+                                _draft.copyWith(
+                                  estado: value,
+                                  clearEstado: value == null,
+                                ),
+                              ),
+                            ),
+                          _DialogSelect(
+                            label: 'Precio',
+                            value: _draft.precio,
+                            options: const ['Con precio', 'Sin precio'],
+                            allLabel: 'Con y sin precio',
+                            onChanged: (value) => _update(
+                              _draft.copyWith(
+                                precio: value,
+                                clearPrecio: value == null,
+                              ),
+                            ),
+                          ),
+                          if (!widget.modoPedido)
+                            _DialogSelect(
+                              label: 'Imagen',
+                              value: _draft.imagen,
+                              options: const ['Con imagen', 'Sin imagen'],
+                              allLabel: 'Con y sin imagen',
+                              onChanged: (value) => _update(
+                                _draft.copyWith(
+                                  imagen: value,
+                                  clearImagen: value == null,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: () => Navigator.pop(
-                        context,
-                        CatalogoFiltros(
-                          empresa: empresa,
-                          marca: marca,
-                          categoria: categoria,
-                          estado: estado,
-                          precio: precio,
-                          imagen: imagen,
-                          orden: orden,
-                        ),
-                      ),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFFFC500),
-                        foregroundColor: Colors.black,
-                        elevation: 2,
-                        shadowColor: const Color(
-                          0xFFFFC500,
-                        ).withValues(alpha: .4),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      icon: const Icon(Icons.check, size: 18),
-                      label: const Text('Aplicar filtros'),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => setState(
+                          () => _draft = CatalogoFiltros(orden: _draft.orden),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _filterMuted,
+                          side: const BorderSide(color: _filterBorder),
+                          minimumSize: const Size(0, 46),
+                        ),
+                        icon: const Icon(Icons.clear_all_rounded),
+                        label: const Text('Limpiar'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () => Navigator.pop(context, _draft),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: _filterYellow,
+                          foregroundColor: Colors.black,
+                          minimumSize: const Size(0, 46),
+                        ),
+                        icon: const Icon(Icons.check_rounded),
+                        label: const Text(
+                          'Aplicar filtros',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
+}
 
-  Widget _tile(
-    double width,
-    IconData icon,
-    String label,
-    String? value,
-    List<String> items,
-    ValueChanged<String?> onChanged, {
-    bool allowAll = true,
-  }) => SizedBox(
-    width: width,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+class _DialogGrid extends StatelessWidget {
+  const _DialogGrid({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final width = constraints.maxWidth < 560
+          ? constraints.maxWidth
+          : (constraints.maxWidth - 12) / 2;
+      return Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: children
+            .map((child) => SizedBox(width: width, child: child))
+            .toList(),
+      );
+    },
+  );
+}
+
+class _DialogSectionTitle extends StatelessWidget {
+  const _DialogSectionTitle(this.label, this.icon);
+
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Row(
       children: [
-        Row(
-          children: [
-            Icon(icon, size: 18, color: const Color(0xFF757575)),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-                color: const Color(0xFF757575),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: items.contains(value) ? value : null,
-          isExpanded: true,
-          hint: Text(allowAll ? 'Todos' : 'Seleccionar'),
-          items: [
-            if (allowAll)
-              const DropdownMenuItem(value: '__todos__', child: Text('Todos')),
-            ...items.map(
-              (item) => DropdownMenuItem(
-                value: item,
-                child: Text(item, overflow: TextOverflow.ellipsis),
-              ),
-            ),
-          ],
-          onChanged: (selected) => setState(
-            () => onChanged(selected == '__todos__' ? null : selected),
+        Container(
+          width: 4,
+          height: 20,
+          decoration: BoxDecoration(
+            color: _filterYellow,
+            borderRadius: BorderRadius.circular(2),
           ),
-          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF757575)),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: const Color(0xFFF8F9FA),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFEEEEEE)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFEEEEEE)),
-            ),
+        ),
+        const SizedBox(width: 9),
+        Icon(icon, size: 18, color: _filterMuted),
+        const SizedBox(width: 7),
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            color: _filterInk,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],
@@ -465,192 +892,225 @@ class _FiltrosAvanzadosDialogState extends State<_FiltrosAvanzadosDialog> {
   );
 }
 
-class _OrdenamientoDialog extends StatelessWidget {
-  const _OrdenamientoDialog({required this.ordenActual});
-  final String ordenActual;
+class _DialogSelect extends StatelessWidget {
+  const _DialogSelect({
+    required this.label,
+    required this.value,
+    required this.options,
+    required this.allLabel,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String? value;
+  final List<String> options;
+  final String allLabel;
+  final ValueChanged<String?> onChanged;
 
   @override
-  Widget build(BuildContext context) => Dialog(
-    backgroundColor: Colors.transparent,
-    insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 520, maxHeight: 680),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: .12),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 14, 16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFC500),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Ordenar productos',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
-                  IconButton.filledTonal(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, size: 20),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                padding: const EdgeInsets.all(20),
-                children: _opcionesOrden.map((opcion) {
-                  final selected = ordenActual == opcion.title;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: InkWell(
-                      onTap: () => Navigator.pop(context, opcion.title),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 13,
-                        ),
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? const Color(0xFFFFC500).withValues(alpha: .11)
-                              : const Color(0xFFF8F9FA),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: selected
-                                ? const Color(0xFFFFC500)
-                                : Colors.transparent,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? const Color(
-                                        0xFFFFC500,
-                                      ).withValues(alpha: .2)
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                opcion.icon,
-                                size: 20,
-                                color: const Color(0xFF616161),
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    opcion.title,
-                                    style: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    opcion.subtitle,
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      color: const Color(0xFF9E9E9E),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (selected)
-                              const CircleAvatar(
-                                radius: 12,
-                                backgroundColor: Color(0xFFFFC500),
-                                child: Icon(
-                                  Icons.check,
-                                  size: 16,
-                                  color: Colors.black,
-                                ),
-                              )
-                            else
-                              Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: const Color(0xFFBDBDBD),
-                                    width: 1.5,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-        ),
+  Widget build(BuildContext context) => DropdownButtonFormField<String>(
+    key: ValueKey('dialog-$label-$value-${options.length}'),
+    initialValue: options.contains(value) ? value : null,
+    isExpanded: true,
+    decoration: InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: _filterSurface,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _filterBorder),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _filterYellow, width: 1.6),
       ),
     ),
+    items: [
+      DropdownMenuItem<String>(
+        value: '__all__',
+        child: Text(allLabel, overflow: TextOverflow.ellipsis),
+      ),
+      ...options.map(
+        (item) => DropdownMenuItem<String>(
+          value: item,
+          child: Text(item, overflow: TextOverflow.ellipsis),
+        ),
+      ),
+    ],
+    onChanged: (selected) {
+      onChanged(selected == '__all__' ? null : selected);
+    },
   );
 }
 
-class _OrdenOpcion {
-  const _OrdenOpcion(this.title, this.icon, this.subtitle);
+class _OrdenamientoDialog extends StatelessWidget {
+  const _OrdenamientoDialog({
+    required this.ordenActual,
+    required this.modoPedido,
+  });
+
+  final String ordenActual;
+  final bool modoPedido;
+
+  @override
+  Widget build(BuildContext context) {
+    final options = modoPedido
+        ? _orderOptions
+              .where((item) => item.title != 'Activos primero')
+              .toList()
+        : _orderOptions;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 30),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 540, maxHeight: 680),
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(22, 18, 14, 18),
+                color: _filterInk,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: _filterYellow,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.sort_rounded),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Ordenar productos',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.all(18),
+                  itemCount: options.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final option = options[index];
+                    final selected = ordenActual == option.title;
+                    return Material(
+                      color: selected
+                          ? const Color(0xFFFFF8DD)
+                          : _filterSurface,
+                      borderRadius: BorderRadius.circular(14),
+                      child: InkWell(
+                        onTap: () => Navigator.pop(context, option.title),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.all(13),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: selected ? _filterYellow : _filterBorder,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(option.icon, color: _filterMuted),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      option.title,
+                                      style: GoogleFonts.inter(
+                                        color: _filterInk,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    Text(
+                                      option.subtitle,
+                                      style: GoogleFonts.inter(
+                                        color: _filterMuted,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                selected
+                                    ? Icons.check_circle_rounded
+                                    : Icons.circle_outlined,
+                                color: selected ? _filterYellow : _filterBorder,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OrderOption {
+  const _OrderOption(this.title, this.icon, this.subtitle);
+
   final String title;
   final IconData icon;
   final String subtitle;
 }
 
-const _opcionesOrden = [
-  _OrdenOpcion('Nombre A-Z', Icons.sort_by_alpha, 'Alfabético ascendente'),
-  _OrdenOpcion('Nombre Z-A', Icons.sort_by_alpha, 'Alfabético descendente'),
-  _OrdenOpcion(
+const _orderOptions = [
+  _OrderOption('Nombre A-Z', Icons.sort_by_alpha, 'Alfabético ascendente'),
+  _OrderOption('Nombre Z-A', Icons.sort_by_alpha, 'Alfabético descendente'),
+  _OrderOption(
     'Precio menor a mayor',
-    Icons.arrow_upward,
+    Icons.arrow_upward_rounded,
     'Más económico primero',
   ),
-  _OrdenOpcion(
+  _OrderOption(
     'Precio mayor a menor',
-    Icons.arrow_downward,
-    'Más caro primero',
+    Icons.arrow_downward_rounded,
+    'Mayor precio primero',
   ),
-  _OrdenOpcion('Más recientes', Icons.access_time, 'Últimos agregados'),
-  _OrdenOpcion(
+  _OrderOption(
+    'Más recientes',
+    Icons.access_time_rounded,
+    'Últimos productos agregados',
+  ),
+  _OrderOption(
     'Activos primero',
-    Icons.check_circle_outline,
-    'Productos activos arriba',
+    Icons.check_circle_outline_rounded,
+    'Productos activos al inicio',
   ),
 ];
