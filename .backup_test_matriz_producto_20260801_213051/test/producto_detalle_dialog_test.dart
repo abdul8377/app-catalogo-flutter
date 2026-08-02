@@ -106,34 +106,6 @@ class _DetalleRepositoryFake implements CatalogoRepository {
           ),
         ],
       ),
-      ProductoVariante(
-        id: 'var-3',
-        sku: 'PER-025X2',
-        codigoProveedor: 'FAB-003',
-        nombreCorto: 'Perno 1/4 × 2',
-        atributos: [
-          AtributoProductoVariante(nombre: 'Largo', valor: '2', unidad: 'in'),
-          AtributoProductoVariante(
-            nombre: 'Diámetro',
-            valor: '1/4',
-            unidad: 'in',
-          ),
-        ],
-      ),
-      ProductoVariante(
-        id: 'var-4',
-        sku: 'PER-038X2',
-        codigoProveedor: 'FAB-004',
-        nombreCorto: 'Perno 3/8 × 2',
-        atributos: [
-          AtributoProductoVariante(nombre: 'Largo', valor: '2', unidad: 'in'),
-          AtributoProductoVariante(
-            nombre: 'Diámetro',
-            valor: '3/8',
-            unidad: 'in',
-          ),
-        ],
-      ),
     ],
     presentaciones: const [
       PresentacionProducto(nombre: 'Ciento', unidad: '100 UND'),
@@ -148,8 +120,8 @@ class _DetalleRepositoryFake implements CatalogoRepository {
           'equivalent_to': 100,
           'minimum_order': 1,
           'purchase_increment': 1,
-          'assigned_variant_ids': ['var-1', 'var-2', 'var-3', 'var-4'],
-          'default_variant_ids': ['var-1', 'var-2', 'var-3', 'var-4'],
+          'assigned_variant_ids': ['var-1', 'var-2'],
+          'default_variant_ids': ['var-1', 'var-2'],
           'variant_rules': [],
         },
       ],

@@ -345,10 +345,9 @@ class ProductoCard extends StatelessWidget {
           icon: const Icon(Icons.add_shopping_cart, size: 16),
           label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Agregar')),
           style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.black,
-            backgroundColor: const Color(0xFFFFC500),
-            shadowColor: const Color(0xFFFFC500),
-            elevation: 1,
+            foregroundColor: Colors.white,
+            backgroundColor: const Color(0xFF1565C0),
+            elevation: 2,
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 9),
             minimumSize: const Size(0, 38),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
