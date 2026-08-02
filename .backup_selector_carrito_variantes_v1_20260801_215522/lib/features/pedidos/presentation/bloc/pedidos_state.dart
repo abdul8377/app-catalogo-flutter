@@ -149,16 +149,13 @@ class PedidosState extends Equatable {
     orden: orden,
   );
 
-  int get lineasCarrito => carrito.length;
-  int get cantidadPresentaciones =>
+  int get cantidadProductos =>
       carrito.fold(0, (total, item) => total + item.cantidad);
-  int get cantidadProductos => cantidadPresentaciones;
   double get subtotalConocido =>
       carrito.fold(0, (total, item) => total + (item.subtotal ?? 0));
-  int get lineasSinPrecio =>
+  int get productosSinPrecio =>
       carrito.where((item) => item.precioUnitario == null).length;
-  int get productosSinPrecio => lineasSinPrecio;
-  bool get totalParcial => lineasSinPrecio > 0;
+  bool get totalParcial => productosSinPrecio > 0;
 
   PedidosState copyWith({
     bool? loading,

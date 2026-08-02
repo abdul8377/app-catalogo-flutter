@@ -254,10 +254,9 @@ class _CarritoBar extends StatelessWidget {
   Widget build(BuildContext context) => SafeArea(
     top: false,
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: const Border(top: BorderSide(color: Color(0xFFE1E5EA))),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: .08),
@@ -269,40 +268,31 @@ class _CarritoBar extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 46,
-            height: 46,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               color: const Color(0xFFFFC500),
-              borderRadius: BorderRadius.circular(13),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Stack(
               alignment: Alignment.center,
               children: [
-                const Icon(
-                  Icons.shopping_cart_rounded,
-                  color: Colors.black,
-                  size: 24,
-                ),
-                if (state.cantidadPresentaciones > 0)
+                const Icon(Icons.shopping_cart, color: Colors.black, size: 24),
+                if (state.cantidadProductos > 0)
                   Positioned(
-                    right: 1,
-                    top: 1,
+                    right: 2,
+                    top: 2,
                     child: Container(
-                      constraints: const BoxConstraints(minWidth: 18),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 2,
-                      ),
+                      padding: const EdgeInsets.all(4),
                       decoration: const BoxDecoration(
-                        color: Color(0xFFB42318),
+                        color: Colors.red,
                         shape: BoxShape.circle,
                       ),
                       child: Text(
-                        '${state.cantidadPresentaciones}',
-                        textAlign: TextAlign.center,
+                        '${state.cantidadProductos}',
                         style: GoogleFonts.inter(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
@@ -311,63 +301,54 @@ class _CarritoBar extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  state.carrito.isEmpty
+                  state.cantidadProductos == 0
                       ? 'Carrito vacío'
-                      : '${state.lineasCarrito} '
-                            '${state.lineasCarrito == 1 ? 'producto' : 'productos'}'
-                            ' · ${state.cantidadPresentaciones} '
-                            '${state.cantidadPresentaciones == 1 ? 'presentación' : 'presentaciones'}',
+                      : '${state.cantidadProductos} producto(s)',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
-                    color: const Color(0xFF1F1F1F),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  state.totalParcial
-                      ? 'Total pendiente · ${state.lineasSinPrecio} '
-                            '${state.lineasSinPrecio == 1 ? 'línea por cotizar' : 'líneas por cotizar'}'
-                      : 'Total: S/ ${state.subtotalConocido.toStringAsFixed(2)}',
+                  '${state.totalParcial ? 'Total parcial' : 'Total'}: S/ ${state.subtotalConocido.toStringAsFixed(2)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 15,
-                    color: state.totalParcial
-                        ? const Color(0xFFB54708)
-                        : const Color(0xFF1F1F1F),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: const Color(0xFFFFC500),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          FilledButton.icon(
+          ElevatedButton.icon(
             key: const Key('revisar_carrito'),
             onPressed: onVerCarrito,
-            icon: const Icon(Icons.arrow_forward_rounded, size: 17),
-            label: const Text('Revisar'),
-            style: FilledButton.styleFrom(
+            icon: const Icon(Icons.arrow_forward_ios, size: 16),
+            label: const Text('Ver carrito'),
+            style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFFC500),
               foregroundColor: Colors.black,
               disabledBackgroundColor: const Color(0xFFE0E0E0),
-              minimumSize: const Size(120, 44),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
               textStyle: GoogleFonts.inter(
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
               ),
             ),
           ),

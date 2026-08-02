@@ -170,31 +170,16 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
     Emitter<PedidosState> emit,
   ) {
     final index = state.carrito.indexWhere(
-      (item) => item.claveCarrito == event.item.claveCarrito,
+      (item) =>
+          item.productoId == event.item.productoId &&
+          item.presentacion == event.item.presentacion,
     );
     final items = [...state.carrito];
     if (index < 0) {
       items.add(event.item);
     } else {
-      final current = items[index];
-      final quantity = current.cantidad + event.item.cantidad;
-      final option = current.opcionSeleccionada;
-      if (option != null && !option.cantidadValida(quantity)) {
-        emit(
-          state.copyWith(
-            error:
-                'La cantidad acumulada no respeta el pedido mínimo o el incremento.',
-          ),
-        );
-        return;
-      }
-      final price = option?.precioPara(quantity) ?? current.precioUnitario;
-      items[index] = current.copyWith(
-        cantidad: quantity,
-        precioUnitario: price,
-        limpiarPrecio:
-            option != null &&
-            (option.configuracionPrecio == 'por_cotizar' || price == null),
+      items[index] = items[index].copyWith(
+        cantidad: items[index].cantidad + event.item.cantidad,
       );
     }
     emit(state.copyWith(carrito: items, limpiarError: true));
@@ -209,28 +194,11 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
     if (event.cantidad <= 0) {
       items.removeAt(event.index);
     } else {
-      final current = items[event.index];
-      final option = current.opcionSeleccionada;
-      if (option != null && !option.cantidadValida(event.cantidad)) {
-        emit(
-          state.copyWith(
-            error:
-                'La cantidad debe respetar el pedido mínimo y el incremento.',
-          ),
-        );
-        return;
-      }
-      final price =
-          option?.precioPara(event.cantidad) ?? current.precioUnitario;
-      items[event.index] = current.copyWith(
+      items[event.index] = items[event.index].copyWith(
         cantidad: event.cantidad,
-        precioUnitario: price,
-        limpiarPrecio:
-            option != null &&
-            (option.configuracionPrecio == 'por_cotizar' || price == null),
       );
     }
-    emit(state.copyWith(carrito: items, limpiarError: true));
+    emit(state.copyWith(carrito: items));
   }
 
   void _cambiarPresentacion(
@@ -239,70 +207,18 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
   ) {
     if (event.index < 0 || event.index >= state.carrito.length) return;
     final items = [...state.carrito];
-    final current = items[event.index];
-    final option = current.opciones
-        .where(
-          (candidate) =>
-              candidate.id == event.presentacion ||
-              candidate.nombre == event.presentacion,
-        )
+    final item = items[event.index];
+    final opcion = item.opciones
+        .where((opcion) => opcion.nombre == event.presentacion)
         .firstOrNull;
-    if (option == null) return;
-    if (!option.cantidadValida(current.cantidad)) {
-      emit(
-        state.copyWith(
-          error: 'La cantidad actual no es válida para esa presentación.',
-        ),
-      );
-      return;
-    }
-    final price = option.precioPara(current.cantidad);
-    final updated = current.copyWith(
-      presentacionId: option.id,
-      presentacion: option.nombre,
-      equivalencia: option.equivalencia,
-      precioListaId: option.listaPrecioId,
-      precioListaNombre: option.listaPrecioNombre,
-      precioConfiguracion: option.configuracionPrecio,
-      precioUnitario: price,
-      limpiarPrecio:
-          option.configuracionPrecio == 'por_cotizar' || price == null,
+    if (opcion == null) return;
+    items[event.index] = item.copyWith(
+      presentacion: opcion.nombre,
+      equivalencia: opcion.equivalencia,
+      precioUnitario: opcion.precio,
+      limpiarPrecio: opcion.precio == null,
     );
-
-    final duplicateIndex = items.indexWhere(
-      (candidate) =>
-          candidate != current &&
-          candidate.claveCarrito == updated.claveCarrito,
-    );
-    if (duplicateIndex >= 0) {
-      final duplicate = items[duplicateIndex];
-      final quantity = duplicate.cantidad + updated.cantidad;
-      final duplicateOption = duplicate.opcionSeleccionada;
-      if (duplicateOption != null &&
-          !duplicateOption.cantidadValida(quantity)) {
-        emit(
-          state.copyWith(
-            error:
-                'No se pueden unir las líneas porque la cantidad resultante no es válida.',
-          ),
-        );
-        return;
-      }
-      final mergedPrice =
-          duplicateOption?.precioPara(quantity) ?? duplicate.precioUnitario;
-      items[duplicateIndex] = duplicate.copyWith(
-        cantidad: quantity,
-        precioUnitario: mergedPrice,
-        limpiarPrecio:
-            duplicateOption != null &&
-            (duplicateOption.configuracionPrecio == 'por_cotizar' ||
-                mergedPrice == null),
-      );
-      items.removeAt(event.index);
-    } else {
-      items[event.index] = updated;
-    }
-    emit(state.copyWith(carrito: items, limpiarError: true));
+    emit(state.copyWith(carrito: items));
   }
 
   void _eliminarItem(PedidoItemEliminado event, Emitter<PedidosState> emit) {

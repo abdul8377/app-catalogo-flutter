@@ -186,224 +186,157 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text(
-          '${state.lineasCarrito} productos · '
-          '${state.cantidadPresentaciones} presentaciones',
-          style: GoogleFonts.inter(
-            color: darkColor,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 12),
         ...state.carrito.asMap().entries.map((entry) {
           final index = entry.key;
           final item = entry.value;
-          final selectedOption = item.opcionSeleccionada;
-          final step = selectedOption?.incremento ?? 1;
-          final minimum = selectedOption?.pedidoMinimo ?? 1;
-          return Container(
-            key: ValueKey('carrito_linea_${item.claveCarrito}'),
+          return Card(
             margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(13),
-            decoration: BoxDecoration(
-              color: Colors.white,
+            elevation: 0,
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE1E5EA)),
+              side: const BorderSide(color: Color(0xFFEDEDED)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 68,
-                      height: 68,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF7F8FA),
-                        borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: _itemImage(item),
                       ),
-                      child: _itemImage(item),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.nombre,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.inter(
-                              color: darkColor,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          Text(
-                            item.varianteEtiqueta,
-                            style: GoogleFonts.inter(
-                              color: darkColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            [
-                              if (item.varianteSku.isNotEmpty)
-                                'SKU ${item.varianteSku}',
-                              if (item.precioListaNombre.isNotEmpty)
-                                'Lista ${item.precioListaNombre}',
-                            ].join(' · '),
-                            style: GoogleFonts.inter(
-                              color: const Color(0xFF667085),
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Eliminar',
-                      onPressed: () => _eliminarItem(index),
-                      icon: const Icon(
-                        Icons.delete_outline_rounded,
-                        color: Color(0xFFB42318),
-                      ),
-                    ),
-                  ],
-                ),
-                if (item.atributosVariante.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: item.atributosVariante.entries
-                        .map(
-                          (attribute) => Chip(
-                            visualDensity: VisualDensity.compact,
-                            backgroundColor: const Color(0xFFF7F8FA),
-                            side: const BorderSide(color: Color(0xFFE1E5EA)),
-                            label: Text(
-                              '${attribute.key}: ${attribute.value}',
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.nombre,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.inter(
-                                fontSize: 9,
                                 fontWeight: FontWeight.w700,
+                                fontSize: 16,
                               ),
                             ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ],
-                const SizedBox(height: 10),
-                if (item.opciones.length > 1)
-                  DropdownButtonFormField<String>(
-                    initialValue: item.presentacionId.isNotEmpty
-                        ? item.presentacionId
-                        : item.presentacion,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Presentación',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: item.opciones
-                        .map(
-                          (option) => DropdownMenuItem(
-                            value: option.id.isEmpty
-                                ? option.nombre
-                                : option.id,
-                            child: Text(
-                              '${option.nombre} · ${option.equivalencia}',
+                            Text(
+                              '${item.equivalencia} • ${item.presentacion}',
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            if (item.precioUnitario != null) ...[
+                              Text(
+                                'S/ ${item.precioUnitario!.toStringAsFixed(2)}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Text(
+                                'Total: S/ ${item.subtotal!.toStringAsFixed(2)}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w600,
+                                  color: primaryColor,
+                                ),
+                              ),
+                            ] else
+                              Text(
+                                'Sin precio',
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.redAccent,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final cantidad = Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: item.cantidad > 1
+                                ? () => _actualizarCantidad(
+                                    index,
+                                    item.cantidad - 1,
+                                  )
+                                : null,
+                          ),
+                          Text(
+                            '${item.cantidad}',
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
                             ),
                           ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      context.read<PedidosBloc>().add(
-                        PedidoItemPresentacionCambiada(index, value),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline),
+                            onPressed: () =>
+                                _actualizarCantidad(index, item.cantidad + 1),
+                          ),
+                        ],
+                      );
+                      final eliminar = TextButton.icon(
+                        onPressed: () => _eliminarItem(index),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.redAccent,
+                        ),
+                        label: const Text('Eliminar'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.redAccent,
+                        ),
+                      );
+                      if (constraints.maxWidth < 420) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: cantidad,
+                            ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: eliminar,
+                            ),
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [cantidad, const Spacer(), eliminar],
                       );
                     },
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.all(11),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF8DD),
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                    child: Text(
-                      '${item.presentacion} · ${item.equivalencia}',
-                      style: GoogleFonts.inter(
-                        color: darkColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
                   ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: item.cantidad > minimum
-                          ? () => _actualizarCantidad(
-                              index,
-                              (item.cantidad - step).clamp(minimum, 999999),
-                            )
-                          : null,
-                      icon: const Icon(Icons.remove_circle_outline_rounded),
-                    ),
-                    Text(
-                      '${item.cantidad}',
-                      style: GoogleFonts.inter(
-                        color: darkColor,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () =>
-                          _actualizarCantidad(index, item.cantidad + step),
-                      icon: const Icon(
-                        Icons.add_circle_rounded,
-                        color: primaryColor,
-                      ),
-                    ),
-                    const Spacer(),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          item.precioUnitario == null
-                              ? 'Por cotizar'
-                              : 'S/ ${item.precioUnitario!.toStringAsFixed(2)} c/u',
-                          style: GoogleFonts.inter(
-                            color: item.precioUnitario == null
-                                ? const Color(0xFFB54708)
-                                : darkColor,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        Text(
-                          item.subtotal == null
-                              ? 'Total pendiente'
-                              : 'S/ ${item.subtotal!.toStringAsFixed(2)}',
-                          style: GoogleFonts.inter(
-                            color: darkColor,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           );
         }),
@@ -513,75 +446,54 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
             ),
           ),
           const SizedBox(height: 16),
-          _title('PRODUCTOS Y VARIANTES'),
+          _title('PRODUCTOS'),
           ...state.carrito.map(
-            (item) => Container(
+            (item) => Card(
               margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE1E5EA)),
+                side: const BorderSide(color: Color(0xFFEDEDED)),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.inventory_2_outlined, color: primaryColor),
-                  const SizedBox(width: 9),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.nombre,
-                          style: GoogleFonts.inter(fontWeight: FontWeight.w800),
-                        ),
-                        Text(
-                          item.varianteEtiqueta,
-                          style: GoogleFonts.inter(
-                            color: darkColor,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Text(
-                          '${item.cantidad} × ${item.presentacion} · '
-                          '${item.equivalencia}',
-                          style: GoogleFonts.inter(
-                            color: const Color(0xFF667085),
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    item.subtotal == null
-                        ? 'Por cotizar'
-                        : 'S/ ${item.subtotal!.toStringAsFixed(2)}',
-                    style: GoogleFonts.inter(
-                      color: item.subtotal == null
-                          ? const Color(0xFFB54708)
-                          : darkColor,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
+              child: ListTile(
+                title: Text('${item.nombre} - ${item.equivalencia}'),
+                subtitle: Text('${item.cantidad} ${item.presentacion}'),
+                trailing: Text(
+                  item.subtotal == null
+                      ? 'Sin precio'
+                      : 'S/ ${item.subtotal!.toStringAsFixed(2)}',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                ),
               ),
             ),
           ),
           const SizedBox(height: 16),
           _title('RESUMEN'),
-          _resumenProductos(state),
-          const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.all(13),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F8FA),
+              color: Colors.grey.shade50,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _resumenRow(
+                  'Subtotal conocido:',
+                  'S/ ${state.subtotalConocido.toStringAsFixed(2)}',
+                ),
+                if (state.productosSinPrecio > 0)
+                  _resumenRow(
+                    'Productos sin precio:',
+                    '${state.productosSinPrecio}',
+                  ),
+                _resumenRow(
+                  'Total final:',
+                  state.productosSinPrecio > 0
+                      ? 'Pendiente de valorización'
+                      : 'S/ ${state.subtotalConocido.toStringAsFixed(2)}',
+                ),
+                const Divider(),
                 _resumenRow(
                   'Hoja activa:',
                   state.hojaActiva?.codigo ?? 'No disponible',
@@ -763,31 +675,25 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
     margin: const EdgeInsets.only(top: 4),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: const Color(0xFFF7F8FA),
+      color: Colors.grey.shade50,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFFE1E5EA)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _resumenRow('Productos:', '${state.lineasCarrito}'),
-        _resumenRow(
-          'Presentaciones solicitadas:',
-          '${state.cantidadPresentaciones}',
+        _resumenRow('Productos:', '${state.carrito.length}'),
+        Text(
+          'Subtotal conocido: S/ ${state.subtotalConocido.toStringAsFixed(2)}',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
         ),
-        if (state.totalParcial) ...[
-          _resumenRow('Líneas por cotizar:', '${state.lineasSinPrecio}'),
-          _resumenRow('Total final:', 'Pendiente de valorización'),
-          if (state.subtotalConocido > 0)
-            _resumenRow(
-              'Importe conocido:',
-              'S/ ${state.subtotalConocido.toStringAsFixed(2)}',
-            ),
-        ] else
-          _resumenRow(
-            'Total:',
-            'S/ ${state.subtotalConocido.toStringAsFixed(2)}',
-          ),
+        if (state.productosSinPrecio > 0)
+          _resumenRow('Productos sin precio:', '${state.productosSinPrecio}'),
+        _resumenRow(
+          'Total final:',
+          state.totalParcial
+              ? 'Pendiente de valorización'
+              : 'S/ ${state.subtotalConocido.toStringAsFixed(2)}',
+        ),
       ],
     ),
   );
