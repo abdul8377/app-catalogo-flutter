@@ -57,8 +57,6 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
     descuentoGlobalPorcentaje: 0,
     descuentoGlobalMonto: 0,
     observaciones: '',
-    vigenciaDias: 7,
-    condiciones: '',
   );
 
   @override
@@ -98,14 +96,11 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
     insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     child: LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth > 1160
-            ? 1160.0
-            : constraints.maxWidth;
-        final height = constraints.maxHeight > 900
-            ? 900.0
+        final width = constraints.maxWidth > 980 ? 980.0 : constraints.maxWidth;
+        final height = constraints.maxHeight > 760
+            ? 760.0
             : constraints.maxHeight;
         return Container(
-          key: const Key('generar_cotizacion_surface'),
           width: width,
           height: height,
           decoration: BoxDecoration(
@@ -188,8 +183,6 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
         descuentoGlobalPorcentaje: pedido.descuentoGlobalPorcentaje,
         descuentoGlobalMonto: pedido.descuentoGlobalMonto,
         observaciones: pedido.observacionesCotizacion,
-        vigenciaDias: 7,
-        condiciones: '',
       );
     }
     _initialized = true;
@@ -218,8 +211,6 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
           descuentoGeneral: _descuentoGeneral,
           total: _totalConDescuento,
           observaciones: _totalesValue.observaciones,
-          vigenciaDias: _totalesValue.vigenciaDias,
-          condiciones: _totalesValue.condiciones,
         );
     }
   }
@@ -240,8 +231,7 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
     required bool exportarPdf,
   }) async {
     if (_saving) return;
-    final esBorrador = !exportarPdf && !widget.modoEdicion;
-    if (!esBorrador && !_todosConPrecio) {
+    if (!_todosConPrecio) {
       setState(() => _currentStep = 0);
       _continuar();
       return;
@@ -256,8 +246,8 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
         descuentoGlobal: _descuentoGeneral,
         tipoDescuentoGlobal: 'combinado',
         total: _totalConDescuento,
-        vigenciaDias: _totalesValue.vigenciaDias,
-        condiciones: _totalesValue.condiciones,
+        vigenciaDias: 0,
+        condiciones: '',
         observaciones: _totalesValue.observaciones,
         descuentoGlobalPorcentaje: _totalesValue.descuentoGlobalPorcentaje,
         descuentoGlobalMonto: _totalesValue.descuentoGlobalMonto,
@@ -279,8 +269,6 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
         descuentoGeneral: _descuentoGeneral,
         total: _totalConDescuento,
         observaciones: _totalesValue.observaciones,
-        vigenciaDias: _totalesValue.vigenciaDias,
-        condiciones: _totalesValue.condiciones,
       );
       await repository.registrarPdfCotizacion(
         cotizacionId: guardada.id,
@@ -303,106 +291,42 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
   ) => showDialog<void>(
     context: context,
     barrierDismissible: false,
-    barrierColor: Colors.black.withValues(alpha: .62),
-    builder: (dialogContext) => Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(16),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 590),
-        child: Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 28, 24, 22),
-                color: const Color(0xFFECFDF3),
-                child: Column(
-                  children: [
-                    const CircleAvatar(
-                      radius: 33,
-                      backgroundColor: Color(0xFF12B76A),
-                      child: Icon(
-                        Icons.description_outlined,
-                        color: Colors.white,
-                        size: 36,
-                      ),
-                    ),
-                    const SizedBox(height: 13),
-                    Text(
-                      'Cotización generada',
-                      style: GoogleFonts.inter(
-                        color: darkColor,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${cotizacion.codigo} · Versión ${cotizacion.version}',
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFF475467),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(22),
-                child: Column(
-                  children: [
-                    Text(
-                      'El PDF quedó guardado localmente y asociado al pedido.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFF667085),
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Wrap(
-                      alignment: WrapAlignment.end,
-                      spacing: 9,
-                      runSpacing: 8,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: () => _ejecutarAccionArchivo(
-                            () =>
-                                FileActionsService.openPdf(cotizacion.pdfPath!),
-                          ),
-                          icon: const Icon(Icons.visibility_outlined),
-                          label: const Text('Ver PDF'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: () => _ejecutarAccionArchivo(
-                            () => FileActionsService.sharePdf(
-                              cotizacion.pdfPath!,
-                            ),
-                          ),
-                          icon: const Icon(Icons.share_outlined),
-                          label: const Text('Compartir'),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            foregroundColor: Colors.black,
-                          ),
-                          child: const Text('Cerrar'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+    builder: (dialogContext) => AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.check_circle, color: Color(0xFF2E7D32)),
+          SizedBox(width: 10),
+          Expanded(child: Text('Cotización generada correctamente')),
+        ],
       ),
+      content: Text(
+        '${cotizacion.codigo} • Versión ${cotizacion.version}\n'
+        'El PDF se guardó localmente y quedó asociado al pedido.',
+      ),
+      actions: [
+        TextButton.icon(
+          onPressed: () => _ejecutarAccionArchivo(
+            () => FileActionsService.openPdf(cotizacion.pdfPath!),
+          ),
+          icon: const Icon(Icons.visibility),
+          label: const Text('Ver PDF'),
+        ),
+        TextButton.icon(
+          onPressed: () => _ejecutarAccionArchivo(
+            () => FileActionsService.sharePdf(cotizacion.pdfPath!),
+          ),
+          icon: const Icon(Icons.share),
+          label: const Text('Compartir'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          style: FilledButton.styleFrom(
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.black,
+          ),
+          child: const Text('Cerrar'),
+        ),
+      ],
     ),
   );
 
@@ -423,52 +347,48 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    color: _GenerarCotizacionDialogState.darkColor,
-    padding: const EdgeInsets.fromLTRB(20, 15, 12, 15),
-    child: Row(
+    padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+    decoration: const BoxDecoration(
+      border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 43,
-          height: 43,
-          decoration: BoxDecoration(
-            color: _GenerarCotizacionDialogState.primaryColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(
-            Icons.request_quote_outlined,
-            color: _GenerarCotizacionDialogState.darkColor,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Generar cotización',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '${pedido.codigo} · ${pedido.clienteNombre}',
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Generar cotización • ${pedido.codigo}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
-                  fontSize: 11,
-                  color: const Color(0xFFB7BAC1),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  color: _GenerarCotizacionDialogState.darkColor,
                 ),
               ),
-            ],
-          ),
+            ),
+            IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.close, size: 22),
+              splashRadius: 20,
+              style: IconButton.styleFrom(
+                foregroundColor: Colors.grey,
+                backgroundColor: const Color(0xFFF5F5F5),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ],
         ),
-        IconButton(
-          tooltip: 'Cerrar',
-          onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.close_rounded, color: Colors.white),
+        const SizedBox(height: 4),
+        Text(
+          'Cliente: ${pedido.clienteNombre}',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: const Color(0xFF757575),
+          ),
         ),
       ],
     ),
@@ -620,81 +540,80 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
-      border: const Border(top: BorderSide(color: Color(0xFFE1E5EA))),
-      boxShadow: const [
+      boxShadow: [
         BoxShadow(
-          color: Color(0x0D000000),
+          color: Colors.black.withValues(alpha: .05),
           blurRadius: 10,
-          offset: Offset(0, -4),
+          offset: const Offset(0, -5),
         ),
       ],
     ),
-    child: SafeArea(
-      top: false,
-      child: Wrap(
-        alignment: WrapAlignment.end,
-        runAlignment: WrapAlignment.center,
-        spacing: 10,
-        runSpacing: 8,
-        children: [
+    child: Wrap(
+      alignment: currentStep < 2
+          ? WrapAlignment.spaceBetween
+          : WrapAlignment.end,
+      runAlignment: WrapAlignment.center,
+      spacing: 10,
+      runSpacing: 8,
+      children: [
+        if (currentStep > 0)
           OutlinedButton(
-            onPressed: saving
-                ? null
-                : currentStep > 0
-                ? onBack
-                : onClose,
-            child: Text(currentStep > 0 ? 'Volver' : 'Cancelar'),
+            onPressed: saving ? null : onBack,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _GenerarCotizacionDialogState.darkColor,
+            ),
+            child: const Text('Volver'),
+          )
+        else
+          OutlinedButton(
+            onPressed: saving ? null : onClose,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _GenerarCotizacionDialogState.darkColor,
+            ),
+            child: const Text('Cancelar'),
           ),
-          if (!modoEdicion)
-            OutlinedButton.icon(
-              key: const Key('guardar_borrador_cotizacion'),
-              onPressed: saving ? null : onSaveDraft,
-              icon: const Icon(Icons.save_outlined),
-              label: const Text('Guardar borrador'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _GenerarCotizacionDialogState.darkColor,
-                side: const BorderSide(color: Color(0xFFFFC500)),
-              ),
+        if (currentStep < 2)
+          ElevatedButton(
+            onPressed: saving ? null : onContinue,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _GenerarCotizacionDialogState.primaryColor,
+              foregroundColor: Colors.black,
             ),
-          if (currentStep < 2)
-            FilledButton.icon(
-              onPressed: saving ? null : onContinue,
-              icon: const Icon(Icons.arrow_forward_rounded),
-              label: const Text('Continuar'),
-              style: FilledButton.styleFrom(
-                backgroundColor: _GenerarCotizacionDialogState.primaryColor,
-                foregroundColor: Colors.black,
-              ),
-            )
-          else
-            FilledButton.icon(
-              key: const Key('generar_pdf_cotizacion'),
-              onPressed: saving || !canContinue ? null : onExport,
-              icon: saving
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.picture_as_pdf_outlined),
-              label: Text(
-                saving
-                    ? 'Guardando...'
-                    : modoEdicion
-                    ? 'Guardar nueva versión'
-                    : 'Generar PDF',
-              ),
-              style: FilledButton.styleFrom(
-                backgroundColor: _GenerarCotizacionDialogState.primaryColor,
-                foregroundColor: Colors.black,
-                disabledBackgroundColor: const Color(0xFFE0E0E0),
-              ),
+            child: const Text('Continuar'),
+          )
+        else ...[
+          OutlinedButton.icon(
+            onPressed: saving || !canContinue ? null : onSaveDraft,
+            icon: const Icon(Icons.save_outlined),
+            label: Text(
+              modoEdicion ? 'Guardar nueva versión' : 'Guardar borrador',
             ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _GenerarCotizacionDialogState.darkColor,
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: saving || !canContinue ? null : onExport,
+            icon: saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.picture_as_pdf),
+            label: Text(saving ? 'Guardando...' : 'Exportar en PDF'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _GenerarCotizacionDialogState.primaryColor,
+              foregroundColor: Colors.black,
+              disabledBackgroundColor: Colors.grey.shade300,
+            ),
+          ),
         ],
-      ),
+      ],
     ),
   );
 }
@@ -755,8 +674,6 @@ class _CotizacionPdfExporter {
     required double descuentoGeneral,
     required double total,
     required String observaciones,
-    required int vigenciaDias,
-    required String condiciones,
   }) async {
     final directory = await getApplicationSupportDirectory();
     final folder = Directory(path.join(directory.path, 'cotizaciones'));
@@ -775,8 +692,6 @@ class _CotizacionPdfExporter {
       descuentoGeneral: descuentoGeneral,
       total: total,
       observaciones: observaciones,
-      vigenciaDias: vigenciaDias,
-      condiciones: condiciones,
     );
     await file.writeAsBytes(_buildPdf(lines), flush: true);
     return file.path;
@@ -791,8 +706,6 @@ class _CotizacionPdfExporter {
     required double descuentoGeneral,
     required double total,
     required String observaciones,
-    required int vigenciaDias,
-    required String condiciones,
   }) {
     final lines = <String>[
       'COTIZACION N. ${cotizacion.codigo} - VERSION ${cotizacion.version}',
@@ -803,8 +716,6 @@ class _CotizacionPdfExporter {
       'Telefono: ${pedido.telefono}',
       'Direccion: ${pedido.direccion}',
       'Fecha: ${_formatDate(DateTime.now())}',
-      'Vigencia: $vigenciaDias días',
-      if (condiciones.trim().isNotEmpty) 'Condiciones: ${condiciones.trim()}',
       '',
       'PRODUCTO | CANTIDAD | P. UNITARIO | SUBTOTAL',
     ];
@@ -819,7 +730,7 @@ class _CotizacionPdfExporter {
       'Descuento: -S/ ${(descuentosProductos + descuentoGeneral).toStringAsFixed(2)}',
       'Total sin IGV: S/ ${CotizacionIgv.totalSinIgv(total).toStringAsFixed(2)}',
       'IGV: S/ ${CotizacionIgv.igvIncluido(total).toStringAsFixed(2)}',
-      'Total de cotización: S/ ${total.toStringAsFixed(2)}',
+      'Total de cotizacion — incluye IGV: S/ ${total.toStringAsFixed(2)}',
       if (observaciones.isNotEmpty) '',
       if (observaciones.isNotEmpty) 'Observaciones: $observaciones',
     ]);
@@ -827,98 +738,47 @@ class _CotizacionPdfExporter {
   }
 
   List<int> _buildPdf(List<String> lines) {
-    const linesPerPage = 48;
-    final pages = <List<String>>[];
-    if (lines.isEmpty) {
-      pages.add(const []);
-    } else {
-      for (var index = 0; index < lines.length; index += linesPerPage) {
-        final candidateEnd = index + linesPerPage;
-        final end = candidateEnd < lines.length ? candidateEnd : lines.length;
-        pages.add(lines.sublist(index, end));
-      }
+    final printableLines = lines.length > 48
+        ? [...lines.take(47), '...']
+        : lines;
+    final content = StringBuffer()
+      ..writeln('BT')
+      ..writeln('/F1 10 Tf')
+      ..writeln('50 800 Td')
+      ..writeln('14 TL');
+    for (final line in printableLines) {
+      content
+        ..write('(')
+        ..write(_escapePdf(_ascii(line)))
+        ..writeln(') Tj')
+        ..writeln('T*');
     }
-
-    final fontObjectId = 3 + pages.length * 2;
-    final pageObjectIds = <int>[];
-    final objects = <int, String>{};
-
-    for (var index = 0; index < pages.length; index++) {
-      pageObjectIds.add(3 + index * 2);
-    }
-
-    objects[1] = '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n';
-    objects[2] =
-        '2 0 obj\n<< /Type /Pages /Kids '
-        '[${pageObjectIds.map((id) => '$id 0 R').join(' ')}] '
-        '/Count ${pages.length} >>\nendobj\n';
-
-    for (var index = 0; index < pages.length; index++) {
-      final pageObjectId = 3 + index * 2;
-      final contentObjectId = pageObjectId + 1;
-      final content = StringBuffer()
-        ..writeln('BT')
-        ..writeln('/F1 10 Tf')
-        ..writeln('50 800 Td')
-        ..writeln('14 TL');
-
-      if (index > 0) {
-        content
-          ..writeln('(${_escapePdf('Continuacion ${index + 1}')}) Tj')
-          ..writeln('T*');
-      }
-      for (final line in pages[index]) {
-        content
-          ..write('(')
-          ..write(_escapePdf(_ascii(line)))
-          ..writeln(') Tj')
-          ..writeln('T*');
-      }
-      content.writeln('ET');
-
-      final stream = content.toString();
-      final streamLength = latin1.encode(stream).length;
-      objects[pageObjectId] =
-          '$pageObjectId 0 obj\n'
-          '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] '
-          '/Contents $contentObjectId 0 R '
-          '/Resources << /Font << /F1 $fontObjectId 0 R >> >> >>\n'
-          'endobj\n';
-      objects[contentObjectId] =
-          '$contentObjectId 0 obj\n'
-          '<< /Length $streamLength >>\n'
-          'stream\n$stream'
-          'endstream\nendobj\n';
-    }
-
-    objects[fontObjectId] =
-        '$fontObjectId 0 obj\n'
-        '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\n'
-        'endobj\n';
+    content.writeln('ET');
+    final contentBytes = latin1.encode(content.toString());
+    final objects = <String>[
+      '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+      '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+      '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n',
+      '4 0 obj\n<< /Length ${contentBytes.length} >>\nstream\n${content.toString()}endstream\nendobj\n',
+      '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+    ];
 
     var pdf = '%PDF-1.4\n';
     final offsets = <int>[];
-    for (var objectId = 1; objectId <= fontObjectId; objectId++) {
-      final object = objects[objectId];
-      if (object == null) {
-        throw StateError('Objeto PDF $objectId no generado.');
-      }
+    for (final object in objects) {
       offsets.add(latin1.encode(pdf).length);
       pdf += object;
     }
-
     final startXref = latin1.encode(pdf).length;
     final xref = StringBuffer()
       ..writeln('xref')
-      ..writeln('0 ${fontObjectId + 1}')
+      ..writeln('0 ${objects.length + 1}')
       ..writeln('0000000000 65535 f ');
     for (final offset in offsets) {
       xref.writeln('${offset.toString().padLeft(10, '0')} 00000 n ');
     }
     pdf +=
-        '${xref}trailer\n'
-        '<< /Size ${fontObjectId + 1} /Root 1 0 R >>\n'
-        'startxref\n$startXref\n%%EOF';
+        '${xref}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n$startXref\n%%EOF';
     return latin1.encode(pdf);
   }
 

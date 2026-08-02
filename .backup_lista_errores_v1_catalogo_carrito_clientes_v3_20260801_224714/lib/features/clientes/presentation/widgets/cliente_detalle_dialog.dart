@@ -417,8 +417,7 @@ class _ClienteDetalleDialogState extends State<ClienteDetalleDialog>
             GestureDetector(
               onTap: () => _mostrarFoto(cliente.fotoUbicacionPath),
               child: Container(
-                key: const Key('cliente_detalle_foto'),
-                height: 280,
+                height: 200,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade200,
@@ -480,7 +479,7 @@ class _ClienteDetalleDialogState extends State<ClienteDetalleDialog>
       borderRadius: BorderRadius.circular(16),
       child: Image.file(
         File(path),
-        fit: BoxFit.contain,
+        fit: BoxFit.cover,
         errorBuilder: (_, _, _) => Center(
           child: Icon(Icons.broken_image_outlined, color: Colors.grey.shade400),
         ),

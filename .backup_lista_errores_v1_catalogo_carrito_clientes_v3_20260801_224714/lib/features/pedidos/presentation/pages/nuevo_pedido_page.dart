@@ -157,7 +157,7 @@ class _NuevoPedidoViewState extends State<_NuevoPedidoView> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
         gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: constraints.maxWidth < 500 ? 500 : 360,
-          mainAxisExtent: constraints.maxWidth < 500 ? 500 : 480,
+          mainAxisExtent: constraints.maxWidth < 500 ? 560 : 580,
           crossAxisSpacing: 13,
           mainAxisSpacing: 13,
         ),
@@ -205,129 +205,39 @@ class _NuevoPedidoViewState extends State<_NuevoPedidoView> {
   ) => showDialog<void>(
     context: context,
     barrierDismissible: false,
-    barrierColor: Colors.black.withValues(alpha: .62),
-    builder: (dialogContext) => Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(16),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 590),
-        child: Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-                color: const Color(0xFFECFDF3),
-                child: Column(
-                  children: [
-                    const CircleAvatar(
-                      radius: 34,
-                      backgroundColor: Color(0xFF12B76A),
-                      child: Icon(
-                        Icons.check_rounded,
-                        color: Colors.white,
-                        size: 40,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      'Pedido registrado',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        color: darkColor,
-                        fontSize: 23,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      'Quedó guardado localmente en la hoja activa.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFF475467),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(22),
-                child: Column(
-                  children: [
-                    _resultadoRow('Código', resultado.codigo),
-                    _resultadoRow('Cliente', resultado.cliente),
-                    _resultadoRow('Hoja de pedido', resultado.hojaCodigo),
-                    _resultadoRow('Estado inicial', resultado.estado),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(dialogContext),
-                            child: const Text('Cerrar'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () {
-                              context.read<PedidosBloc>().add(
-                                const PedidoNuevoSolicitado(),
-                              );
-                              Navigator.pop(dialogContext);
-                            },
-                            style: FilledButton.styleFrom(
-                              backgroundColor: primaryColor,
-                              foregroundColor: Colors.black,
-                              minimumSize: const Size(0, 46),
-                            ),
-                            icon: const Icon(Icons.add_shopping_cart_rounded),
-                            label: const Text('Nuevo pedido'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+    builder: (dialogContext) => AlertDialog(
+      icon: const CircleAvatar(
+        radius: 28,
+        backgroundColor: Color(0xFFE8F5E9),
+        child: Icon(Icons.check, color: Color(0xFF2E7D32), size: 34),
       ),
-    ),
-  );
-
-  Widget _resultadoRow(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 7),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 125,
-          child: Text(
-            label,
-            style: GoogleFonts.inter(
-              color: const Color(0xFF667085),
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+      title: const Text('Pedido registrado correctamente'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Código: ${resultado.codigo}'),
+          Text('Cliente: ${resultado.cliente}'),
+          Text('Estado: ${resultado.estado}'),
+          Text('Hoja: ${resultado.hojaCodigo}'),
+        ],
+      ),
+      actions: [
+        OutlinedButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('Cerrar'),
         ),
-        Expanded(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: GoogleFonts.inter(
-              color: darkColor,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-            ),
+        FilledButton.icon(
+          onPressed: () {
+            context.read<PedidosBloc>().add(const PedidoNuevoSolicitado());
+            Navigator.pop(dialogContext);
+          },
+          style: FilledButton.styleFrom(
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.black,
           ),
+          icon: const Icon(Icons.add_shopping_cart),
+          label: const Text('Nuevo pedido'),
         ),
       ],
     ),

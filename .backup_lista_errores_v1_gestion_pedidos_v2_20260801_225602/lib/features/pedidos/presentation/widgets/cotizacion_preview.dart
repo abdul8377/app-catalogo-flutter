@@ -14,8 +14,6 @@ class CotizacionPreview extends StatelessWidget {
     required this.descuentoGeneral,
     required this.total,
     required this.observaciones,
-    required this.vigenciaDias,
-    required this.condiciones,
     this.codigoCotizacion,
     super.key,
   });
@@ -27,8 +25,6 @@ class CotizacionPreview extends StatelessWidget {
   final double descuentoGeneral;
   final double total;
   final String observaciones;
-  final int vigenciaDias;
-  final String condiciones;
   final String? codigoCotizacion;
 
   @override
@@ -143,21 +139,15 @@ class CotizacionPreview extends StatelessWidget {
                     ),
                     _totalRow('IGV', CotizacionIgv.igvIncluido(total)),
                     const Divider(height: 22),
-                    _totalRow('Total de cotización', total, total: true),
+                    _totalRow(
+                      'Total de cotización — incluye IGV',
+                      total,
+                      total: true,
+                    ),
                   ],
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              _Info(label: 'Vigencia', value: '$vigenciaDias días'),
-              if (condiciones.trim().isNotEmpty)
-                _Info(label: 'Condiciones', value: condiciones.trim()),
-            ],
           ),
           if (observaciones.trim().isNotEmpty) ...[
             const SizedBox(height: 18),

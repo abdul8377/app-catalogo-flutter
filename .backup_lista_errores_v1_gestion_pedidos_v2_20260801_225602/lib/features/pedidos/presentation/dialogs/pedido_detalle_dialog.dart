@@ -58,11 +58,9 @@ class _PedidoDetalleDialogState extends State<PedidoDetalleDialog>
     insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     child: LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth > 1120
-            ? 1120.0
-            : constraints.maxWidth;
-        final height = constraints.maxHeight > 900
-            ? 900.0
+        final width = constraints.maxWidth > 980 ? 980.0 : constraints.maxWidth;
+        final height = constraints.maxHeight > 760
+            ? 760.0
             : constraints.maxHeight;
         return Container(
           width: width,
@@ -316,7 +314,7 @@ class _ResumenTab extends StatelessWidget {
                     value: 'S/ ${pedido.igv.toStringAsFixed(2)}',
                   ),
                   _InfoRow(
-                    label: 'Total de cotización',
+                    label: 'Total de cotización — incluye IGV',
                     value: 'S/ ${pedido.totalFinal.toStringAsFixed(2)}',
                   ),
                 ]

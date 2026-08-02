@@ -59,8 +59,64 @@ class _FiltrosCatalogoState extends State<FiltrosCatalogo> {
     super.dispose();
   }
 
+  List<String> _unique(Iterable<String> values) {
+    final result =
+        values
+            .map((value) => value.trim())
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+    return result;
+  }
+
+  List<String> _categories(CatalogoFiltros filters) => _unique(
+    widget.state.productos
+        .where(
+          (item) =>
+              (filters.empresa == null || item.empresa == filters.empresa) &&
+              (filters.marca == null || item.marca == filters.marca),
+        )
+        .map((item) => item.categoria),
+  );
+
+  List<String> _subcategories(CatalogoFiltros filters) => _unique(
+    widget.state.productos
+        .where(
+          (item) =>
+              (filters.empresa == null || item.empresa == filters.empresa) &&
+              (filters.marca == null || item.marca == filters.marca) &&
+              (filters.categoria == null ||
+                  item.categoria == filters.categoria),
+        )
+        .map((item) => item.subcategoria),
+  );
+
+  void _changeCategory(String? value) {
+    var next = widget.state.filtros.copyWith(
+      categoria: value,
+      clearCategoria: value == null,
+    );
+    final available = _subcategories(next);
+    if (!available.contains(next.subcategoria)) {
+      next = next.copyWith(clearSubcategoria: true);
+    }
+    widget.onFiltrosAplicados(next);
+  }
+
+  void _changeSubcategory(String? value) {
+    widget.onFiltrosAplicados(
+      widget.state.filtros.copyWith(
+        subcategoria: value,
+        clearSubcategoria: value == null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final categories = _categories(widget.state.filtros);
+    final subcategories = _subcategories(widget.state.filtros);
     final quickFilters = widget.modoPedido
         ? const ['Todos', 'Con precio', 'Sin precio']
         : const ['Todos', 'Activos', 'Inactivos'];
@@ -115,8 +171,56 @@ class _FiltrosCatalogoState extends State<FiltrosCatalogo> {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final narrow = constraints.maxWidth < 690;
+                final fieldWidth = narrow
+                    ? constraints.maxWidth
+                    : (constraints.maxWidth - 12) / 2;
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 10,
+                  children: [
+                    SizedBox(
+                      width: fieldWidth,
+                      child: _ClassificationSelect(
+                        key: const Key('catalogo_filtro_categoria'),
+                        label: 'Categoría',
+                        icon: Icons.category_outlined,
+                        value:
+                            categories.contains(widget.state.filtros.categoria)
+                            ? widget.state.filtros.categoria
+                            : null,
+                        options: categories,
+                        allLabel: 'Todas las categorías',
+                        onChanged: _changeCategory,
+                      ),
+                    ),
+                    SizedBox(
+                      width: fieldWidth,
+                      child: _ClassificationSelect(
+                        key: const Key('catalogo_filtro_subcategoria'),
+                        label: 'Subcategoría',
+                        icon: Icons.subdirectory_arrow_right_rounded,
+                        value:
+                            subcategories.contains(
+                              widget.state.filtros.subcategoria,
+                            )
+                            ? widget.state.filtros.subcategoria
+                            : null,
+                        options: subcategories,
+                        allLabel: widget.state.filtros.categoria == null
+                            ? 'Todas las subcategorías'
+                            : 'Todas en ${widget.state.filtros.categoria}',
+                        onChanged: _changeSubcategory,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
             const SizedBox(height: 10),
-
             LayoutBuilder(
               builder: (context, constraints) {
                 final actions = Wrap(
@@ -251,6 +355,62 @@ class _FiltrosCatalogoState extends State<FiltrosCatalogo> {
       widget.onFiltrosAplicados(widget.state.filtros.copyWith(orden: result));
     }
   }
+}
+
+class _ClassificationSelect extends StatelessWidget {
+  const _ClassificationSelect({
+    required super.key,
+    required this.label,
+    required this.icon,
+    required this.value,
+    required this.options,
+    required this.allLabel,
+    required this.onChanged,
+  });
+
+  final String label;
+  final IconData icon;
+  final String? value;
+  final List<String> options;
+  final String allLabel;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) => DropdownButtonFormField<String>(
+    key: ValueKey('$label-$value-${options.length}'),
+    initialValue: options.contains(value) ? value : null,
+    isExpanded: true,
+    decoration: InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, size: 19),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _filterBorder),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _filterYellow, width: 1.6),
+      ),
+    ),
+    items: [
+      DropdownMenuItem<String>(
+        value: '__all__',
+        child: Text(allLabel, overflow: TextOverflow.ellipsis),
+      ),
+      ...options.map(
+        (item) => DropdownMenuItem<String>(
+          value: item,
+          child: Text(item, overflow: TextOverflow.ellipsis),
+        ),
+      ),
+    ],
+    onChanged: (selected) {
+      onChanged(selected == '__all__' ? null : selected);
+    },
+  );
 }
 
 class _ActiveFilters extends StatelessWidget {

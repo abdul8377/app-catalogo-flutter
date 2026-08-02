@@ -57,14 +57,9 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final width = constraints.maxWidth > 1180
-              ? 1180.0
-              : constraints.maxWidth * .96;
-          final height = constraints.maxHeight > 920
-              ? 920.0
-              : constraints.maxHeight * .94;
+          final width = (constraints.maxWidth * .85).clamp(320.0, 980.0);
+          final height = constraints.maxHeight * .9;
           return Container(
-            key: const Key('confirmar_pedido_dialog_surface'),
             width: width,
             height: height,
             decoration: BoxDecoration(
@@ -106,64 +101,30 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
   );
 
   Widget _header(BuildContext context) => Container(
-    color: darkColor,
-    padding: const EdgeInsets.fromLTRB(20, 15, 12, 15),
+    padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+    decoration: const BoxDecoration(
+      border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
+    ),
     child: Row(
       children: [
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: primaryColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            _paso == 0
-                ? Icons.shopping_cart_checkout_rounded
-                : _paso == 1
-                ? Icons.person_outline_rounded
-                : Icons.fact_check_outlined,
-            color: darkColor,
-          ),
-        ),
-        const SizedBox(width: 12),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Confirmar pedido',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                _pasoDescripcion,
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  color: const Color(0xFFB7BAC1),
-                ),
-              ),
-            ],
+          child: Text(
+            'Confirmar pedido',
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w700,
+              fontSize: 20,
+              color: darkColor,
+            ),
           ),
         ),
         IconButton(
-          tooltip: 'Cerrar',
           onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.close_rounded, color: Colors.white),
+          icon: const Icon(Icons.close, size: 20),
+          style: IconButton.styleFrom(foregroundColor: Colors.grey),
         ),
       ],
     ),
   );
-
-  String get _pasoDescripcion => switch (_paso) {
-    0 => 'Revisa variantes, presentaciones, cantidades y precios.',
-    1 => 'Selecciona un cliente o registra sus datos de entrega.',
-    _ => 'Comprueba toda la información antes de guardar.',
-  };
 
   Widget _stepper() => Padding(
     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
@@ -187,63 +148,21 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
 
   Widget _buildStepChip(String label, int stepIndex) {
     final isActive = _paso == stepIndex;
-    final isCompleted = stepIndex < _paso;
-    final color = isActive
-        ? primaryColor
-        : isCompleted
-        ? const Color(0xFFD1FADF)
-        : const Color(0xFFF2F4F7);
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: isActive
-              ? primaryColor
-              : isCompleted
-              ? const Color(0xFF6CE9A6)
-              : const Color(0xFFE1E5EA),
-        ),
+        color: isActive
+            ? primaryColor.withValues(alpha: .2)
+            : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isActive ? primaryColor : Colors.transparent),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 22,
-            height: 22,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: isActive ? darkColor : Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: isCompleted
-                ? const Icon(
-                    Icons.check_rounded,
-                    size: 14,
-                    color: Color(0xFF067647),
-                  )
-                : Text(
-                    '${stepIndex + 1}',
-                    style: GoogleFonts.inter(
-                      color: isActive ? Colors.white : darkColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-          ),
-          const SizedBox(width: 7),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontWeight: isActive ? FontWeight.w900 : FontWeight.w700,
-              fontSize: 12,
-              color: darkColor,
-            ),
-          ),
-        ],
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+          fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+          fontSize: 13,
+        ),
       ),
     );
   }

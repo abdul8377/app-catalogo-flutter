@@ -3,8 +3,6 @@ import 'package:app_catalogo/features/clientes/domain/entities/cliente_pedido_re
 import 'package:app_catalogo/features/clientes/domain/entities/nuevo_cliente.dart';
 import 'package:app_catalogo/features/clientes/domain/repositories/clientes_repository.dart';
 import 'package:app_catalogo/features/clientes/presentation/pages/clientes_page.dart';
-import 'package:app_catalogo/features/clientes/presentation/widgets/cliente_detalle_dialog.dart';
-import 'package:app_catalogo/features/clientes/presentation/widgets/cliente_formulario.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,51 +30,6 @@ void main() {
 
     expect(find.text('Carlos López'), findsOneWidget);
     expect(find.text('Comercial San José'), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
-  testWidgets('la foto del formulario tiene mayor altura', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(900, 900));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(body: SingleChildScrollView(child: ClienteFormulario())),
-      ),
-    );
-
-    final size = tester.getSize(find.byKey(const Key('cliente_form_foto')));
-    expect(size.height, 210);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('la foto del detalle tiene mayor altura', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(1000, 900));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-
-    await tester.pumpWidget(
-      RepositoryProvider<ClientesRepository>.value(
-        value: _ClientesRepositoryFake(),
-        child: MaterialApp(
-          home: Builder(
-            builder: (context) => Scaffold(
-              body: FilledButton(
-                onPressed: () =>
-                    ClienteDetalleDialog.show(context, clienteId: '1'),
-                child: const Text('Abrir detalle'),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    await tester.tap(find.text('Abrir detalle'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Ubicación'));
-    await tester.pumpAndSettle();
-
-    final size = tester.getSize(find.byKey(const Key('cliente_detalle_foto')));
-    expect(size.height, 280);
     expect(tester.takeException(), isNull);
   });
 }

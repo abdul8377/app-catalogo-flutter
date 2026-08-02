@@ -9,11 +9,15 @@ class CotizacionTotalesValue {
     required this.descuentoGlobalPorcentaje,
     required this.descuentoGlobalMonto,
     required this.observaciones,
+    this.vigenciaDias = 7,
+    this.condiciones = '',
   });
 
   final double descuentoGlobalPorcentaje;
   final double descuentoGlobalMonto;
   final String observaciones;
+  final int vigenciaDias;
+  final String condiciones;
 
   double descuentoGeneralSobre(double subtotalNeto) {
     final porcentaje = descuentoGlobalPorcentaje.clamp(0, 100);
@@ -43,20 +47,28 @@ class CotizacionTotales extends StatefulWidget {
 }
 
 class _CotizacionTotalesState extends State<CotizacionTotales> {
+  static const _yellow = Color(0xFFFFC500);
+  static const _ink = Color(0xFF1F1F1F);
+  static const _muted = Color(0xFF667085);
+  static const _border = Color(0xFFE1E5EA);
+
   late final TextEditingController _porcentajeController;
   late final TextEditingController _montoController;
+  late final TextEditingController _vigenciaController;
+  late final TextEditingController _condicionesController;
   late final TextEditingController _observacionesController;
 
   double get _subtotalNeto =>
-      (widget.subtotalProductos - widget.descuentosProductos).clamp(
-        0,
-        double.infinity,
-      );
+      (widget.subtotalProductos - widget.descuentosProductos)
+          .clamp(0, double.infinity)
+          .toDouble();
 
   double get _descuentoGeneral => CotizacionTotalesValue(
     descuentoGlobalPorcentaje: _parseMoney(_porcentajeController.text),
     descuentoGlobalMonto: _parseMoney(_montoController.text),
     observaciones: _observacionesController.text,
+    vigenciaDias: _parseDays(_vigenciaController.text),
+    condiciones: _condicionesController.text,
   ).descuentoGeneralSobre(_subtotalNeto);
 
   double get _total => CotizacionCalculo.totalConDescuentos(
@@ -82,6 +94,12 @@ class _CotizacionTotalesState extends State<CotizacionTotales> {
           ? widget.value.descuentoGlobalMonto.toStringAsFixed(2)
           : '',
     );
+    _vigenciaController = TextEditingController(
+      text: widget.value.vigenciaDias.clamp(1, 365).toString(),
+    );
+    _condicionesController = TextEditingController(
+      text: widget.value.condiciones,
+    );
     _observacionesController = TextEditingController(
       text: widget.value.observaciones,
     );
@@ -91,6 +109,8 @@ class _CotizacionTotalesState extends State<CotizacionTotales> {
   void dispose() {
     _porcentajeController.dispose();
     _montoController.dispose();
+    _vigenciaController.dispose();
+    _condicionesController.dispose();
     _observacionesController.dispose();
     super.dispose();
   }
@@ -98,59 +118,55 @@ class _CotizacionTotalesState extends State<CotizacionTotales> {
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
     padding: const EdgeInsets.all(20),
-    child: Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE8E8E8)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _panel(
+          title: 'Resumen económico',
+          subtitle:
+              'El total se desglosa en importe sin IGV, IGV y total final.',
+          icon: Icons.calculate_outlined,
+          child: Column(
+            children: [
+              _row(
+                'Subtotal de productos',
+                'S/ ${widget.subtotalProductos.toStringAsFixed(2)}',
+              ),
+              _row(
+                'Descuento',
+                '-S/ ${(widget.descuentosProductos + _descuentoGeneral).toStringAsFixed(2)}',
+                color: const Color(0xFFD84315),
+              ),
+              _row('Total sin IGV', 'S/ ${_totalSinIgv.toStringAsFixed(2)}'),
+              _row('IGV (18 %)', 'S/ ${_igv.toStringAsFixed(2)}'),
+              const Divider(height: 28),
+              _row(
+                'Total de cotización',
+                'S/ ${_total.toStringAsFixed(2)}',
+                emphasize: true,
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Resumen de cotización',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 18),
-          ),
-          const SizedBox(height: 16),
-          _row(
-            'Subtotal de productos',
-            'S/ ${widget.subtotalProductos.toStringAsFixed(2)}',
-          ),
-          _row(
-            'Descuento',
-            '-S/ ${(widget.descuentosProductos + _descuentoGeneral).toStringAsFixed(2)}',
-            color: const Color(0xFFD84315),
-          ),
-          _row('Total sin IGV', 'S/ ${_totalSinIgv.toStringAsFixed(2)}'),
-          _row('IGV', 'S/ ${_igv.toStringAsFixed(2)}'),
-          const Divider(height: 28),
-          _row(
-            'Total de cotización — incluye IGV',
-            'S/ ${_total.toStringAsFixed(2)}',
-            emphasize: true,
-          ),
-          const SizedBox(height: 22),
-          LayoutBuilder(
+        ),
+        const SizedBox(height: 16),
+        _panel(
+          title: 'Descuentos generales',
+          subtitle:
+              'Se aplican después de los descuentos configurados por producto.',
+          icon: Icons.percent_rounded,
+          child: LayoutBuilder(
             builder: (context, constraints) {
               final porcentaje = _numberField(
                 controller: _porcentajeController,
-                label: 'Descuento global por porcentaje',
+                label: 'Porcentaje global',
                 suffix: '%',
               );
               final monto = _numberField(
                 controller: _montoController,
-                label: 'Descuento global por monto',
+                label: 'Monto global',
                 prefix: 'S/ ',
               );
-              if (constraints.maxWidth < 540) {
+              if (constraints.maxWidth < 560) {
                 return Column(
                   children: [porcentaje, const SizedBox(height: 12), monto],
                 );
@@ -164,28 +180,127 @@ class _CotizacionTotalesState extends State<CotizacionTotales> {
               );
             },
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _observacionesController,
-            decoration: InputDecoration(
-              labelText: 'Observación para el cliente',
-              alignLabelWithHint: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFFFFC500),
-                  width: 2,
+        ),
+        const SizedBox(height: 16),
+        _panel(
+          title: 'Condiciones comerciales',
+          subtitle:
+              'Estos datos se guardan con la cotización y se muestran en la '
+              'vista previa.',
+          icon: Icons.handshake_outlined,
+          child: Column(
+            children: [
+              TextField(
+                key: const Key('cotizacion_vigencia_dias'),
+                controller: _vigenciaController,
+                decoration: _inputDecoration(
+                  'Vigencia',
+                  suffix: 'días',
+                  helper: 'Entre 1 y 365 días.',
                 ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(3),
+                ],
+                onChanged: (_) => _notifyChange(),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                key: const Key('cotizacion_condiciones'),
+                controller: _condicionesController,
+                decoration: _inputDecoration(
+                  'Condiciones comerciales',
+                  helper:
+                      'Ejemplo: forma de pago, disponibilidad o tiempo de '
+                      'entrega.',
+                ),
+                maxLines: 3,
+                onChanged: (_) => _notifyChange(),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                key: const Key('cotizacion_observaciones'),
+                controller: _observacionesController,
+                decoration: _inputDecoration(
+                  'Observación para el cliente',
+                  helper:
+                      'Información adicional que aparecerá en la cotización.',
+                ),
+                maxLines: 3,
+                onChanged: (_) => _notifyChange(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _panel({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Widget child,
+  }) => Container(
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: _border),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x0A000000),
+          blurRadius: 12,
+          offset: Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF4CC),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(icon, color: _ink, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      color: _ink,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      color: _muted,
+                      fontSize: 10,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
               ),
             ),
-            maxLines: 3,
-            onChanged: (_) => _notifyChange(),
-          ),
-        ],
-      ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        child,
+      ],
     ),
   );
 
@@ -196,22 +311,37 @@ class _CotizacionTotalesState extends State<CotizacionTotales> {
     String? suffix,
   }) => TextField(
     controller: controller,
-    decoration: InputDecoration(
-      labelText: label,
-      prefixText: prefix,
-      suffixText: suffix,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFFFC500), width: 2),
-      ),
-    ),
+    decoration: _inputDecoration(label, prefix: prefix, suffix: suffix),
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
     inputFormatters: [_MoneyInputFormatter()],
     onChanged: (_) {
       setState(() {});
       _notifyChange();
     },
+  );
+
+  InputDecoration _inputDecoration(
+    String label, {
+    String? prefix,
+    String? suffix,
+    String? helper,
+  }) => InputDecoration(
+    labelText: label,
+    prefixText: prefix,
+    suffixText: suffix,
+    helperText: helper,
+    alignLabelWithHint: true,
+    filled: true,
+    fillColor: const Color(0xFFFCFCFD),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: _border),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: _yellow, width: 2),
+    ),
   );
 
   Widget _row(
@@ -227,7 +357,8 @@ class _CotizacionTotalesState extends State<CotizacionTotales> {
           child: Text(
             label,
             style: GoogleFonts.inter(
-              fontWeight: emphasize ? FontWeight.w800 : FontWeight.w500,
+              color: _ink,
+              fontWeight: emphasize ? FontWeight.w900 : FontWeight.w600,
               fontSize: emphasize ? 16 : 14,
             ),
           ),
@@ -235,7 +366,7 @@ class _CotizacionTotalesState extends State<CotizacionTotales> {
         Text(
           value,
           style: GoogleFonts.inter(
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w900,
             fontSize: emphasize ? 18 : 14,
             color: color,
           ),
@@ -249,7 +380,9 @@ class _CotizacionTotalesState extends State<CotizacionTotales> {
       CotizacionTotalesValue(
         descuentoGlobalPorcentaje: _parseMoney(_porcentajeController.text),
         descuentoGlobalMonto: _parseMoney(_montoController.text),
-        observaciones: _observacionesController.text,
+        observaciones: _observacionesController.text.trim(),
+        vigenciaDias: _parseDays(_vigenciaController.text),
+        condiciones: _condicionesController.text.trim(),
       ),
     );
   }
@@ -272,3 +405,8 @@ class _MoneyInputFormatter extends TextInputFormatter {
 
 double _parseMoney(String value) =>
     double.tryParse(value.replaceAll(',', '.')) ?? 0;
+
+int _parseDays(String value) {
+  final parsed = int.tryParse(value) ?? 7;
+  return parsed.clamp(1, 365);
+}

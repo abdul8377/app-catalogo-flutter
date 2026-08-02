@@ -298,18 +298,6 @@ class _PedidosFiltrosAvanzadosDialogState
   }
 
   void _aplicar() {
-    if (_fechaInicio != null &&
-        _fechaFin != null &&
-        _fechaInicio!.isAfter(_fechaFin!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'La fecha inicial no puede ser posterior a la fecha final.',
-          ),
-        ),
-      );
-      return;
-    }
     Navigator.pop(
       context,
       PedidosFiltrosSeleccion(
@@ -352,10 +340,7 @@ class _PedidosFiltrosAvanzadosDialogState
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Container(
-        constraints: BoxConstraints(
-          maxWidth: 760,
-          maxHeight: MediaQuery.sizeOf(context).height * .9,
-        ),
+        constraints: const BoxConstraints(maxWidth: 650),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),

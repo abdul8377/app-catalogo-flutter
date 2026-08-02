@@ -133,8 +133,7 @@ class _CotizacionProductoItemState extends State<CotizacionProductoItem> {
                       ),
                     ),
                     Text(
-                      '${prod.cantidad} × ${prod.presentacion} · '
-                      '${prod.equivalencia}',
+                      '${prod.cantidad} ${prod.presentacion} • ${prod.equivalenciaTotal}',
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: const Color(0xFF9E9E9E),

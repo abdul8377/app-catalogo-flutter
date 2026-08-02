@@ -41,11 +41,6 @@ void main() {
     await tester.tap(find.text('Abrir'));
     await tester.pumpAndSettle();
 
-    final gallerySize = tester.getSize(
-      find.byKey(const Key('producto_detalle_galeria')),
-    );
-    expect(gallerySize.height, greaterThanOrEqualTo(364));
-
     expect(find.text('Ficha del producto'), findsOneWidget);
     expect(find.text('Perno hexagonal métrico'), findsOneWidget);
     expect(find.text('Matriz de variantes'), findsWidgets);

@@ -372,8 +372,7 @@ class ClienteFormularioState extends State<ClienteFormulario> {
             borderRadius: BorderRadius.circular(16),
             onTap: _seleccionarFoto,
             child: Container(
-              key: const Key('cliente_form_foto'),
-              height: 210,
+              height: 150,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -450,7 +449,7 @@ class ClienteFormularioState extends State<ClienteFormulario> {
           borderRadius: BorderRadius.circular(14),
           child: Image.file(
             File(path),
-            fit: BoxFit.contain,
+            fit: BoxFit.cover,
             errorBuilder: (_, _, _) => const ColoredBox(
               color: Color(0xFFE0E0E0),
               child: Center(child: Icon(Icons.broken_image_outlined, size: 48)),

@@ -45,11 +45,11 @@ class ProductoCard extends StatelessWidget {
 
   Widget _grid() => LayoutBuilder(
     builder: (context, constraints) {
-      final compacto = constraints.maxHeight < 450;
+      final compacto = constraints.maxHeight < 500;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _imagen(height: compacto ? 142 : 176),
+          _imagen(height: compacto ? 158 : 228),
           Expanded(
             child: _contenidoAdministrativo(
               expandido: true,
@@ -70,14 +70,14 @@ class ProductoCard extends StatelessWidget {
       if (constraints.maxWidth < 600) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [_imagen(height: 172), contenido],
+          children: [_imagen(height: 204), contenido],
         );
       }
       return IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(width: 220, child: _imagen(height: 220)),
+            SizedBox(width: 264, child: _imagen(height: 264)),
             Expanded(child: contenido),
           ],
         ),
@@ -121,7 +121,7 @@ class ProductoCard extends StatelessWidget {
       File(path),
       width: double.infinity,
       height: double.infinity,
-      fit: BoxFit.contain,
+      fit: BoxFit.cover,
       errorBuilder: (_, _, _) => const Icon(
         Icons.broken_image_outlined,
         size: 56,
@@ -157,7 +157,7 @@ class ProductoCard extends StatelessWidget {
         _clasificacion(),
         const SizedBox(height: 10),
         _etiquetasAdministrativas(compacto),
-        SizedBox(height: expandido ? 12 : 14),
+        if (expandido) const Spacer() else const SizedBox(height: 16),
         _precio(fontSize: 14),
         const SizedBox(height: 10),
         _esComercial ? _accionesComerciales() : _accionesAdministrativas(),
@@ -189,43 +189,15 @@ class ProductoCard extends StatelessWidget {
     );
   }
 
-  Widget _etiquetasAdministrativas(bool compacto) {
-    final presentations = _presentaciones
-        .map((item) => item.trim())
-        .where((item) => item.isNotEmpty)
-        .toList();
-    final limit = compacto ? 2 : 3;
-    final hidden = presentations.length - limit;
-
-    return Wrap(
-      spacing: 7,
-      runSpacing: 7,
-      children: [
-        _chipTipo(),
-        ...presentations
-            .take(limit)
-            .map((presentacion) => _chipPresentacion(presentacion)),
-        if (hidden > 0) _chipMasPresentaciones(hidden),
-      ],
-    );
-  }
-
-  Widget _chipMasPresentaciones(int cantidad) => Container(
-    key: Key('producto_presentaciones_restantes_${producto.id}'),
-    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF2F4F7),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: const Color(0xFFD0D5DD)),
-    ),
-    child: Text(
-      '+$cantidad más',
-      style: GoogleFonts.inter(
-        fontSize: 10,
-        fontWeight: FontWeight.w700,
-        color: const Color(0xFF475467),
-      ),
-    ),
+  Widget _etiquetasAdministrativas(bool compacto) => Wrap(
+    spacing: 7,
+    runSpacing: 7,
+    children: [
+      _chipTipo(),
+      ..._presentaciones
+          .take(compacto ? 2 : 3)
+          .map((presentacion) => _chipPresentacion(presentacion)),
+    ],
   );
 
   Widget _chipTipo() => Container(

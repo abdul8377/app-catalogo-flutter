@@ -287,12 +287,7 @@ class _ContenidoDetalle extends StatelessWidget {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              key: const Key('producto_detalle_galeria'),
-              width: 350,
-              height: 371,
-              child: gallery,
-            ),
+            SizedBox(width: 330, height: 285, child: gallery),
             const SizedBox(width: 22),
             Expanded(child: information),
           ],
@@ -301,11 +296,7 @@ class _ContenidoDetalle extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            key: const Key('producto_detalle_galeria'),
-            height: 364,
-            child: gallery,
-          ),
+          SizedBox(height: 280, child: gallery),
           const SizedBox(height: 18),
           information,
         ],
