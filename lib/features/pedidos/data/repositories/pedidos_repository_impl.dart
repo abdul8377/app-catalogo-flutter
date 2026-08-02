@@ -117,6 +117,19 @@ class PedidosRepositoryImpl implements PedidosRepository {
       localDatasource.buscarClientes(query);
 
   @override
+  Future<PedidoRegistrado> actualizarPedido({
+    required String pedidoId,
+    required ClientePedido cliente,
+    required List<PedidoItem> items,
+    required String vendedor,
+  }) => localDatasource.actualizarPedido(
+    pedidoId: pedidoId,
+    cliente: cliente,
+    items: items,
+    vendedor: vendedor,
+  );
+
+  @override
   Future<PedidoRegistrado> guardarPedido({
     required HojaPedidoActiva hoja,
     required ClientePedido cliente,

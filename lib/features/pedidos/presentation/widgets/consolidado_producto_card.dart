@@ -171,9 +171,7 @@ class ConsolidadoProductoCard extends StatelessWidget {
               onPressed: producto.pendiente > 0 ? onRegistrarPreparacion : null,
               icon: const Icon(Icons.check, size: 17),
               label: Text(
-                producto.completo
-                    ? 'Preparación completa'
-                    : 'Registrar preparación',
+                producto.completo ? 'Preparación completa' : 'Registrar avance',
               ),
               style: _primaryStyle,
             );

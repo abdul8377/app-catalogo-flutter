@@ -140,6 +140,7 @@ class PresentacionPedidoOpcion extends Equatable {
 
 class PedidoItem extends Equatable {
   const PedidoItem({
+    this.pedidoItemId = '',
     required this.productoId,
     required this.codigo,
     required this.nombre,
@@ -159,6 +160,7 @@ class PedidoItem extends Equatable {
     this.imagenPath,
   });
 
+  final String pedidoItemId;
   final String productoId;
   final String codigo;
   final String nombre;
@@ -206,6 +208,7 @@ class PedidoItem extends Equatable {
   }
 
   PedidoItem copyWith({
+    String? pedidoItemId,
     String? presentacionId,
     String? presentacion,
     String? equivalencia,
@@ -217,6 +220,7 @@ class PedidoItem extends Equatable {
     String? precioConfiguracion,
     List<PresentacionPedidoOpcion>? opciones,
   }) => PedidoItem(
+    pedidoItemId: pedidoItemId ?? this.pedidoItemId,
     productoId: productoId,
     codigo: codigo,
     nombre: nombre,
@@ -240,6 +244,7 @@ class PedidoItem extends Equatable {
 
   @override
   List<Object?> get props => [
+    pedidoItemId,
     productoId,
     codigo,
     nombre,

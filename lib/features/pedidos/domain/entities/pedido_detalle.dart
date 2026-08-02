@@ -188,6 +188,15 @@ class PedidoDetalleProducto extends Equatable {
     required this.subtotal,
     this.marca,
     this.imagenPath,
+    this.varianteId = '',
+    this.varianteSku = '',
+    this.varianteNombre = '',
+    this.atributosVariante = const {},
+    this.presentacionId = '',
+    this.precioListaId = '',
+    this.precioListaNombre = '',
+    this.precioConfiguracion = 'precio_fijo',
+    this.precioPedido,
     this.descuentoCotizado = 0,
     this.tipoDescuentoCotizado = 'monto',
   });
@@ -203,6 +212,15 @@ class PedidoDetalleProducto extends Equatable {
   final double? subtotal;
   final String? marca;
   final String? imagenPath;
+  final String varianteId;
+  final String varianteSku;
+  final String varianteNombre;
+  final Map<String, String> atributosVariante;
+  final String presentacionId;
+  final String precioListaId;
+  final String precioListaNombre;
+  final String precioConfiguracion;
+  final double? precioPedido;
   final double descuentoCotizado;
   final String tipoDescuentoCotizado;
 
@@ -244,6 +262,15 @@ class PedidoDetalleProducto extends Equatable {
     subtotal,
     marca,
     imagenPath,
+    varianteId,
+    varianteSku,
+    varianteNombre,
+    atributosVariante,
+    presentacionId,
+    precioListaId,
+    precioListaNombre,
+    precioConfiguracion,
+    precioPedido,
     descuentoCotizado,
     tipoDescuentoCotizado,
   ];

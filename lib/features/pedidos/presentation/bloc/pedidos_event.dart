@@ -10,7 +10,12 @@ sealed class PedidosEvent extends Equatable {
 }
 
 class PedidosStarted extends PedidosEvent {
-  const PedidosStarted();
+  const PedidosStarted({this.pedidoId});
+
+  final String? pedidoId;
+
+  @override
+  List<Object?> get props => [pedidoId];
 }
 
 class PedidosBusquedaCambiada extends PedidosEvent {

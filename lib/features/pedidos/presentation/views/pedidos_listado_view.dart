@@ -11,6 +11,7 @@ import '../dialogs/cambiar_estado_dialog.dart';
 import '../dialogs/cancelar_pedido_dialog.dart';
 import '../dialogs/generar_cotizacion_dialog.dart';
 import '../dialogs/pedido_detalle_dialog.dart';
+import '../pages/nuevo_pedido_page.dart';
 import '../widgets/estados_vacios.dart';
 import '../widgets/pedido_card.dart';
 import '../widgets/pedido_estado_badge.dart';
@@ -234,10 +235,45 @@ class _PedidosListadoViewState extends State<PedidosListadoView> {
       AppNotice.warning(context, 'Un pedido entregado no puede modificarse.');
       return;
     }
-    AppNotice.info(
-      context,
-      'La edición de productos se aplicará en la siguiente fase de esta corrección.',
+
+    if (pedido.estadoNormalizado == 'en_proceso' ||
+        pedido.estadoNormalizado == 'listo') {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          icon: const Icon(Icons.restart_alt_rounded, color: Color(0xFFF57C00)),
+          title: const Text('Editar pedido operativo'),
+          content: Text(
+            pedido.estadoNormalizado == 'listo'
+                ? 'Este pedido ya fue preparado y cargado. Al guardar cambios '
+                      'volverá a Pendiente y se eliminarán esos avances.'
+                : 'Este pedido ya tiene avances de preparación. Al guardar '
+                      'cambios volverá a Pendiente y se reiniciará la operación.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Volver'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFFFC500),
+                foregroundColor: Colors.black,
+              ),
+              child: const Text('Continuar edición'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirmed != true) return;
+    }
+
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => NuevoPedidoPage(pedidoId: pedido.id)),
     );
+    if (!mounted || changed != true) return;
+    context.read<PedidosListadoBloc>().add(const PedidosListadoRecargado());
   }
 
   Future<void> _mostrarCotizacionPedido(

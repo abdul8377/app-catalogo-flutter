@@ -84,10 +84,6 @@ class _ConfirmarCargaDialogState extends State<ConfirmarCargaDialog> {
                     _productosConfirmados(),
                     const SizedBox(height: 18),
                     _presentaciones(),
-                    if (widget.pedido.tienePendientes) ...[
-                      const SizedBox(height: 18),
-                      _advertencia(),
-                    ],
                     const SizedBox(height: 18),
                     _contadorPaquetes(),
                     const SizedBox(height: 18),
@@ -277,34 +273,6 @@ class _ConfirmarCargaDialogState extends State<ConfirmarCargaDialog> {
         style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF757575)),
       ),
     ],
-  );
-
-  Widget _advertencia() => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Colors.orange.shade50,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.orange.shade200),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            'Este pedido todavía tiene ${widget.pedido.presentacionesPendientes} '
-            'presentaciones pendientes. Completa la preparación antes de cargar.',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.orange.shade900,
-            ),
-          ),
-        ),
-      ],
-    ),
   );
 
   Widget _contadorPaquetes() => Container(

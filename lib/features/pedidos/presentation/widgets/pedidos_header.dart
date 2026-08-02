@@ -70,7 +70,7 @@ class PedidosHeader extends StatelessWidget implements PreferredSizeWidget {
                               color: Colors.white70,
                             ),
                           ),
-                          _SyncPill(),
+                          const _LocalPill(),
                         ],
                       ),
                     ],
@@ -102,23 +102,28 @@ class PedidosHeader extends StatelessWidget implements PreferredSizeWidget {
   );
 }
 
-class _SyncPill extends StatelessWidget {
+class _LocalPill extends StatelessWidget {
+  const _LocalPill();
+
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
     decoration: BoxDecoration(
-      color: const Color(0xFF2E7D32).withValues(alpha: .2),
+      color: const Color(0xFFFFC500).withValues(alpha: .16),
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: .4)),
+      border: Border.all(color: const Color(0xFFFFC500).withValues(alpha: .45)),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.cloud_done, size: 12, color: Color(0xFF2E7D32)),
+        const Icon(Icons.storage_rounded, size: 12, color: Color(0xFFFFC500)),
         const SizedBox(width: 4),
         Text(
-          'Sincronizado',
-          style: GoogleFonts.inter(fontSize: 10, color: Color(0xFF2E7D32)),
+          'Operación local',
+          style: GoogleFonts.inter(
+            fontSize: 10,
+            color: const Color(0xFFFFC500),
+          ),
         ),
       ],
     ),

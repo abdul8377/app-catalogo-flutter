@@ -15,7 +15,7 @@ class AppDatabase {
     final path = join(await getDatabasesPath(), 'app_catalogo.db');
     return openDatabase(
       path,
-      version: 21,
+      version: 22,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: (db, version) async {
         await _crearTablasEstructuraCatalogo(db);
@@ -116,6 +116,9 @@ class AppDatabase {
         }
         if (oldVersion < 21) {
           await _migrarValoresTecnicos(db);
+        }
+        if (oldVersion < 22) {
+          await _asegurarIdentidadPedidoItems(db);
         }
       },
     );
@@ -815,9 +818,20 @@ class AppDatabase {
       factor_unidad_base INTEGER NOT NULL DEFAULT 1,
       unidad_base TEXT NOT NULL DEFAULT 'UND',
       precio_unitario REAL, subtotal REAL,
+      activo INTEGER NOT NULL DEFAULT 1,
+      variante_id TEXT NOT NULL DEFAULT '',
+      variante_sku TEXT NOT NULL DEFAULT '',
+      variante_nombre TEXT NOT NULL DEFAULT '',
+      atributos_variante_json TEXT NOT NULL DEFAULT '{}',
+      presentacion_id TEXT NOT NULL DEFAULT '',
+      precio_lista_id TEXT NOT NULL DEFAULT '',
+      precio_lista_nombre TEXT NOT NULL DEFAULT '',
+      precio_configuracion TEXT NOT NULL DEFAULT 'precio_fijo',
+      imagen_path TEXT,
       FOREIGN KEY(pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE,
       FOREIGN KEY(producto_id) REFERENCES productos(id)
     )''');
+    await _asegurarIdentidadPedidoItems(db);
     await _crearTablasCotizaciones(db);
     await _crearTablasPreparacion(db);
     await _asegurarUnidadesBasePedidos(db);
@@ -843,6 +857,61 @@ class AppDatabase {
     if (!columns.contains('sync_error')) {
       await db.execute('ALTER TABLE pedidos ADD COLUMN sync_error TEXT');
     }
+  }
+
+  Future<void> _asegurarIdentidadPedidoItems(Database db) async {
+    final info = await db.rawQuery('PRAGMA table_info(pedido_items)');
+    if (info.isEmpty) return;
+    final columns = info.map((row) => row['name'] as String).toSet();
+
+    Future<void> addColumn(String name, String sql) async {
+      if (!columns.contains(name)) await db.execute(sql);
+    }
+
+    await addColumn(
+      'activo',
+      'ALTER TABLE pedido_items ADD COLUMN activo INTEGER NOT NULL DEFAULT 1',
+    );
+    await addColumn(
+      'variante_id',
+      "ALTER TABLE pedido_items ADD COLUMN variante_id TEXT NOT NULL DEFAULT ''",
+    );
+    await addColumn(
+      'variante_sku',
+      "ALTER TABLE pedido_items ADD COLUMN variante_sku TEXT NOT NULL DEFAULT ''",
+    );
+    await addColumn(
+      'variante_nombre',
+      "ALTER TABLE pedido_items ADD COLUMN variante_nombre TEXT NOT NULL DEFAULT ''",
+    );
+    await addColumn(
+      'atributos_variante_json',
+      "ALTER TABLE pedido_items ADD COLUMN atributos_variante_json TEXT NOT NULL DEFAULT '{}'",
+    );
+    await addColumn(
+      'presentacion_id',
+      "ALTER TABLE pedido_items ADD COLUMN presentacion_id TEXT NOT NULL DEFAULT ''",
+    );
+    await addColumn(
+      'precio_lista_id',
+      "ALTER TABLE pedido_items ADD COLUMN precio_lista_id TEXT NOT NULL DEFAULT ''",
+    );
+    await addColumn(
+      'precio_lista_nombre',
+      "ALTER TABLE pedido_items ADD COLUMN precio_lista_nombre TEXT NOT NULL DEFAULT ''",
+    );
+    await addColumn(
+      'precio_configuracion',
+      "ALTER TABLE pedido_items ADD COLUMN precio_configuracion TEXT NOT NULL DEFAULT 'precio_fijo'",
+    );
+    await addColumn(
+      'imagen_path',
+      'ALTER TABLE pedido_items ADD COLUMN imagen_path TEXT',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_pedido_items_activos '
+      'ON pedido_items(pedido_id, activo)',
+    );
   }
 
   Future<void> _crearTablasCotizaciones(Database db) async {

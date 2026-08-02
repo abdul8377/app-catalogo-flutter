@@ -1,7 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../catalogo/domain/repositories/catalogo_repository.dart';
+import '../../domain/entities/pedido.dart';
+import '../../domain/entities/pedido_detalle.dart';
 import '../../domain/repositories/pedidos_repository.dart';
+import '../../domain/services/producto_pedido_resolver.dart';
 import 'pedidos_event.dart';
 import 'pedidos_state.dart';
 
@@ -141,11 +144,42 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
   ) async {
     emit(state.copyWith(loading: true, limpiarError: true));
     try {
-      final results = await Future.wait([
+      final results = await Future.wait<Object?>([
         _catalogoRepository.obtenerProductos(),
         _pedidosRepository.obtenerHojaActiva(),
         _pedidosRepository.buscarClientes(''),
+        event.pedidoId == null
+            ? Future<PedidoDetalle?>.value(null)
+            : _pedidosRepository.obtenerPedidoDetalle(event.pedidoId!),
       ]);
+      final detalle = results[3] as PedidoDetalle?;
+      if (event.pedidoId != null && detalle == null) {
+        throw StateError('El pedido seleccionado ya no existe.');
+      }
+      if (detalle?.estadoNormalizado == 'cancelado') {
+        throw StateError('Reactiva el pedido antes de editarlo.');
+      }
+      if (detalle?.estadoNormalizado == 'entregado') {
+        throw StateError('Un pedido entregado no puede modificarse.');
+      }
+
+      final carrito = detalle == null
+          ? const <PedidoItem>[]
+          : await Future.wait(detalle.productos.map(_reconstruirItemEdicion));
+      final cliente = detalle == null
+          ? null
+          : ClientePedido(
+              id: detalle.clienteId,
+              nombre: detalle.clienteNombre,
+              telefono: detalle.telefono,
+              dni: detalle.clienteDni,
+              ruc: detalle.clienteRuc,
+              direccion: detalle.direccion,
+              referencia: detalle.referencia,
+              fotoUbicacionPath: detalle.fotoUbicacionPath,
+              observaciones: detalle.observacionesEntrega,
+            );
+
       emit(
         state.copyWith(
           loading: false,
@@ -153,16 +187,103 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
           hojaActiva: results[1] as dynamic,
           limpiarHoja: results[1] == null,
           clientes: results[2] as dynamic,
+          carrito: carrito,
+          cliente: cliente,
+          pedidoIdEditando: detalle?.id,
+          pedidoCodigoEditando: detalle?.codigo,
+          pedidoEstadoOriginal: detalle?.estadoLabel,
+          pedidoHojaEditando: detalle?.hoja,
         ),
       );
-    } catch (_) {
+    } catch (error) {
       emit(
         state.copyWith(
           loading: false,
-          error: 'No se pudo cargar el módulo de pedidos.',
+          error: error is StateError
+              ? error.message.toString()
+              : 'No se pudo cargar el módulo de pedidos.',
         ),
       );
     }
+  }
+
+  Future<PedidoItem> _reconstruirItemEdicion(
+    PedidoDetalleProducto producto,
+  ) async {
+    var opciones = const <PresentacionPedidoOpcion>[];
+    double? precio = producto.precioPedido ?? producto.precioUnitario;
+
+    if (producto.varianteId.isNotEmpty) {
+      final catalogo = await _catalogoRepository.obtenerDetalleProducto(
+        producto.productoId,
+      );
+      if (catalogo != null) {
+        final resolved = ProductoPedidoResolver.resolver(catalogo);
+        final variante = resolved.variantes
+            .where((item) => item.id == producto.varianteId)
+            .firstOrNull;
+        if (variante != null) {
+          final listId = producto.precioListaId.isEmpty
+              ? resolved.listaPredeterminada.id
+              : producto.precioListaId;
+          final list = resolved.listas
+              .where((item) => item.id == listId)
+              .firstOrNull;
+          opciones = variante.presentaciones.map((presentacion) {
+            final price = presentacion.precioParaLista(listId);
+            return PresentacionPedidoOpcion(
+              id: presentacion.id,
+              nombre: presentacion.nombre,
+              equivalencia: presentacion.equivalenciaTexto,
+              equivalenteA: presentacion.equivalencia,
+              unidadBase: presentacion.unidadBase,
+              pedidoMinimo: presentacion.pedidoMinimo,
+              incremento: presentacion.incremento,
+              listaPrecioId: listId,
+              listaPrecioNombre: producto.precioListaNombre.isNotEmpty
+                  ? producto.precioListaNombre
+                  : list?.nombre ?? '',
+              configuracionPrecio:
+                  price?.configuracion ?? producto.precioConfiguracion,
+              precio: price?.precioFijo,
+              rangos: price?.rangos ?? const [],
+            );
+          }).toList();
+          final selected = opciones
+              .where(
+                (item) =>
+                    (producto.presentacionId.isNotEmpty &&
+                        item.id == producto.presentacionId) ||
+                    item.nombre == producto.presentacion,
+              )
+              .firstOrNull;
+          if (selected != null) {
+            precio = selected.precioPara(producto.cantidad);
+          }
+        }
+      }
+    }
+
+    return PedidoItem(
+      pedidoItemId: producto.id,
+      productoId: producto.productoId,
+      codigo: producto.codigo,
+      nombre: producto.nombre,
+      varianteId: producto.varianteId,
+      varianteSku: producto.varianteSku,
+      varianteNombre: producto.varianteNombre,
+      atributosVariante: producto.atributosVariante,
+      presentacionId: producto.presentacionId,
+      presentacion: producto.presentacion,
+      equivalencia: producto.equivalencia,
+      cantidad: producto.cantidad,
+      precioUnitario: precio,
+      precioListaId: producto.precioListaId,
+      precioListaNombre: producto.precioListaNombre,
+      precioConfiguracion: producto.precioConfiguracion,
+      opciones: opciones,
+      imagenPath: producto.imagenPath,
+    );
   }
 
   void _agregarProducto(
@@ -347,27 +468,36 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
     }
     emit(state.copyWith(guardando: true, limpiarError: true));
     try {
-      final hojaActiva = await _pedidosRepository.obtenerHojaActiva();
-      if (hojaActiva == null) {
-        emit(
-          state.copyWith(
-            guardando: false,
-            limpiarHoja: true,
-            error: 'No existe una hoja de pedido activa.',
-          ),
+      late final PedidoRegistrado result;
+      if (state.modoEdicion) {
+        result = await _pedidosRepository.actualizarPedido(
+          pedidoId: state.pedidoIdEditando!,
+          cliente: cliente,
+          items: state.carrito,
+          vendedor: 'Alfonzo Esteban',
         );
-        return;
+      } else {
+        final hojaActiva = await _pedidosRepository.obtenerHojaActiva();
+        if (hojaActiva == null) {
+          emit(
+            state.copyWith(
+              guardando: false,
+              limpiarHoja: true,
+              error: 'No existe una hoja de pedido activa.',
+            ),
+          );
+          return;
+        }
+        result = await _pedidosRepository.guardarPedido(
+          hoja: hojaActiva,
+          cliente: cliente,
+          items: state.carrito,
+          vendedor: 'Alfonzo Esteban',
+        );
       }
-      final result = await _pedidosRepository.guardarPedido(
-        hoja: hojaActiva,
-        cliente: cliente,
-        items: state.carrito,
-        vendedor: 'Alfonzo Esteban',
-      );
       emit(
         state.copyWith(
           guardando: false,
-          hojaActiva: hojaActiva,
           carrito: const [],
           limpiarCliente: true,
           resultado: result,
@@ -379,6 +509,8 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
           guardando: false,
           error: error is StateError
               ? error.message.toString()
+              : state.modoEdicion
+              ? 'No se pudo actualizar el pedido.'
               : 'No se pudo registrar el pedido.',
         ),
       );

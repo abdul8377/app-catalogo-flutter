@@ -48,7 +48,8 @@ class PedidosLocalDatasource {
             LEFT JOIN cotizacion_items ci
               ON ci.cotizacion_id = cv.id
              AND ci.pedido_item_id = i.id
-            WHERE DATE(p.creado_en, 'localtime') = DATE('now', 'localtime')
+            WHERE i.activo = 1
+              AND DATE(p.creado_en, 'localtime') = DATE('now', 'localtime')
               AND LOWER(p.estado) <> 'cancelado'
               AND COALESCE(ci.precio_cotizacion, i.precio_unitario) IS NULL
           '''),
@@ -200,7 +201,7 @@ class PedidosLocalDatasource {
          ORDER BY co.version DESC, co.creado_en DESC
          LIMIT 1
       )
-      LEFT JOIN pedido_items i ON i.pedido_id = p.id
+      LEFT JOIN pedido_items i ON i.pedido_id = p.id AND i.activo = 1
       LEFT JOIN productos pr ON pr.id = i.producto_id
       GROUP BY p.id
       ORDER BY p.creado_en DESC
@@ -254,6 +255,7 @@ class PedidosLocalDatasource {
                    LEFT JOIN preparacion_productos ppx
                      ON ppx.pedido_item_id = px.id
                   WHERE px.pedido_id = p.id
+                    AND px.activo = 1
                   GROUP BY px.id
                  HAVING COALESCE(SUM(ppx.cantidad_base), 0) > 0
                ) THEN 1 ELSE 0
@@ -265,6 +267,7 @@ class PedidosLocalDatasource {
                    LEFT JOIN preparacion_productos ppx
                      ON ppx.pedido_item_id = px.id
                   WHERE px.pedido_id = p.id
+                    AND px.activo = 1
                   GROUP BY px.id
                  HAVING COALESCE(SUM(ppx.cantidad_base), 0)
                         < px.cantidad * px.factor_unidad_base
@@ -299,12 +302,21 @@ class PedidosLocalDatasource {
              i.presentacion,
              i.equivalencia,
              i.cantidad,
+             i.variante_id,
+             i.variante_sku,
+             i.variante_nombre,
+             i.atributos_variante_json,
+             i.presentacion_id,
+             i.precio_lista_id,
+             i.precio_lista_nombre,
+             i.precio_configuracion,
+             i.precio_unitario AS precio_pedido,
              COALESCE(ci.precio_cotizacion, i.precio_unitario) AS precio_unitario,
              COALESCE(ci.subtotal, i.subtotal) AS subtotal,
              COALESCE(ci.descuento, 0) AS descuento_cotizado,
              COALESCE(ci.tipo_descuento, 'monto') AS tipo_descuento_cotizado,
              pr.marca,
-             pr.imagen_path
+             COALESCE(i.imagen_path, pr.imagen_path) AS imagen_path
       FROM pedido_items i
       LEFT JOIN productos pr ON pr.id = i.producto_id
       LEFT JOIN cotizaciones cv ON cv.id = (
@@ -319,6 +331,7 @@ class PedidosLocalDatasource {
         ON ci.cotizacion_id = cv.id
        AND ci.pedido_item_id = i.id
       WHERE i.pedido_id = ?
+        AND i.activo = 1
       ORDER BY i.nombre ASC
       ''',
       [id],
@@ -671,7 +684,7 @@ class PedidosLocalDatasource {
         final cantidadItemsPedido =
             Sqflite.firstIntValue(
               await txn.rawQuery(
-                'SELECT COUNT(*) FROM pedido_items WHERE pedido_id = ?',
+                'SELECT COUNT(*) FROM pedido_items WHERE pedido_id = ? AND activo = 1',
                 [cotizacion.pedidoId],
               ),
             ) ??
@@ -1037,6 +1050,7 @@ class PedidosLocalDatasource {
           INNER JOIN hojas_pedido h ON h.id = p.hoja_id
           LEFT JOIN preparacion_productos pp ON pp.pedido_item_id = i.id
           WHERE i.id = ?
+            AND i.activo = 1
             AND h.activa = 1
             AND h.estado = 'Abierta'
             AND LOWER(p.estado) NOT IN (
@@ -1128,6 +1142,7 @@ class PedidosLocalDatasource {
         FROM pedido_items i
         LEFT JOIN preparacion_productos pp ON pp.pedido_item_id = i.id
         WHERE i.pedido_id = ?
+          AND i.activo = 1
         GROUP BY i.id
         ''',
         [pedidoId],
@@ -1229,6 +1244,157 @@ class PedidosLocalDatasource {
     return rows.map(_clienteFromMap).toList();
   }
 
+  Future<PedidoRegistrado> actualizarPedido({
+    required String pedidoId,
+    required ClientePedido cliente,
+    required List<PedidoItem> items,
+    required String vendedor,
+  }) async {
+    if (items.isEmpty) throw StateError('El carrito está vacío.');
+    final db = await _db;
+    return db.transaction((txn) async {
+      final pedidos = await txn.rawQuery(
+        '''
+        SELECT p.id, p.codigo, p.estado, p.vendedor, p.hoja_id,
+               h.codigo AS hoja_codigo
+        FROM pedidos p
+        INNER JOIN hojas_pedido h ON h.id = p.hoja_id
+        WHERE p.id = ?
+        LIMIT 1
+        ''',
+        [pedidoId],
+      );
+      if (pedidos.isEmpty) {
+        throw StateError('El pedido seleccionado ya no existe.');
+      }
+      final pedido = pedidos.first;
+      final estadoAnterior = _normalizarEstadoPedido(
+        pedido['estado'] as String? ?? '',
+      );
+      if (estadoAnterior == 'cancelado') {
+        throw StateError('Reactiva el pedido antes de editarlo.');
+      }
+      if (estadoAnterior == 'entregado') {
+        throw StateError('Un pedido entregado no puede modificarse.');
+      }
+
+      final clienteId = await _obtenerOCrearCliente(txn, cliente);
+      final existingRows = await txn.query(
+        'pedido_items',
+        columns: ['id'],
+        where: 'pedido_id = ? AND activo = 1',
+        whereArgs: [pedidoId],
+      );
+      final existingIds = existingRows
+          .map((row) => row['id'] as String)
+          .toSet();
+      final incomingExistingIds = items
+          .map((item) => item.pedidoItemId.trim())
+          .where((id) => id.isNotEmpty)
+          .toSet();
+      if (!existingIds.containsAll(incomingExistingIds)) {
+        throw StateError(
+          'Una de las líneas editadas ya no pertenece a este pedido.',
+        );
+      }
+
+      await txn.delete(
+        'preparacion_productos',
+        where: 'pedido_id = ?',
+        whereArgs: [pedidoId],
+      );
+      await txn.delete(
+        'pedido_cargas',
+        where: 'pedido_id = ?',
+        whereArgs: [pedidoId],
+      );
+
+      final now = DateTime.now().toIso8601String();
+      await txn.update(
+        'cotizaciones',
+        {'estado': 'Archivada', 'actualizado_en': now},
+        where: "pedido_id = ? AND LOWER(estado) IN ('generada', 'borrador')",
+        whereArgs: [pedidoId],
+      );
+
+      await txn.update(
+        'pedido_items',
+        {'activo': 0},
+        where: 'pedido_id = ? AND activo = 1',
+        whereArgs: [pedidoId],
+      );
+
+      var agregadas = 0;
+      var actualizadas = 0;
+      for (final item in items) {
+        final storedId = item.pedidoItemId.trim();
+        if (storedId.isNotEmpty && existingIds.contains(storedId)) {
+          final count = await txn.update(
+            'pedido_items',
+            _pedidoItemValues(item, pedidoId: pedidoId, itemId: storedId),
+            where: 'id = ? AND pedido_id = ?',
+            whereArgs: [storedId, pedidoId],
+          );
+          if (count != 1) {
+            throw StateError('No se pudo actualizar una línea del pedido.');
+          }
+          actualizadas++;
+        } else {
+          await txn.insert(
+            'pedido_items',
+            _pedidoItemValues(
+              item,
+              pedidoId: pedidoId,
+              itemId: const Uuid().v4(),
+            ),
+          );
+          agregadas++;
+        }
+      }
+
+      final subtotal = items.fold<double>(
+        0,
+        (total, item) => total + (item.subtotal ?? 0),
+      );
+      final parcial = items.any((item) => item.precioUnitario == null);
+      await txn.update(
+        'pedidos',
+        {
+          'cliente_id': clienteId,
+          'vendedor': vendedor,
+          'estado': 'Pendiente',
+          'subtotal_conocido': subtotal,
+          'total_parcial': parcial ? 1 : 0,
+          'sincronizado': 0,
+          'sync_error': null,
+        },
+        where: 'id = ?',
+        whereArgs: [pedidoId],
+      );
+
+      final removed = existingIds.difference(incomingExistingIds).length;
+      await _registrarHistorialPedido(
+        txn,
+        pedidoId: pedidoId,
+        evento: 'Pedido editado • estado Pendiente',
+        observacion:
+            '$actualizadas líneas actualizadas · $agregadas agregadas · '
+            '$removed retiradas. Se reinició preparación y carga; '
+            'las cotizaciones anteriores quedaron archivadas.',
+        responsable: vendedor,
+        creadoEn: now,
+      );
+
+      return PedidoRegistrado(
+        id: pedidoId,
+        codigo: pedido['codigo'] as String,
+        cliente: cliente.nombre,
+        hojaCodigo: pedido['hoja_codigo'] as String? ?? '',
+        estado: 'Pendiente',
+      );
+    });
+  }
+
   Future<PedidoRegistrado> guardarPedido({
     required HojaPedidoActiva hoja,
     required ClientePedido cliente,
@@ -1280,23 +1446,14 @@ class PedidosLocalDatasource {
         'creado_en': now.toIso8601String(),
       });
       for (final item in items) {
-        await txn.insert('pedido_items', {
-          'id': const Uuid().v4(),
-          'pedido_id': pedidoId,
-          'producto_id': item.productoId,
-          'codigo': item.codigo,
-          'nombre': item.nombre,
-          'presentacion': item.presentacion,
-          'equivalencia': item.equivalencia,
-          'cantidad': item.cantidad,
-          'factor_unidad_base': _factorUnidadBase(
-            item.presentacion,
-            item.equivalencia,
+        await txn.insert(
+          'pedido_items',
+          _pedidoItemValues(
+            item,
+            pedidoId: pedidoId,
+            itemId: const Uuid().v4(),
           ),
-          'unidad_base': _unidadBase(item.presentacion, item.equivalencia),
-          'precio_unitario': item.precioUnitario,
-          'subtotal': item.subtotal,
-        });
+        );
       }
       return PedidoRegistrado(
         id: pedidoId,
@@ -1306,6 +1463,44 @@ class PedidosLocalDatasource {
         estado: 'Pendiente',
       );
     });
+  }
+
+  Map<String, Object?> _pedidoItemValues(
+    PedidoItem item, {
+    required String pedidoId,
+    required String itemId,
+  }) {
+    final selected = item.opcionSeleccionada;
+    final factor = selected == null
+        ? _factorUnidadBase(item.presentacion, item.equivalencia)
+        : selected.equivalenteA.round().clamp(1, 1000000000);
+    final unidad = selected?.unidadBase.trim().isNotEmpty == true
+        ? selected!.unidadBase
+        : _unidadBase(item.presentacion, item.equivalencia);
+    return {
+      'id': itemId,
+      'pedido_id': pedidoId,
+      'producto_id': item.productoId,
+      'codigo': item.codigo,
+      'nombre': item.nombre,
+      'presentacion': item.presentacion,
+      'equivalencia': item.equivalencia,
+      'cantidad': item.cantidad,
+      'factor_unidad_base': factor,
+      'unidad_base': unidad,
+      'precio_unitario': item.precioUnitario,
+      'subtotal': item.subtotal,
+      'activo': 1,
+      'variante_id': item.varianteId,
+      'variante_sku': item.varianteSku,
+      'variante_nombre': item.varianteNombre,
+      'atributos_variante_json': jsonEncode(item.atributosVariante),
+      'presentacion_id': item.presentacionId,
+      'precio_lista_id': item.precioListaId,
+      'precio_lista_nombre': item.precioListaNombre,
+      'precio_configuracion': item.precioConfiguracion,
+      'imagen_path': item.imagenPath,
+    };
   }
 
   Future<String> _obtenerOCrearCliente(
@@ -1657,6 +1852,18 @@ class PedidosLocalDatasource {
     subtotal: (row['subtotal'] as num?)?.toDouble(),
     marca: row['marca'] as String?,
     imagenPath: row['imagen_path'] as String?,
+    varianteId: row['variante_id'] as String? ?? '',
+    varianteSku: row['variante_sku'] as String? ?? '',
+    varianteNombre: row['variante_nombre'] as String? ?? '',
+    atributosVariante: _stringMapFromJson(
+      row['atributos_variante_json'] as String?,
+    ),
+    presentacionId: row['presentacion_id'] as String? ?? '',
+    precioListaId: row['precio_lista_id'] as String? ?? '',
+    precioListaNombre: row['precio_lista_nombre'] as String? ?? '',
+    precioConfiguracion:
+        row['precio_configuracion'] as String? ?? 'precio_fijo',
+    precioPedido: (row['precio_pedido'] as num?)?.toDouble(),
     descuentoCotizado: (row['descuento_cotizado'] as num? ?? 0).toDouble(),
     tipoDescuentoCotizado: row['tipo_descuento_cotizado'] as String? ?? 'monto',
   );
@@ -1717,7 +1924,8 @@ class PedidosLocalDatasource {
          AND ci.pedido_item_id = i.id
         LEFT JOIN preparacion_productos pp ON pp.pedido_item_id = i.id
         LEFT JOIN pedido_cargas pc ON pc.pedido_id = p.id
-        WHERE LOWER(p.estado) <> 'cancelado'
+        WHERE i.activo = 1
+          AND LOWER(p.estado) <> 'cancelado'
           ${soloHojaActiva ? "AND h.activa = 1 AND h.estado = 'Abierta'" : ''}
         GROUP BY i.id
         ORDER BY p.creado_en ASC, i.nombre ASC
@@ -1735,6 +1943,7 @@ class PedidosLocalDatasource {
       FROM pedido_items i
       LEFT JOIN preparacion_productos pp ON pp.pedido_item_id = i.id
       WHERE i.pedido_id = ?
+        AND i.activo = 1
       GROUP BY i.id
       ''',
       [pedidoId],
@@ -1821,6 +2030,7 @@ class PedidosLocalDatasource {
         LEFT JOIN preparacion_productos pp ON pp.pedido_item_id = i.id
         WHERE i.pedido_id = ?
           AND i.producto_id = ?
+          AND i.activo = 1
         GROUP BY i.id
         ''',
         [referencia.pedidoId, referencia.productoId],
@@ -1846,6 +2056,20 @@ class PedidosLocalDatasource {
           );
         }
       }
+    }
+  }
+
+  Map<String, String> _stringMapFromJson(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return const {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return const {};
+      return {
+        for (final entry in decoded.entries)
+          entry.key.toString(): entry.value.toString(),
+      };
+    } catch (_) {
+      return const {};
     }
   }
 
@@ -1902,6 +2126,7 @@ class PedidosLocalDatasource {
       FROM pedido_items i
       LEFT JOIN preparacion_productos pp ON pp.pedido_item_id = i.id
       WHERE i.pedido_id = ?
+        AND i.activo = 1
       GROUP BY i.id
       ''',
       [pedidoId],

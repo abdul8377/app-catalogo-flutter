@@ -1,5 +1,4 @@
 import 'package:app_catalogo/features/catalogo/domain/entities/catalogo_form_data.dart';
-import 'package:app_catalogo/features/catalogo/domain/entities/nuevo_producto.dart';
 import 'package:app_catalogo/features/catalogo/domain/entities/producto_detalle.dart';
 import 'package:app_catalogo/features/catalogo/domain/entities/producto_variante.dart';
 import 'package:app_catalogo/features/pedidos/domain/services/producto_pedido_resolver.dart';

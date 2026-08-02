@@ -215,6 +215,64 @@ void main() {
     },
   );
 
+  test('carga y actualiza el mismo pedido desde el carrito', () async {
+    final pedidosRepository = _PedidosRepositoryFake()
+      ..detalle = PedidoDetalle(
+        id: 'pedido-edit',
+        codigo: 'PED-2026-0042',
+        fecha: DateTime(2026, 8, 2),
+        estado: 'En proceso',
+        sincronizado: false,
+        guardadoLocal: true,
+        clienteId: 'cliente-1',
+        clienteNombre: 'Ferretería Central',
+        telefono: '999888777',
+        direccion: 'Av. Principal 123',
+        referencia: 'Puerta azul',
+        productos: const [
+          PedidoDetalleProducto(
+            id: 'item-1',
+            productoId: 'precio',
+            codigo: 'P-1',
+            nombre: 'Perno',
+            presentacion: 'Ciento',
+            equivalencia: '100 UND',
+            cantidad: 2,
+            precioUnitario: 18.5,
+            precioPedido: 18.5,
+            subtotal: 37,
+          ),
+        ],
+        subtotalConocido: 37,
+        productosSinPrecio: 0,
+        hoja: 'HP-2026-001',
+        vendedor: 'Alfonzo Esteban',
+        estadoPreparacion: 'parcial',
+        estadoCarga: 'pendiente',
+        historial: const [],
+      );
+    final bloc = PedidosBloc(_CatalogoRepositoryFake(), pedidosRepository);
+    addTearDown(bloc.close);
+
+    bloc.add(const PedidosStarted(pedidoId: 'pedido-edit'));
+    await bloc.stream.firstWhere(
+      (state) => !state.loading && state.modoEdicion,
+    );
+
+    expect(bloc.state.pedidoCodigoEditando, 'PED-2026-0042');
+    expect(bloc.state.carrito.single.pedidoItemId, 'item-1');
+    expect(bloc.state.cliente?.nombre, 'Ferretería Central');
+
+    bloc.add(const PedidoItemCantidadCambiada(0, 3));
+    await bloc.stream.firstWhere((state) => state.carrito.single.cantidad == 3);
+    bloc.add(const PedidoConfirmado());
+    await bloc.stream.firstWhere((state) => state.resultado != null);
+
+    expect(pedidosRepository.pedidoIdActualizado, 'pedido-edit');
+    expect(pedidosRepository.itemsActualizados.single.cantidad, 3);
+    expect(bloc.state.resultado?.codigo, 'PED-2026-0042');
+  });
+
   test('no confirma un pedido sin dirección de cliente', () async {
     final bloc = PedidosBloc(
       _CatalogoRepositoryFake(),
@@ -251,6 +309,9 @@ void main() {
 class _PedidosRepositoryFake implements PedidosRepository {
   List<PedidoItem> itemsGuardados = [];
   HojaPedidoActiva? hojaGuardada;
+  PedidoDetalle? detalle;
+  String? pedidoIdActualizado;
+  List<PedidoItem> itemsActualizados = [];
   int _consultasHoja = 0;
 
   @override
@@ -294,7 +355,7 @@ class _PedidosRepositoryFake implements PedidosRepository {
   Future<List<PedidoResumen>> obtenerPedidosResumen() async => const [];
 
   @override
-  Future<PedidoDetalle?> obtenerPedidoDetalle(String id) async => null;
+  Future<PedidoDetalle?> obtenerPedidoDetalle(String id) async => detalle;
 
   @override
   Future<CotizacionPedidoGuardada?> obtenerCotizacion(String id) async => null;
@@ -362,6 +423,24 @@ class _PedidosRepositoryFake implements PedidosRepository {
     required int paquetes,
     String observacion = '',
   }) async {}
+
+  @override
+  Future<PedidoRegistrado> actualizarPedido({
+    required String pedidoId,
+    required ClientePedido cliente,
+    required List<PedidoItem> items,
+    required String vendedor,
+  }) async {
+    pedidoIdActualizado = pedidoId;
+    itemsActualizados = items;
+    return PedidoRegistrado(
+      id: pedidoId,
+      codigo: detalle?.codigo ?? 'PED-2026-0042',
+      cliente: cliente.nombre,
+      hojaCodigo: detalle?.hoja ?? 'HP-2026-001',
+      estado: 'Pendiente',
+    );
+  }
 
   @override
   Future<PedidoRegistrado> guardarPedido({

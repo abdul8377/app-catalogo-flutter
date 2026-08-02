@@ -75,6 +75,7 @@ class _PreparacionCargaContent extends StatelessWidget {
               PreparacionCargaModoAgrupacionCambiado(modo),
             ),
           ),
+          _OperationalSummary(state: state),
           Expanded(child: _construirVistaAgrupada(context, state)),
         ],
       );
@@ -349,6 +350,96 @@ class _PreparacionCargaContent extends StatelessWidget {
         pedidoId: pedido.id,
         paquetes: result.paquetes,
         observacion: result.observacion,
+      ),
+    );
+  }
+}
+
+class _OperationalSummary extends StatelessWidget {
+  const _OperationalSummary({required this.state});
+
+  final PreparacionCargaState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final metrics = state.subTab == 0
+        ? [
+            (
+              'Pendientes',
+              state.pedidosPendientesPreparacion,
+              Icons.pending_actions_outlined,
+            ),
+            (
+              'En preparación',
+              state.pedidosEnPreparacion,
+              Icons.inventory_2_outlined,
+            ),
+            ('Listos', state.pedidosListosCarga, Icons.check_circle_outline),
+          ]
+        : [
+            (
+              'Por cargar',
+              state.pedidosListosCarga,
+              Icons.local_shipping_outlined,
+            ),
+            ('Cargados', state.pedidosCargados, Icons.task_alt_rounded),
+            ('Paquetes', state.paquetesCargados, Icons.inventory_outlined),
+          ];
+    return Container(
+      color: const Color(0xFFF7F8FA),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      child: Row(
+        children: [
+          for (var index = 0; index < metrics.length; index++) ...[
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      metrics[index].$3,
+                      size: 18,
+                      color: const Color(0xFF1F1F1F),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${metrics[index].$2}',
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
+                            metrics[index].$1,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              color: const Color(0xFF667085),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (index < metrics.length - 1) const SizedBox(width: 8),
+          ],
+        ],
       ),
     );
   }

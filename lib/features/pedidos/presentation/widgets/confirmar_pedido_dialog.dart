@@ -82,7 +82,7 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
               color: Colors.transparent,
               child: Column(
                 children: [
-                  _header(context),
+                  _header(context, state),
                   _stepper(),
                   if (state.error != null) _error(state.error!),
                   Expanded(
@@ -105,7 +105,7 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
     ),
   );
 
-  Widget _header(BuildContext context) => Container(
+  Widget _header(BuildContext context, PedidosState state) => Container(
     color: darkColor,
     padding: const EdgeInsets.fromLTRB(20, 15, 12, 15),
     child: Row(
@@ -132,7 +132,7 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Confirmar pedido',
+                state.modoEdicion ? 'Confirmar cambios' : 'Confirmar pedido',
                 style: GoogleFonts.inter(
                   fontWeight: FontWeight.w900,
                   fontSize: 20,
@@ -667,7 +667,10 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
                   'Hoja activa:',
                   state.hojaActiva?.codigo ?? 'No disponible',
                 ),
-                _resumenRow('Estado inicial:', 'Pendiente'),
+                _resumenRow(
+                  state.modoEdicion ? 'Estado al guardar:' : 'Estado inicial:',
+                  'Pendiente',
+                ),
               ],
             ),
           ),
@@ -729,6 +732,8 @@ class _ConfirmarPedidoDialogState extends State<ConfirmarPedidoDialog> {
                           ? 'Continuar'
                           : _paso == 1
                           ? 'Revisar pedido'
+                          : state.modoEdicion
+                          ? 'Guardar cambios'
                           : 'Confirmar pedido',
                     ),
                   ),

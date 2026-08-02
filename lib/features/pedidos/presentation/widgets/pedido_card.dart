@@ -253,7 +253,7 @@ class PedidoCard extends StatelessWidget {
           pedido.estadoNormalizado != 'entregado')
         const PopupMenuItem(
           value: 'editar_pedido',
-          child: Text('Editar pedido'),
+          child: Text('Editar productos del pedido'),
         ),
       if (pedido.estadoNormalizado == 'cancelado')
         const PopupMenuItem(

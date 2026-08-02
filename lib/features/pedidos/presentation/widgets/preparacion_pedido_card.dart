@@ -52,21 +52,29 @@ class PreparacionPedidoCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (pedido.paquetes > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${pedido.paquetes} paq.',
-                          style: GoogleFonts.inter(fontSize: 11),
-                        ),
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _EstadoPreparacionChip(pedido: pedido),
+                        if (pedido.paquetes > 0) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '${pedido.paquetes} paq.',
+                              style: GoogleFonts.inter(fontSize: 11),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
                 Text(
@@ -142,7 +150,13 @@ class PreparacionPedidoCard extends StatelessWidget {
               TextButton.icon(
                 onPressed: onVerDetalle,
                 icon: const Icon(Icons.list_alt, size: 16),
-                label: const Text('Ver productos'),
+                label: Text(
+                  pedido.cargado
+                      ? 'Ver carga'
+                      : pedido.presentacionesPreparadas > 0
+                      ? 'Continuar preparación'
+                      : 'Preparar pedido',
+                ),
               ),
               if (onCargar != null)
                 ElevatedButton.icon(
@@ -157,6 +171,38 @@ class PreparacionPedidoCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EstadoPreparacionChip extends StatelessWidget {
+  const _EstadoPreparacionChip({required this.pedido});
+
+  final PedidoPreparacion pedido;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (pedido.estadoPreparacion) {
+      'cargado' => const Color(0xFF2E7D32),
+      'listo_cargar' => const Color(0xFF00796B),
+      'en_preparacion' => const Color(0xFF1976D2),
+      _ => const Color(0xFFF57C00),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: .35)),
+      ),
+      child: Text(
+        pedido.estadoPreparacionLabel,
+        style: GoogleFonts.inter(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }

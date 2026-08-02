@@ -69,6 +69,10 @@ class PreparacionCargaState extends Equatable {
 
   int get pedidosCargados => pedidos.where((pedido) => pedido.cargado).length;
 
+  int get paquetesCargados => pedidos
+      .where((pedido) => pedido.cargado)
+      .fold(0, (sum, pedido) => sum + pedido.paquetes);
+
   int get unidadesPendientes =>
       pedidos.fold(0, (sum, pedido) => sum + pedido.unidadesPendientes);
 

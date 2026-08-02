@@ -67,4 +67,12 @@ abstract class PedidosRepository {
     required List<PedidoItem> items,
     required String vendedor,
   });
+  Future<PedidoRegistrado> actualizarPedido({
+    required String pedidoId,
+    required ClientePedido cliente,
+    required List<PedidoItem> items,
+    required String vendedor,
+  }) => throw UnimplementedError(
+    'Este repositorio no implementa la edición de pedidos.',
+  );
 }

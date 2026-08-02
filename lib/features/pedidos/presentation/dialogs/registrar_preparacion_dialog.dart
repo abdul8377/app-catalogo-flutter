@@ -37,14 +37,21 @@ class _RegistrarPreparacionDialogState
   @override
   void initState() {
     super.initState();
-    _items = widget.pedido.productos
-        .map(
-          (producto) => _ItemPreparacion(
-            producto: producto,
-            cantidadAhora: producto.pendiente,
-          ),
-        )
-        .toList();
+    _items =
+        widget.pedido.productos
+            .map(
+              (producto) => _ItemPreparacion(
+                producto: producto,
+                cantidadAhora: producto.pendiente,
+              ),
+            )
+            .toList()
+          ..sort((a, b) {
+            if (a.producto.completado == b.producto.completado) {
+              return a.producto.nombre.compareTo(b.producto.nombre);
+            }
+            return a.producto.completado ? 1 : -1;
+          });
   }
 
   @override
@@ -217,7 +224,7 @@ class _RegistrarPreparacionDialogState
             }
           }),
           icon: const Icon(Icons.done_all, size: 16),
-          label: const Text('Marcar todos'),
+          label: const Text('Preparar todo lo pendiente'),
           style: TextButton.styleFrom(foregroundColor: darkColor),
         ),
         const Spacer(),

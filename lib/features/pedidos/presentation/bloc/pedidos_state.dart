@@ -25,6 +25,10 @@ class PedidosState extends Equatable {
     this.subcategoria,
     this.estado,
     this.imagen,
+    this.pedidoIdEditando,
+    this.pedidoCodigoEditando,
+    this.pedidoEstadoOriginal,
+    this.pedidoHojaEditando,
     this.filtrosRapidos = const {'Todos'},
   });
 
@@ -54,6 +58,10 @@ class PedidosState extends Equatable {
   final String? subcategoria;
   final String? estado;
   final String? imagen;
+  final String? pedidoIdEditando;
+  final String? pedidoCodigoEditando;
+  final String? pedidoEstadoOriginal;
+  final String? pedidoHojaEditando;
   final Set<String> filtrosRapidos;
   final List<PedidoItem> carrito;
   final List<ClientePedido> clientes;
@@ -149,6 +157,17 @@ class PedidosState extends Equatable {
     orden: orden,
   );
 
+  bool get modoEdicion =>
+      pedidoIdEditando != null && pedidoIdEditando!.trim().isNotEmpty;
+  int get lineasLegadas => carrito
+      .where(
+        (item) =>
+            item.pedidoItemId.isNotEmpty &&
+            item.varianteId.isEmpty &&
+            item.presentacionId.isEmpty,
+      )
+      .length;
+
   int get lineasCarrito => carrito.length;
   int get cantidadPresentaciones =>
       carrito.fold(0, (total, item) => total + item.cantidad);
@@ -174,6 +193,10 @@ class PedidosState extends Equatable {
     String? subcategoria,
     String? estado,
     String? imagen,
+    String? pedidoIdEditando,
+    String? pedidoCodigoEditando,
+    String? pedidoEstadoOriginal,
+    String? pedidoHojaEditando,
     Set<String>? filtrosRapidos,
     bool limpiarFiltros = false,
     List<PedidoItem>? carrito,
@@ -200,6 +223,10 @@ class PedidosState extends Equatable {
     subcategoria: limpiarFiltros ? null : subcategoria ?? this.subcategoria,
     estado: limpiarFiltros ? null : estado ?? this.estado,
     imagen: limpiarFiltros ? null : imagen ?? this.imagen,
+    pedidoIdEditando: pedidoIdEditando ?? this.pedidoIdEditando,
+    pedidoCodigoEditando: pedidoCodigoEditando ?? this.pedidoCodigoEditando,
+    pedidoEstadoOriginal: pedidoEstadoOriginal ?? this.pedidoEstadoOriginal,
+    pedidoHojaEditando: pedidoHojaEditando ?? this.pedidoHojaEditando,
     filtrosRapidos: filtrosRapidos ?? this.filtrosRapidos,
     carrito: carrito ?? this.carrito,
     clientes: clientes ?? this.clientes,
@@ -224,6 +251,10 @@ class PedidosState extends Equatable {
     subcategoria,
     estado,
     imagen,
+    pedidoIdEditando,
+    pedidoCodigoEditando,
+    pedidoEstadoOriginal,
+    pedidoHojaEditando,
     filtrosRapidos,
     carrito,
     clientes,

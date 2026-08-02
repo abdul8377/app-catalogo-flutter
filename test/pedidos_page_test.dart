@@ -43,9 +43,9 @@ void main() {
 
     await tester.tap(find.text('Abrir cotización'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Continuar'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Continuar'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Guardar borrador'));
     await tester.pumpAndSettle();
@@ -118,7 +118,7 @@ void main() {
 
     final registrarButton = find.widgetWithText(
       ElevatedButton,
-      'Registrar preparación',
+      'Registrar avance',
     );
     await tester.scrollUntilVisible(
       registrarButton,
@@ -281,6 +281,15 @@ class _PedidosListadoRepositoryFake implements PedidosRepository {
   );
 
   @override
+  Future<CotizacionPedidoGuardada?> obtenerCotizacion(String id) async => null;
+
+  @override
+  Future<CotizacionPedidoGuardada> actualizarCotizacion({
+    required String cotizacionId,
+    required CotizacionPedidoDraft cotizacion,
+  }) => guardarCotizacion(cotizacion);
+
+  @override
   Future<CotizacionPedidoGuardada> guardarCotizacion(
     CotizacionPedidoDraft cotizacion,
   ) async {
@@ -404,6 +413,12 @@ class _PedidosListadoRepositoryFake implements PedidosRepository {
   }) async {}
 
   @override
+  Future<void> reactivarPedido({
+    required String pedidoId,
+    String observacion = '',
+  }) async {}
+
+  @override
   Future<void> marcarPedidoCargado({
     required String pedidoId,
     required int paquetes,
@@ -425,6 +440,20 @@ class _PedidosListadoRepositoryFake implements PedidosRepository {
     id: 'hoja-1',
     codigo: 'HP-2026-001',
     estado: 'Abierta',
+  );
+
+  @override
+  Future<PedidoRegistrado> actualizarPedido({
+    required String pedidoId,
+    required ClientePedido cliente,
+    required List<PedidoItem> items,
+    required String vendedor,
+  }) async => PedidoRegistrado(
+    id: pedidoId,
+    codigo: 'PED-2026-0048',
+    cliente: cliente.nombre,
+    hojaCodigo: 'HP-2026-001',
+    estado: 'Pendiente',
   );
 
   @override

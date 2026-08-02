@@ -17,14 +17,16 @@ import '../widgets/agregar_producto_dialog.dart';
 import '../widgets/confirmar_pedido_dialog.dart';
 
 class NuevoPedidoPage extends StatelessWidget {
-  const NuevoPedidoPage({super.key});
+  const NuevoPedidoPage({this.pedidoId, super.key});
+
+  final String? pedidoId;
 
   @override
   Widget build(BuildContext context) => BlocProvider(
     create: (_) => PedidosBloc(
       context.read<CatalogoRepository>(),
       context.read<PedidosRepository>(),
-    )..add(const PedidosStarted()),
+    )..add(PedidosStarted(pedidoId: pedidoId)),
     child: const _NuevoPedidoView(),
   );
 }
@@ -49,7 +51,7 @@ class _NuevoPedidoViewState extends State<_NuevoPedidoView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Nuevo pedido',
+              state.modoEdicion ? 'Editar pedido' : 'Nuevo pedido',
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w700,
                 fontSize: 20,
@@ -58,7 +60,10 @@ class _NuevoPedidoViewState extends State<_NuevoPedidoView> {
             ),
             const SizedBox(height: 2),
             Text(
-              state.hojaActiva == null
+              state.modoEdicion
+                  ? '${state.pedidoCodigoEditando ?? ''} · '
+                        'Hoja ${state.pedidoHojaEditando ?? ''}'
+                  : state.hojaActiva == null
                   ? 'Sin hoja activa'
                   : 'Hoja activa: ${state.hojaActiva!.codigo}',
               style: GoogleFonts.inter(fontSize: 13, color: Colors.white70),
@@ -86,7 +91,9 @@ class _NuevoPedidoViewState extends State<_NuevoPedidoView> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                if (state.hojaActiva == null) const _SinHojaBanner(),
+                if (state.modoEdicion) _EdicionPedidoBanner(state: state),
+                if (!state.modoEdicion && state.hojaActiva == null)
+                  const _SinHojaBanner(),
                 FiltrosCatalogo(
                   state: _catalogoState(state),
                   modoPedido: true,
@@ -195,14 +202,20 @@ class _NuevoPedidoViewState extends State<_NuevoPedidoView> {
   Future<void> _revisarCarrito(BuildContext context) async {
     final confirmado = await ConfirmarPedidoDialog.show(context);
     if (!confirmado || !context.mounted) return;
-    final resultado = context.read<PedidosBloc>().state.resultado;
-    if (resultado != null) await _mostrarResultado(context, resultado);
+    final state = context.read<PedidosBloc>().state;
+    final resultado = state.resultado;
+    if (resultado == null) return;
+    await _mostrarResultado(context, resultado, modoEdicion: state.modoEdicion);
+    if (state.modoEdicion && context.mounted) {
+      Navigator.of(context).pop(true);
+    }
   }
 
   Future<void> _mostrarResultado(
     BuildContext context,
-    PedidoRegistrado resultado,
-  ) => showDialog<void>(
+    PedidoRegistrado resultado, {
+    required bool modoEdicion,
+  }) => showDialog<void>(
     context: context,
     barrierDismissible: false,
     barrierColor: Colors.black.withValues(alpha: .62),
@@ -235,7 +248,7 @@ class _NuevoPedidoViewState extends State<_NuevoPedidoView> {
                     ),
                     const SizedBox(height: 14),
                     Text(
-                      'Pedido registrado',
+                      modoEdicion ? 'Pedido actualizado' : 'Pedido registrado',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
                         color: darkColor,
@@ -245,7 +258,10 @@ class _NuevoPedidoViewState extends State<_NuevoPedidoView> {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      'Quedó guardado localmente en la hoja activa.',
+                      modoEdicion
+                          ? 'Se conservaron el código, la hoja y el historial. '
+                                'El pedido volvió a Pendiente.'
+                          : 'Quedó guardado localmente en la hoja activa.',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
                         color: const Color(0xFF475467),
@@ -264,34 +280,49 @@ class _NuevoPedidoViewState extends State<_NuevoPedidoView> {
                     _resultadoRow('Hoja de pedido', resultado.hojaCodigo),
                     _resultadoRow('Estado inicial', resultado.estado),
                     const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(dialogContext),
-                            child: const Text('Cerrar'),
+                    if (modoEdicion)
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.black,
+                            minimumSize: const Size(0, 46),
                           ),
+                          icon: const Icon(Icons.arrow_back_rounded),
+                          label: const Text('Volver a Gestión de pedidos'),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () {
-                              context.read<PedidosBloc>().add(
-                                const PedidoNuevoSolicitado(),
-                              );
-                              Navigator.pop(dialogContext);
-                            },
-                            style: FilledButton.styleFrom(
-                              backgroundColor: primaryColor,
-                              foregroundColor: Colors.black,
-                              minimumSize: const Size(0, 46),
+                      )
+                    else
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(dialogContext),
+                              child: const Text('Cerrar'),
                             ),
-                            icon: const Icon(Icons.add_shopping_cart_rounded),
-                            label: const Text('Nuevo pedido'),
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: () {
+                                context.read<PedidosBloc>().add(
+                                  const PedidoNuevoSolicitado(),
+                                );
+                                Navigator.pop(dialogContext);
+                              },
+                              style: FilledButton.styleFrom(
+                                backgroundColor: primaryColor,
+                                foregroundColor: Colors.black,
+                                minimumSize: const Size(0, 46),
+                              ),
+                              icon: const Icon(Icons.add_shopping_cart_rounded),
+                              label: const Text('Nuevo pedido'),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -326,6 +357,44 @@ class _NuevoPedidoViewState extends State<_NuevoPedidoView> {
               color: darkColor,
               fontSize: 12,
               fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _EdicionPedidoBanner extends StatelessWidget {
+  const _EdicionPedidoBanner({required this.state});
+
+  final PedidosState state;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+    color: const Color(0xFFFFF8DB),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.edit_note_rounded, color: Color(0xFF8A6500)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            state.lineasLegadas > 0
+                ? 'Editando ${state.pedidoCodigoEditando}. '
+                      '${state.lineasLegadas} línea(s) antigua(s) no conservan '
+                      'la variante exacta; puedes cambiar su cantidad o '
+                      'retirarlas y agregarlas nuevamente.'
+                : 'Editando ${state.pedidoCodigoEditando}. Al guardar se '
+                      'reiniciarán preparación y carga, y las cotizaciones '
+                      'anteriores quedarán archivadas.',
+            style: GoogleFonts.inter(
+              color: const Color(0xFF5D4600),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
             ),
           ),
         ),
@@ -446,7 +515,7 @@ class _CarritoBar extends StatelessWidget {
             key: const Key('revisar_carrito'),
             onPressed: onVerCarrito,
             icon: const Icon(Icons.arrow_forward_rounded, size: 17),
-            label: const Text('Revisar'),
+            label: Text(state.modoEdicion ? 'Revisar cambios' : 'Revisar'),
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFFFC500),
               foregroundColor: Colors.black,
