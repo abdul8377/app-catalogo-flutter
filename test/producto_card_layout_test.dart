@@ -40,7 +40,7 @@ void main() {
             body: Center(
               child: SizedBox(
                 width: 360,
-                height: 480,
+                height: 520,
                 child: ProductoCard(
                   producto: product,
                   isGrid: true,
@@ -54,6 +54,15 @@ void main() {
       );
 
       expect(find.text('+3 más'), findsOneWidget);
+      expect(
+        tester
+            .getSize(find.byKey(const Key('producto_imagen_product-1')))
+            .height,
+        212,
+      );
+      final cardBottom = tester.getBottomRight(find.byType(ProductoCard)).dy;
+      final buttonBottom = tester.getBottomRight(find.text('Agregar')).dy;
+      expect(cardBottom - buttonBottom, lessThan(34));
       expect(find.text('Agregar'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },

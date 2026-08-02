@@ -49,7 +49,7 @@ class ProductoCard extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _imagen(height: compacto ? 142 : 176),
+          _imagen(height: compacto ? 170 : 212),
           Expanded(
             child: _contenidoAdministrativo(
               expandido: true,
@@ -70,14 +70,14 @@ class ProductoCard extends StatelessWidget {
       if (constraints.maxWidth < 600) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [_imagen(height: 172), contenido],
+          children: [_imagen(height: 206), contenido],
         );
       }
       return IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(width: 220, child: _imagen(height: 220)),
+            SizedBox(width: 264, child: _imagen(height: 264)),
             Expanded(child: contenido),
           ],
         ),
@@ -157,7 +157,7 @@ class ProductoCard extends StatelessWidget {
         _clasificacion(),
         const SizedBox(height: 10),
         _etiquetasAdministrativas(compacto),
-        SizedBox(height: expandido ? 12 : 14),
+        if (expandido) const Spacer() else const SizedBox(height: 14),
         _precio(fontSize: 14),
         const SizedBox(height: 10),
         _esComercial ? _accionesComerciales() : _accionesAdministrativas(),

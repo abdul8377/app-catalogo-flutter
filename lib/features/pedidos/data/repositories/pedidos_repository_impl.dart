@@ -32,9 +32,22 @@ class PedidosRepositoryImpl implements PedidosRepository {
       localDatasource.obtenerPedidoDetalle(id);
 
   @override
+  Future<CotizacionPedidoGuardada?> obtenerCotizacion(String id) =>
+      localDatasource.obtenerCotizacion(id);
+
+  @override
   Future<CotizacionPedidoGuardada> guardarCotizacion(
     CotizacionPedidoDraft cotizacion,
   ) => localDatasource.guardarCotizacion(cotizacion);
+
+  @override
+  Future<CotizacionPedidoGuardada> actualizarCotizacion({
+    required String cotizacionId,
+    required CotizacionPedidoDraft cotizacion,
+  }) => localDatasource.actualizarCotizacion(
+    cotizacionId: cotizacionId,
+    cotizacion: cotizacion,
+  );
 
   @override
   Future<void> registrarPdfCotizacion({
@@ -74,6 +87,15 @@ class PedidosRepositoryImpl implements PedidosRepository {
     required String pedidoId,
     required String motivo,
   }) => localDatasource.cancelarPedido(pedidoId: pedidoId, motivo: motivo);
+
+  @override
+  Future<void> reactivarPedido({
+    required String pedidoId,
+    String observacion = '',
+  }) => localDatasource.reactivarPedido(
+    pedidoId: pedidoId,
+    observacion: observacion,
+  );
 
   @override
   Future<void> reintentarSincronizacionPedido(String pedidoId) =>

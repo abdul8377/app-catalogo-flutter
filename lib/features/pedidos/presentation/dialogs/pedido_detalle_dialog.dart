@@ -10,9 +10,10 @@ import '../../../../core/presentation/widgets/app_notice.dart';
 import '../../domain/entities/cotizacion_pedido.dart';
 import '../../domain/entities/pedido_detalle.dart';
 import '../../domain/repositories/pedidos_repository.dart';
+import 'generar_cotizacion_dialog.dart';
 import '../widgets/pedido_estado_badge.dart';
 
-enum PedidoDetalleDialogAction { editar, cotizacion, cambiarEstado, verCliente }
+enum PedidoDetalleDialogAction { editar, verCliente }
 
 class PedidoDetalleDialog extends StatefulWidget {
   const PedidoDetalleDialog({required this.pedidoId, super.key});
@@ -35,21 +36,36 @@ class PedidoDetalleDialog extends StatefulWidget {
 class _PedidoDetalleDialogState extends State<PedidoDetalleDialog>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-  late final Future<PedidoDetalle?> _pedidoFuture;
+  late Future<PedidoDetalle?> _pedidoFuture;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
-    _pedidoFuture = context.read<PedidosRepository>().obtenerPedidoDetalle(
-      widget.pedidoId,
-    );
+    _pedidoFuture = _obtenerPedido();
   }
+
+  Future<PedidoDetalle?> _obtenerPedido() =>
+      context.read<PedidosRepository>().obtenerPedidoDetalle(widget.pedidoId);
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _abrirCotizacion(String? cotizacionId) async {
+    final result = await GenerarCotizacionDialog.show(
+      context,
+      pedidoId: widget.pedidoId,
+      cotizacionId: cotizacionId,
+      modoEdicion: cotizacionId != null,
+    );
+    if (!mounted || result == null) return;
+    setState(() {
+      _pedidoFuture = _obtenerPedido();
+      _tabController.index = 3;
+    });
   }
 
   @override
@@ -104,7 +120,12 @@ class _PedidoDetalleDialogState extends State<PedidoDetalleDialog>
               return _PedidoDetalleContent(
                 pedido: pedido,
                 tabController: _tabController,
-                onAction: (action) => Navigator.of(context).pop(action),
+                onEditar: () =>
+                    Navigator.of(context).pop(PedidoDetalleDialogAction.editar),
+                onVerCliente: () => Navigator.of(
+                  context,
+                ).pop(PedidoDetalleDialogAction.verCliente),
+                onAbrirCotizacion: _abrirCotizacion,
                 onClose: () => Navigator.of(context).pop(),
               );
             },
@@ -119,7 +140,9 @@ class _PedidoDetalleContent extends StatelessWidget {
   const _PedidoDetalleContent({
     required this.pedido,
     required this.tabController,
-    required this.onAction,
+    required this.onEditar,
+    required this.onVerCliente,
+    required this.onAbrirCotizacion,
     required this.onClose,
   });
 
@@ -128,7 +151,9 @@ class _PedidoDetalleContent extends StatelessWidget {
 
   final PedidoDetalle pedido;
   final TabController tabController;
-  final ValueChanged<PedidoDetalleDialogAction> onAction;
+  final VoidCallback onEditar;
+  final VoidCallback onVerCliente;
+  final ValueChanged<String?> onAbrirCotizacion;
   final VoidCallback onClose;
 
   @override
@@ -158,16 +183,12 @@ class _PedidoDetalleContent extends StatelessWidget {
         child: TabBarView(
           controller: tabController,
           children: [
-            _ResumenTab(
-              pedido: pedido,
-              onVerCliente: () =>
-                  onAction(PedidoDetalleDialogAction.verCliente),
-            ),
+            _ResumenTab(pedido: pedido, onVerCliente: onVerCliente),
             _ProductosTab(pedido: pedido),
             _EntregaTab(pedido: pedido),
             _CotizacionTab(
               pedido: pedido,
-              onGenerar: () => onAction(PedidoDetalleDialogAction.cotizacion),
+              onAbrirCotizacion: onAbrirCotizacion,
             ),
             _HistorialTab(historial: pedido.historial),
           ],
@@ -175,10 +196,10 @@ class _PedidoDetalleContent extends StatelessWidget {
       ),
       _ActionsBar(
         onClose: onClose,
-        onEditar: () => onAction(PedidoDetalleDialogAction.editar),
-        onCotizacion: () => onAction(PedidoDetalleDialogAction.cotizacion),
-        onCambiarEstado: () =>
-            onAction(PedidoDetalleDialogAction.cambiarEstado),
+        onEditar: onEditar,
+        puedeEditar:
+            pedido.estadoNormalizado != 'cancelado' &&
+            pedido.estadoNormalizado != 'entregado',
       ),
     ],
   );
@@ -694,10 +715,10 @@ class _EntregaTab extends StatelessWidget {
 }
 
 class _CotizacionTab extends StatelessWidget {
-  const _CotizacionTab({required this.pedido, required this.onGenerar});
+  const _CotizacionTab({required this.pedido, required this.onAbrirCotizacion});
 
   final PedidoDetalle pedido;
-  final VoidCallback onGenerar;
+  final ValueChanged<String?> onAbrirCotizacion;
 
   @override
   Widget build(BuildContext context) {
@@ -713,7 +734,7 @@ class _CotizacionTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Historial de cotizaciones',
+                      'Cotizaciones del pedido',
                       style: GoogleFonts.inter(
                         fontWeight: FontWeight.w800,
                         fontSize: 18,
@@ -721,17 +742,18 @@ class _CotizacionTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'Cada versión conserva sus propios precios.',
+                      'Pulsa una versión para abrirla. Las generadas crean '
+                      'una nueva versión al guardar.',
                       style: GoogleFonts.inter(
                         color: const Color(0xFF757575),
-                        fontSize: 13,
+                        fontSize: 12,
                       ),
                     ),
                   ],
                 ),
               ),
               ElevatedButton.icon(
-                onPressed: onGenerar,
+                onPressed: () => onAbrirCotizacion(null),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Nueva cotización'),
                 style: ElevatedButton.styleFrom(
@@ -756,7 +778,7 @@ class _CotizacionTab extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'No se ha generado ninguna cotización',
+                        'No hay cotizaciones guardadas',
                         style: GoogleFonts.inter(
                           fontWeight: FontWeight.w600,
                           color: Colors.grey,
@@ -770,10 +792,27 @@ class _CotizacionTab extends StatelessWidget {
                   itemCount: cotizaciones.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
-                    final cotizacion = cotizaciones[index];
+                    final quote = cotizaciones[index];
+                    final path = quote.pdfPath;
+                    final hasPdf =
+                        path != null &&
+                        path.isNotEmpty &&
+                        File(path).existsSync();
                     return _CotizacionHistorialCard(
-                      cotizacion: cotizacion,
-                      onTap: () => _mostrarAcciones(context, cotizacion),
+                      cotizacion: quote,
+                      onTap: () => onAbrirCotizacion(quote.id),
+                      onOpenPdf: hasPdf
+                          ? () => _runFileAction(
+                              context,
+                              () => FileActionsService.openPdf(path),
+                            )
+                          : null,
+                      onSharePdf: hasPdf
+                          ? () => _runFileAction(
+                              context,
+                              () => FileActionsService.sharePdf(path),
+                            )
+                          : null,
                     );
                   },
                 ),
@@ -782,57 +821,7 @@ class _CotizacionTab extends StatelessWidget {
     );
   }
 
-  Future<void> _mostrarAcciones(
-    BuildContext context,
-    CotizacionPedidoGuardada cotizacion,
-  ) async {
-    final pdfPath = cotizacion.pdfPath;
-    final tienePdf =
-        pdfPath != null && pdfPath.isNotEmpty && File(pdfPath).existsSync();
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('${cotizacion.codigo} • Versión ${cotizacion.version}'),
-        content: Text(
-          '${_formatFecha(cotizacion.creadoEn)} • '
-          'S/ ${cotizacion.total.toStringAsFixed(2)}\n'
-          '${cotizacion.estado}${tienePdf ? '' : ' • PDF no generado'}',
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: tienePdf
-                ? () => _ejecutarArchivo(
-                    context,
-                    () => FileActionsService.openPdf(pdfPath),
-                  )
-                : null,
-            icon: const Icon(Icons.visibility),
-            label: const Text('Ver PDF'),
-          ),
-          TextButton.icon(
-            onPressed: tienePdf
-                ? () => _ejecutarArchivo(
-                    context,
-                    () => FileActionsService.sharePdf(pdfPath),
-                  )
-                : null,
-            icon: const Icon(Icons.share),
-            label: const Text('Compartir'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFFFC500),
-              foregroundColor: Colors.black,
-            ),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _ejecutarArchivo(
+  Future<void> _runFileAction(
     BuildContext context,
     Future<void> Function() action,
   ) async {
@@ -849,69 +838,93 @@ class _CotizacionHistorialCard extends StatelessWidget {
   const _CotizacionHistorialCard({
     required this.cotizacion,
     required this.onTap,
+    this.onOpenPdf,
+    this.onSharePdf,
   });
 
   final CotizacionPedidoGuardada cotizacion;
   final VoidCallback onTap;
+  final VoidCallback? onOpenPdf;
+  final VoidCallback? onSharePdf;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(14),
-    child: InkWell(
-      onTap: onTap,
+  Widget build(BuildContext context) {
+    final statusColor = cotizacion.esBorrador
+        ? Colors.orange
+        : cotizacion.esGenerada
+        ? Colors.green
+        : Colors.blueGrey;
+    return Material(
+      color: Colors.white,
       borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE3E3E3)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFC500).withValues(alpha: .16),
-                borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        key: ValueKey('abrir_cotizacion_${cotizacion.id}'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE3E3E3)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFC500).withValues(alpha: .16),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  cotizacion.esBorrador
+                      ? Icons.edit_note_outlined
+                      : Icons.description_outlined,
+                  color: const Color(0xFF1F1F1F),
+                ),
               ),
-              child: const Icon(Icons.picture_as_pdf, color: Color(0xFF1F1F1F)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${cotizacion.codigo} • Versión ${cotizacion.version}',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${_formatFecha(cotizacion.creadoEn)} • '
-                    'S/ ${cotizacion.total.toStringAsFixed(2)}',
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFF757575),
-                      fontSize: 13,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      cotizacion.codigoVersion,
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w700),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_formatFecha(cotizacion.creadoEn)} • '
+                      'S/ ${cotizacion.total.toStringAsFixed(2)}',
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF757575),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            _Badge(
-              label: cotizacion.estado,
-              color: cotizacion.estado == 'Borrador'
-                  ? Colors.orange
-                  : Colors.green,
-            ),
-            const SizedBox(width: 6),
-            const Icon(Icons.chevron_right, color: Colors.grey),
-          ],
+              if (onOpenPdf != null)
+                IconButton(
+                  tooltip: 'Ver PDF',
+                  onPressed: onOpenPdf,
+                  icon: const Icon(Icons.visibility_outlined, size: 20),
+                ),
+              if (onSharePdf != null)
+                IconButton(
+                  tooltip: 'Compartir PDF',
+                  onPressed: onSharePdf,
+                  icon: const Icon(Icons.share_outlined, size: 20),
+                ),
+              _Badge(label: cotizacion.estado, color: statusColor),
+              const SizedBox(width: 6),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _HistorialTab extends StatelessWidget {
@@ -1003,16 +1016,14 @@ class _ActionsBar extends StatelessWidget {
   const _ActionsBar({
     required this.onClose,
     required this.onEditar,
-    required this.onCotizacion,
-    required this.onCambiarEstado,
+    required this.puedeEditar,
   });
 
   static const primaryColor = Color(0xFFFFC500);
 
   final VoidCallback onClose;
   final VoidCallback onEditar;
-  final VoidCallback onCotizacion;
-  final VoidCallback onCambiarEstado;
+  final bool puedeEditar;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -1020,70 +1031,41 @@ class _ActionsBar extends StatelessWidget {
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
-      boxShadow: [
+      border: const Border(top: BorderSide(color: Color(0xFFE1E5EA))),
+      boxShadow: const [
         BoxShadow(
-          color: Colors.black.withValues(alpha: .05),
+          color: Color(0x0D000000),
           blurRadius: 10,
-          offset: const Offset(0, -5),
+          offset: Offset(0, -4),
         ),
       ],
     ),
-    child: LayoutBuilder(
-      builder: (context, constraints) {
-        final buttons = [
-          _DialogActionButton.outlined(label: 'Cerrar', onPressed: onClose),
-          _DialogActionButton.filled(
-            label: 'Editar',
-            color: primaryColor,
-            foreground: Colors.black,
-            onPressed: onEditar,
+    child: SafeArea(
+      top: false,
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: onClose,
+              child: const Text('Cerrar'),
+            ),
           ),
-          _DialogActionButton.filled(
-            label: 'Cotización',
-            color: Colors.blue.shade100,
-            foreground: Colors.blue.shade900,
-            onPressed: onCotizacion,
-          ),
-          _DialogActionButton.filled(
-            label: 'Cambiar estado',
-            color: Colors.orange.shade100,
-            foreground: Colors.orange.shade900,
-            onPressed: onCambiarEstado,
-          ),
-        ];
-
-        if (constraints.maxWidth < 620) {
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Expanded(child: buttons[0]),
-                  const SizedBox(width: 8),
-                  Expanded(child: buttons[1]),
-                ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: FilledButton.icon(
+              key: const Key('editar_pedido_desde_detalle'),
+              onPressed: puedeEditar ? onEditar : null,
+              icon: const Icon(Icons.edit_outlined),
+              label: Text(puedeEditar ? 'Editar pedido' : 'Pedido no editable'),
+              style: FilledButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.black,
+                minimumSize: const Size(0, 46),
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(child: buttons[2]),
-                  const SizedBox(width: 8),
-                  Expanded(child: buttons[3]),
-                ],
-              ),
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            for (var index = 0; index < buttons.length; index++) ...[
-              if (index > 0) const SizedBox(width: 12),
-              Expanded(child: buttons[index]),
-            ],
-          ],
-        );
-      },
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }

@@ -401,9 +401,13 @@ class ProductoPedidoResolver {
         continue;
       }
 
+      // La ausencia de una fila de precio no invalida una combinación
+      // vendible. El vendedor puede agregarla y valorizarla después en la
+      // cotización. Solo una configuración explícita pendiente continúa
+      // bloqueando la venta.
       result[lista.id] = PrecioPedidoResuelto(
         lista: lista,
-        tipo: TipoPrecioPedido.pendiente,
+        tipo: TipoPrecioPedido.cotizar,
       );
     }
     return result;

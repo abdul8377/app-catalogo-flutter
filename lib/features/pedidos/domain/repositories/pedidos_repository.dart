@@ -20,9 +20,14 @@ abstract class PedidosRepository {
   Future<HojaPedidoActiva> crearHojaActiva();
   Future<List<PedidoResumen>> obtenerPedidosResumen();
   Future<PedidoDetalle?> obtenerPedidoDetalle(String id);
+  Future<CotizacionPedidoGuardada?> obtenerCotizacion(String id) async => null;
   Future<CotizacionPedidoGuardada> guardarCotizacion(
     CotizacionPedidoDraft cotizacion,
   );
+  Future<CotizacionPedidoGuardada> actualizarCotizacion({
+    required String cotizacionId,
+    required CotizacionPedidoDraft cotizacion,
+  }) => guardarCotizacion(cotizacion);
   Future<void> registrarPdfCotizacion({
     required String cotizacionId,
     required String pdfPath,
@@ -41,6 +46,14 @@ abstract class PedidosRepository {
     required String pedidoId,
     required String motivo,
   });
+  Future<void> reactivarPedido({
+    required String pedidoId,
+    String observacion = '',
+  }) => cambiarEstadoPedido(
+    pedidoId: pedidoId,
+    nuevoEstado: 'Pendiente',
+    observacion: observacion,
+  );
   Future<void> reintentarSincronizacionPedido(String pedidoId);
   Future<void> marcarPedidoCargado({
     required String pedidoId,

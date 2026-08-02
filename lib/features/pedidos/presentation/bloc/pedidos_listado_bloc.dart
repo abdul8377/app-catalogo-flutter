@@ -68,6 +68,7 @@ class PedidosListadoBloc
     );
     on<PedidosListadoEstadoActualizado>(_actualizarEstado);
     on<PedidosListadoPedidoCancelado>(_cancelarPedido);
+    on<PedidosListadoPedidoReactivado>(_reactivarPedido);
     on<PedidosListadoSincronizacionReintentada>(_reintentarSincronizacion);
   }
 
@@ -249,6 +250,42 @@ class PedidosListadoBloc
         state.copyWith(
           actualizando: false,
           error: 'No se pudo cancelar el pedido: $error',
+          limpiarMessage: true,
+        ),
+      );
+    }
+  }
+
+  Future<void> _reactivarPedido(
+    PedidosListadoPedidoReactivado event,
+    Emitter<PedidosListadoState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        actualizando: true,
+        limpiarError: true,
+        limpiarMessage: true,
+      ),
+    );
+    try {
+      await _repository.reactivarPedido(
+        pedidoId: event.pedidoId,
+        observacion: event.observacion,
+      );
+      final pedidos = await _repository.obtenerPedidosResumen();
+      emit(
+        state.copyWith(
+          actualizando: false,
+          pedidos: pedidos,
+          message: 'Pedido reactivado correctamente.',
+          limpiarError: true,
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          actualizando: false,
+          error: 'No se pudo reactivar el pedido: $error',
           limpiarMessage: true,
         ),
       );

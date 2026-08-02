@@ -297,6 +297,15 @@ class _PedidosRepositoryFake implements PedidosRepository {
   Future<PedidoDetalle?> obtenerPedidoDetalle(String id) async => null;
 
   @override
+  Future<CotizacionPedidoGuardada?> obtenerCotizacion(String id) async => null;
+
+  @override
+  Future<CotizacionPedidoGuardada> actualizarCotizacion({
+    required String cotizacionId,
+    required CotizacionPedidoDraft cotizacion,
+  }) => guardarCotizacion(cotizacion);
+
+  @override
   Future<CotizacionPedidoGuardada> guardarCotizacion(
     CotizacionPedidoDraft cotizacion,
   ) async => CotizacionPedidoGuardada(
@@ -336,6 +345,12 @@ class _PedidosRepositoryFake implements PedidosRepository {
   Future<void> cancelarPedido({
     required String pedidoId,
     required String motivo,
+  }) async {}
+
+  @override
+  Future<void> reactivarPedido({
+    required String pedidoId,
+    String observacion = '',
   }) async {}
 
   @override

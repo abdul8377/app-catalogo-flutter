@@ -41,7 +41,7 @@ class PedidosLocalDatasource {
               SELECT co.id
               FROM cotizaciones co
               WHERE co.pedido_id = p.id
-                AND LOWER(co.estado) <> 'borrador'
+                AND LOWER(co.estado) = 'generada'
               ORDER BY co.version DESC, co.creado_en DESC
               LIMIT 1
             )
@@ -174,7 +174,7 @@ class PedidosLocalDatasource {
              (SELECT COUNT(*)
                 FROM cotizaciones co
                WHERE co.pedido_id = p.id
-                 AND LOWER(co.estado) <> 'borrador') AS cotizaciones_generadas,
+                 AND LOWER(co.estado) = 'generada') AS cotizaciones_generadas,
              cv.id AS cotizacion_vigente_id,
              cv.codigo AS cotizacion_vigente_codigo,
              cv.codigo_base AS cotizacion_vigente_codigo_base,
@@ -196,7 +196,7 @@ class PedidosLocalDatasource {
         SELECT co.id
           FROM cotizaciones co
          WHERE co.pedido_id = p.id
-           AND LOWER(co.estado) <> 'borrador'
+           AND LOWER(co.estado) = 'generada'
          ORDER BY co.version DESC, co.creado_en DESC
          LIMIT 1
       )
@@ -278,7 +278,7 @@ class PedidosLocalDatasource {
         SELECT co.id
           FROM cotizaciones co
          WHERE co.pedido_id = p.id
-           AND LOWER(co.estado) <> 'borrador'
+           AND LOWER(co.estado) = 'generada'
          ORDER BY co.version DESC, co.creado_en DESC
          LIMIT 1
       )
@@ -311,7 +311,7 @@ class PedidosLocalDatasource {
         SELECT co.id
           FROM cotizaciones co
          WHERE co.pedido_id = i.pedido_id
-           AND LOWER(co.estado) <> 'borrador'
+           AND LOWER(co.estado) = 'generada'
          ORDER BY co.version DESC, co.creado_en DESC
          LIMIT 1
       )
@@ -470,6 +470,179 @@ class PedidosLocalDatasource {
     });
   }
 
+  Future<void> reactivarPedido({
+    required String pedidoId,
+    String observacion = '',
+  }) async {
+    final db = await _db;
+    await db.transaction((txn) async {
+      final rows = await txn.query(
+        'pedidos',
+        columns: ['id', 'estado', 'vendedor'],
+        where: 'id = ?',
+        whereArgs: [pedidoId],
+        limit: 1,
+      );
+      if (rows.isEmpty) {
+        throw StateError('El pedido seleccionado ya no existe.');
+      }
+      final current = _normalizarEstadoPedido(
+        rows.first['estado'] as String? ?? '',
+      );
+      if (current != 'cancelado') {
+        throw StateError('Solo se puede reactivar un pedido cancelado.');
+      }
+      await txn.delete(
+        'preparacion_productos',
+        where: 'pedido_id = ?',
+        whereArgs: [pedidoId],
+      );
+      await txn.delete(
+        'pedido_cargas',
+        where: 'pedido_id = ?',
+        whereArgs: [pedidoId],
+      );
+      final now = DateTime.now().toIso8601String();
+      await txn.update(
+        'pedidos',
+        {'estado': 'Pendiente', 'sincronizado': 0, 'sync_error': null},
+        where: 'id = ?',
+        whereArgs: [pedidoId],
+      );
+      await _registrarHistorialPedido(
+        txn,
+        pedidoId: pedidoId,
+        evento: 'Pedido reactivado • estado Pendiente',
+        observacion: observacion.trim(),
+        responsable: rows.first['vendedor'] as String?,
+        creadoEn: now,
+      );
+    });
+  }
+
+  Future<CotizacionPedidoGuardada?> obtenerCotizacion(String id) async {
+    final db = await _db;
+    final rows = await db.query(
+      'cotizaciones',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    final itemRows = await db.query(
+      'cotizacion_items',
+      where: 'cotizacion_id = ?',
+      whereArgs: [id],
+      orderBy: 'nombre ASC',
+    );
+    return _cotizacionGuardadaFromMap(rows.first, itemRows);
+  }
+
+  Future<CotizacionPedidoGuardada> actualizarCotizacion({
+    required String cotizacionId,
+    required CotizacionPedidoDraft cotizacion,
+  }) async {
+    if (cotizacion.items.isEmpty) {
+      throw StateError('La cotización no tiene productos.');
+    }
+    final db = await _db;
+    final selected = await db.query(
+      'cotizaciones',
+      where: 'id = ?',
+      whereArgs: [cotizacionId],
+      limit: 1,
+    );
+    if (selected.isEmpty) {
+      throw StateError('La cotización seleccionada ya no existe.');
+    }
+    final selectedState = (selected.first['estado'] as String? ?? '')
+        .trim()
+        .toLowerCase();
+
+    // Las versiones ya generadas son documentos históricos inmutables.
+    // Editarlas crea una nueva versión; solo el borrador se actualiza.
+    if (selectedState != 'borrador') {
+      return guardarCotizacion(cotizacion);
+    }
+
+    final generated = cotizacion.estado.trim().toLowerCase() != 'borrador';
+    if (generated &&
+        cotizacion.items.any((item) => item.precioCotizacion <= 0)) {
+      throw StateError(
+        'Todos los productos deben tener un precio válido antes de generar la cotización.',
+      );
+    }
+
+    await db.transaction((txn) async {
+      final now = DateTime.now().toIso8601String();
+      if (generated) {
+        await txn.update(
+          'cotizaciones',
+          {'estado': 'Archivada', 'actualizado_en': now},
+          where: "pedido_id = ? AND id <> ? AND LOWER(estado) = 'generada'",
+          whereArgs: [cotizacion.pedidoId, cotizacionId],
+        );
+      }
+      await txn.update(
+        'cotizaciones',
+        {
+          'subtotal': cotizacion.subtotal,
+          'descuento_global': cotizacion.descuentoGlobal,
+          'tipo_descuento_global': cotizacion.tipoDescuentoGlobal,
+          'descuento_global_porcentaje': cotizacion.descuentoGlobalPorcentaje,
+          'descuento_global_monto': cotizacion.descuentoGlobalMonto,
+          'total': cotizacion.total,
+          'vigencia_dias': cotizacion.vigenciaDias,
+          'condiciones': cotizacion.condiciones,
+          'observaciones': cotizacion.observaciones,
+          'estado': cotizacion.estado,
+          'actualizado_en': now,
+        },
+        where: 'id = ?',
+        whereArgs: [cotizacionId],
+      );
+      await txn.delete(
+        'cotizacion_items',
+        where: 'cotizacion_id = ?',
+        whereArgs: [cotizacionId],
+      );
+      await _insertarItemsCotizacion(
+        txn,
+        cotizacionId: cotizacionId,
+        items: cotizacion.items,
+      );
+      if (generated) {
+        await txn.update(
+          'pedidos',
+          {
+            'subtotal_conocido': cotizacion.total,
+            'total_parcial': 0,
+            'sincronizado': 0,
+            'sync_error': null,
+          },
+          where: 'id = ?',
+          whereArgs: [cotizacion.pedidoId],
+        );
+        final version = selected.first['version'] as int? ?? 1;
+        final code = selected.first['codigo'] as String? ?? '';
+        await _registrarHistorialPedido(
+          txn,
+          pedidoId: cotizacion.pedidoId,
+          evento: 'Cotización $code vigente • versión $version',
+          observacion:
+              'Total de cotización: S/ ${cotizacion.total.toStringAsFixed(2)}',
+          responsable: null,
+          creadoEn: now,
+        );
+      }
+    });
+    final updated = await obtenerCotizacion(cotizacionId);
+    if (updated == null) {
+      throw StateError('No se pudo volver a leer la cotización.');
+    }
+    return updated;
+  }
+
   Future<CotizacionPedidoGuardada> guardarCotizacion(
     CotizacionPedidoDraft cotizacion,
   ) async {
@@ -551,6 +724,14 @@ class PedidosLocalDatasource {
       }
       final cotizacionId = const Uuid().v4();
       final nowIso = now.toIso8601String();
+      if (esGenerada) {
+        await txn.update(
+          'cotizaciones',
+          {'estado': 'Archivada', 'actualizado_en': nowIso},
+          where: "pedido_id = ? AND LOWER(estado) = 'generada'",
+          whereArgs: [cotizacion.pedidoId],
+        );
+      }
       await txn.insert('cotizaciones', {
         'id': cotizacionId,
         'pedido_id': cotizacion.pedidoId,
@@ -570,23 +751,11 @@ class PedidosLocalDatasource {
         'creado_en': nowIso,
         'actualizado_en': nowIso,
       });
-      for (final item in cotizacion.items) {
-        await txn.insert('cotizacion_items', {
-          'id': const Uuid().v4(),
-          'cotizacion_id': cotizacionId,
-          'pedido_item_id': item.pedidoItemId,
-          'producto_id': item.productoId,
-          'codigo': item.codigo,
-          'nombre': item.nombre,
-          'presentacion': item.presentacion,
-          'cantidad': item.cantidad,
-          'precio_cotizacion': item.precioCotizacion,
-          'descuento': item.descuento,
-          'tipo_descuento': item.tipoDescuento,
-          'precio_final': item.precioFinal,
-          'subtotal': item.subtotal,
-        });
-      }
+      await _insertarItemsCotizacion(
+        txn,
+        cotizacionId: cotizacionId,
+        items: cotizacion.items,
+      );
       if (esGenerada) {
         await txn.update(
           'pedidos',
@@ -604,7 +773,7 @@ class PedidosLocalDatasource {
           pedidoId: cotizacion.pedidoId,
           evento: 'Cotización $codigoPersistido vigente • versión $version',
           observacion:
-              'Total de cotización — incluye IGV: S/ ${cotizacion.total.toStringAsFixed(2)}',
+              'Total de cotización: S/ ${cotizacion.total.toStringAsFixed(2)}',
           responsable: null,
           creadoEn: nowIso,
         );
@@ -1247,6 +1416,92 @@ class PedidosLocalDatasource {
             .toSet()
             .toList();
 
+  Future<void> _insertarItemsCotizacion(
+    Transaction txn, {
+    required String cotizacionId,
+    required List<CotizacionPedidoItemDraft> items,
+  }) async {
+    for (final item in items) {
+      await txn.insert('cotizacion_items', {
+        'id': const Uuid().v4(),
+        'cotizacion_id': cotizacionId,
+        'pedido_item_id': item.pedidoItemId,
+        'producto_id': item.productoId,
+        'codigo': item.codigo,
+        'nombre': item.nombre,
+        'presentacion': item.presentacion,
+        'cantidad': item.cantidad,
+        'precio_cotizacion': item.precioCotizacion,
+        'descuento': item.descuento,
+        'tipo_descuento': item.tipoDescuento,
+        'precio_final': item.precioFinal,
+        'subtotal': item.subtotal,
+      });
+    }
+  }
+
+  CotizacionPedidoGuardada _cotizacionGuardadaFromMap(
+    Map<String, Object?> row,
+    List<Map<String, Object?>> itemRows,
+  ) {
+    final total = (row['total'] as num? ?? 0).toDouble();
+    final subtotal = (row['subtotal'] as num? ?? 0).toDouble();
+    final global = (row['descuento_global'] as num? ?? 0).toDouble();
+    final items = itemRows
+        .map(
+          (item) => CotizacionPedidoItemGuardado(
+            id: item['id'] as String,
+            pedidoItemId: item['pedido_item_id'] as String,
+            productoId: item['producto_id'] as String,
+            codigo: item['codigo'] as String? ?? '',
+            nombre: item['nombre'] as String? ?? '',
+            presentacion: item['presentacion'] as String? ?? '',
+            cantidad: item['cantidad'] as int? ?? 0,
+            precioCotizacion: (item['precio_cotizacion'] as num? ?? 0)
+                .toDouble(),
+            descuento: (item['descuento'] as num? ?? 0).toDouble(),
+            tipoDescuento: item['tipo_descuento'] as String? ?? 'monto',
+            precioFinal: (item['precio_final'] as num? ?? 0).toDouble(),
+            subtotal: (item['subtotal'] as num? ?? 0).toDouble(),
+          ),
+        )
+        .toList();
+    final itemDiscounts = items.fold<double>(
+      0,
+      (sum, item) =>
+          sum +
+          (item.precioCotizacion * item.cantidad - item.subtotal)
+              .clamp(0, double.infinity)
+              .toDouble(),
+    );
+    return CotizacionPedidoGuardada(
+      id: row['id'] as String,
+      pedidoId: row['pedido_id'] as String,
+      codigo: (row['codigo_base'] as String? ?? '').trim().isEmpty
+          ? row['codigo'] as String
+          : row['codigo_base'] as String,
+      total: total,
+      creadoEn:
+          DateTime.tryParse(row['creado_en'] as String? ?? '') ??
+          DateTime.now(),
+      pdfPath: row['pdf_path'] as String?,
+      version: row['version'] as int? ?? 1,
+      estado: row['estado'] as String? ?? 'Generada',
+      subtotalProductos: subtotal,
+      descuento: itemDiscounts + global,
+      totalSinIgv: CotizacionIgv.totalSinIgv(total),
+      igv: CotizacionIgv.igvIncluido(total),
+      vigenciaDias: row['vigencia_dias'] as int? ?? 7,
+      condiciones: row['condiciones'] as String? ?? '',
+      observaciones: row['observaciones'] as String? ?? '',
+      descuentoGlobalPorcentaje:
+          (row['descuento_global_porcentaje'] as num? ?? 0).toDouble(),
+      descuentoGlobalMonto: (row['descuento_global_monto'] as num? ?? 0)
+          .toDouble(),
+      items: items,
+    );
+  }
+
   PedidoDetalle _pedidoDetalleFromMaps(
     Map<String, Object?> row,
     List<Map<String, Object?>> productosRows,
@@ -1279,33 +1534,7 @@ class PedidosLocalDatasource {
         ? null
         : cotizacionesGeneradas.first;
     final cotizaciones = cotizacionesRows
-        .map(
-          (row) => CotizacionPedidoGuardada(
-            id: row['id'] as String,
-            pedidoId: row['pedido_id'] as String,
-            codigo: (row['codigo_base'] as String? ?? '').trim().isEmpty
-                ? row['codigo'] as String
-                : row['codigo_base'] as String,
-            total: (row['total'] as num? ?? 0).toDouble(),
-            creadoEn:
-                DateTime.tryParse(row['creado_en'] as String? ?? '') ?? fecha,
-            pdfPath: row['pdf_path'] as String?,
-            version: row['version'] as int? ?? 1,
-            estado: row['estado'] as String? ?? 'Generada',
-            subtotalProductos: (row['subtotal'] as num? ?? 0).toDouble(),
-            descuento:
-                ((row['subtotal'] as num? ?? 0).toDouble() -
-                        (row['total'] as num? ?? 0).toDouble())
-                    .clamp(0, double.infinity)
-                    .toDouble(),
-            totalSinIgv: CotizacionIgv.totalSinIgv(
-              (row['total'] as num? ?? 0).toDouble(),
-            ),
-            igv: CotizacionIgv.igvIncluido(
-              (row['total'] as num? ?? 0).toDouble(),
-            ),
-          ),
-        )
+        .map((quote) => _cotizacionGuardadaFromMap(quote, const []))
         .toList();
     final historial = [
       PedidoHistorialEntrada(
@@ -1337,8 +1566,12 @@ class PedidosLocalDatasource {
       ...historialRows.map((entrada) {
         final entradaFecha =
             DateTime.tryParse(entrada['creado_en'] as String? ?? '') ?? fecha;
-        final observacion = entrada['observacion'] as String? ?? '';
-        final evento = entrada['evento'] as String? ?? '';
+        final observacion = (entrada['observacion'] as String? ?? '')
+            .replaceAll(' — incluye IGV', '')
+            .replaceAll(' - incluye IGV', '');
+        final evento = (entrada['evento'] as String? ?? '')
+            .replaceAll(' — incluye IGV', '')
+            .replaceAll(' - incluye IGV', '');
         return PedidoHistorialEntrada(
           fecha: entradaFecha,
           evento: observacion.trim().isEmpty ? evento : '$evento\n$observacion',
@@ -1475,7 +1708,7 @@ class PedidosLocalDatasource {
           SELECT co.id
             FROM cotizaciones co
            WHERE co.pedido_id = p.id
-             AND LOWER(co.estado) <> 'borrador'
+             AND LOWER(co.estado) = 'generada'
            ORDER BY co.version DESC, co.creado_en DESC
            LIMIT 1
         )

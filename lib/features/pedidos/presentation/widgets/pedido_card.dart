@@ -171,18 +171,23 @@ class PedidoCard extends StatelessWidget {
                         child: const Text('Ver pedido'),
                       );
                       final estado = OutlinedButton(
-                        onPressed: pedido.estadoNormalizado == 'cancelado'
-                            ? null
-                            : onCambiarEstado,
+                        onPressed: onCambiarEstado,
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF1F1F1F),
+                          foregroundColor:
+                              pedido.estadoNormalizado == 'cancelado'
+                              ? const Color(0xFF2E7D32)
+                              : const Color(0xFF1F1F1F),
                           side: const BorderSide(color: Color(0xFFE0E0E0)),
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: const Text('Cambiar estado'),
+                        child: Text(
+                          pedido.estadoNormalizado == 'cancelado'
+                              ? 'Reactivar pedido'
+                              : 'Cambiar estado',
+                        ),
                       );
                       if (constraints.maxWidth < 420) {
                         return Column(
@@ -244,7 +249,17 @@ class PedidoCard extends StatelessWidget {
       ),
       const PopupMenuItem(value: 'cliente', child: Text('Ver cliente')),
       const PopupMenuItem(value: 'hoja', child: Text('Ver hoja de pedido')),
-      const PopupMenuItem(value: 'editar_precio', child: Text('Editar precio')),
+      if (pedido.estadoNormalizado != 'cancelado' &&
+          pedido.estadoNormalizado != 'entregado')
+        const PopupMenuItem(
+          value: 'editar_pedido',
+          child: Text('Editar pedido'),
+        ),
+      if (pedido.estadoNormalizado == 'cancelado')
+        const PopupMenuItem(
+          value: 'reactivar',
+          child: Text('Reactivar pedido'),
+        ),
       if (pedido.estadoNormalizado != 'cancelado' &&
           pedido.estadoNormalizado != 'entregado')
         const PopupMenuItem(value: 'cancelar', child: Text('Cancelar pedido')),

@@ -120,6 +120,19 @@ class PedidosListadoPedidoCancelado extends PedidosListadoEvent {
   List<Object?> get props => [pedidoId, motivo];
 }
 
+class PedidosListadoPedidoReactivado extends PedidosListadoEvent {
+  const PedidosListadoPedidoReactivado({
+    required this.pedidoId,
+    this.observacion = '',
+  });
+
+  final String pedidoId;
+  final String observacion;
+
+  @override
+  List<Object?> get props => [pedidoId, observacion];
+}
+
 class PedidosListadoSincronizacionReintentada extends PedidosListadoEvent {
   const PedidosListadoSincronizacionReintentada(this.pedidoId);
 

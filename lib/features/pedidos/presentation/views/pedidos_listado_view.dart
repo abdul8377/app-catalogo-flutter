@@ -172,7 +172,9 @@ class _PedidosListadoViewState extends State<PedidosListadoView> {
             setState(() => _selectedPedidoId = pedido.id);
             _mostrarDetallePedido(pedido);
           },
-          onCambiarEstado: () => _mostrarCambiarEstado(pedido),
+          onCambiarEstado: () => pedido.estadoNormalizado == 'cancelado'
+              ? _mostrarReactivarPedido(pedido)
+              : _mostrarCambiarEstado(pedido),
           onMenuSelected: (value) {
             if (value == 'cotizacion') {
               _mostrarCotizacionPedido(pedido);
@@ -190,8 +192,12 @@ class _PedidosListadoViewState extends State<PedidosListadoView> {
               widget.onOpenHoja?.call(pedido.hojaCodigo);
               return;
             }
-            if (value == 'editar_precio') {
-              _mostrarCotizacionPedido(pedido, modoEdicion: true);
+            if (value == 'editar_pedido') {
+              _editarPedido(pedido);
+              return;
+            }
+            if (value == 'reactivar') {
+              _mostrarReactivarPedido(pedido);
               return;
             }
             if (value == 'sync') {
@@ -210,14 +216,28 @@ class _PedidosListadoViewState extends State<PedidosListadoView> {
     if (!mounted || action == null) return;
     switch (action) {
       case PedidoDetalleDialogAction.editar:
-        await _mostrarCotizacionPedido(pedido, modoEdicion: true);
-      case PedidoDetalleDialogAction.cotizacion:
-        await _mostrarCotizacionPedido(pedido);
-      case PedidoDetalleDialogAction.cambiarEstado:
-        await _mostrarCambiarEstado(pedido);
+        await _editarPedido(pedido);
       case PedidoDetalleDialogAction.verCliente:
         widget.onOpenCliente?.call(pedido.clienteId);
     }
+  }
+
+  Future<void> _editarPedido(PedidoResumen pedido) async {
+    if (pedido.estadoNormalizado == 'cancelado') {
+      AppNotice.warning(
+        context,
+        'Reactiva el pedido antes de editar sus productos.',
+      );
+      return;
+    }
+    if (pedido.estadoNormalizado == 'entregado') {
+      AppNotice.warning(context, 'Un pedido entregado no puede modificarse.');
+      return;
+    }
+    AppNotice.info(
+      context,
+      'La edición de productos se aplicará en la siguiente fase de esta corrección.',
+    );
   }
 
   Future<void> _mostrarCotizacionPedido(
@@ -258,6 +278,39 @@ class _PedidosListadoViewState extends State<PedidosListadoView> {
         nuevoEstado: result.nuevoEstado,
         observacion: result.observacion,
       ),
+    );
+  }
+
+  Future<void> _mostrarReactivarPedido(PedidoResumen pedido) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.restart_alt_rounded, color: Color(0xFF2E7D32)),
+        title: const Text('Reactivar pedido'),
+        content: const Text(
+          'El pedido volverá a Pendiente. Se conservarán sus productos, '
+          'cotizaciones e historial, pero se limpiarán avances de '
+          'preparación y carga.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Volver'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFFFC500),
+              foregroundColor: Colors.black,
+            ),
+            child: const Text('Reactivar'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    context.read<PedidosListadoBloc>().add(
+      PedidosListadoPedidoReactivado(pedidoId: pedido.id),
     );
   }
 

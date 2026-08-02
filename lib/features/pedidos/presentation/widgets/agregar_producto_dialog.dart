@@ -240,6 +240,24 @@ class _AgregarProductoDialogState extends State<AgregarProductoDialog> {
                       unitPrice: unitPrice,
                       quantityValid: quantityValid,
                     ),
+                    if (price?.tipo == TipoPrecioPedido.cotizar &&
+                        unitPrice == null) ...[
+                      const SizedBox(height: 10),
+                      const _Notice(
+                        message:
+                            'Esta combinación se agregará sin precio y '
+                            'quedará marcada como Por cotizar.',
+                      ),
+                    ] else if (price?.tipo == TipoPrecioPedido.pendiente) ...[
+                      const SizedBox(height: 10),
+                      const _Notice(
+                        message:
+                            'Esta combinación está pendiente de configuración '
+                            'comercial. Completa su precio o márcala como '
+                            'Por cotizar antes de venderla.',
+                        danger: true,
+                      ),
+                    ],
                   ],
                 ],
               ],

@@ -20,21 +20,27 @@ class GenerarCotizacionDialog extends StatefulWidget {
   const GenerarCotizacionDialog({
     required this.pedidoId,
     this.modoEdicion = false,
+    this.cotizacionId,
     super.key,
   });
 
   final String pedidoId;
   final bool modoEdicion;
+  final String? cotizacionId;
 
   static Future<CotizacionPedidoGuardada?> show(
     BuildContext context, {
     required String pedidoId,
     bool modoEdicion = false,
+    String? cotizacionId,
   }) => showDialog<CotizacionPedidoGuardada>(
     context: context,
     barrierColor: Colors.black54,
-    builder: (_) =>
-        GenerarCotizacionDialog(pedidoId: pedidoId, modoEdicion: modoEdicion),
+    builder: (_) => GenerarCotizacionDialog(
+      pedidoId: pedidoId,
+      modoEdicion: modoEdicion,
+      cotizacionId: cotizacionId,
+    ),
   );
 
   @override
@@ -47,12 +53,14 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
   static const darkColor = Color(0xFF1F1F1F);
 
   late final Future<PedidoDetalle?> _pedidoFuture;
+  late final Future<CotizacionPedidoGuardada?> _cotizacionFuture;
   final _pdfExporter = _CotizacionPdfExporter();
 
   int _currentStep = 0;
   bool _initialized = false;
   bool _saving = false;
   List<CotizacionProductoFormItem> _productos = [];
+  CotizacionPedidoGuardada? _cotizacionSeleccionada;
   CotizacionTotalesValue _totalesValue = const CotizacionTotalesValue(
     descuentoGlobalPorcentaje: 0,
     descuentoGlobalMonto: 0,
@@ -64,9 +72,11 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
   @override
   void initState() {
     super.initState();
-    _pedidoFuture = context.read<PedidosRepository>().obtenerPedidoDetalle(
-      widget.pedidoId,
-    );
+    final repository = context.read<PedidosRepository>();
+    _pedidoFuture = repository.obtenerPedidoDetalle(widget.pedidoId);
+    _cotizacionFuture = widget.cotizacionId == null
+        ? Future.value(null)
+        : repository.obtenerCotizacion(widget.cotizacionId!);
   }
 
   bool get _todosConPrecio =>
@@ -143,26 +153,53 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
                   onClose: () => Navigator.of(context).pop(),
                 );
               }
-              _ensureInitialized(pedido);
-              return Column(
-                children: [
-                  _Header(pedido: pedido),
-                  _StepHeader(currentStep: _currentStep),
-                  Expanded(child: _buildStep(pedido)),
-                  _BottomBar(
-                    currentStep: _currentStep,
-                    saving: _saving,
-                    canContinue: _todosConPrecio,
-                    onBack: _currentStep > 0
-                        ? () => setState(() => _currentStep--)
-                        : null,
-                    onClose: () => Navigator.of(context).pop(),
-                    onContinue: () => _continuar(),
-                    onSaveDraft: () => _guardar(pedido, exportarPdf: false),
-                    onExport: () => _guardar(pedido, exportarPdf: true),
-                    modoEdicion: widget.modoEdicion,
-                  ),
-                ],
+              return FutureBuilder<CotizacionPedidoGuardada?>(
+                future: _cotizacionFuture,
+                builder: (context, quoteSnapshot) {
+                  if (quoteSnapshot.connectionState != ConnectionState.done) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: primaryColor),
+                    );
+                  }
+                  if (quoteSnapshot.hasError) {
+                    return _DialogError(
+                      title: 'No se pudo cargar la cotización',
+                      message:
+                          'La versión seleccionada no pudo leerse desde la base local.',
+                      onClose: () => Navigator.of(context).pop(),
+                    );
+                  }
+                  if (widget.cotizacionId != null &&
+                      quoteSnapshot.data == null) {
+                    return _DialogError(
+                      title: 'Cotización no encontrada',
+                      message:
+                          'La versión seleccionada ya no existe en la base local.',
+                      onClose: () => Navigator.of(context).pop(),
+                    );
+                  }
+                  _ensureInitialized(pedido, quoteSnapshot.data);
+                  return Column(
+                    children: [
+                      _Header(pedido: pedido, cotizacion: quoteSnapshot.data),
+                      _StepHeader(currentStep: _currentStep),
+                      Expanded(child: _buildStep(pedido)),
+                      _BottomBar(
+                        currentStep: _currentStep,
+                        saving: _saving,
+                        canContinue: _todosConPrecio,
+                        onBack: _currentStep > 0
+                            ? () => setState(() => _currentStep--)
+                            : null,
+                        onClose: () => Navigator.of(context).pop(),
+                        onContinue: () => _continuar(),
+                        onSaveDraft: () => _guardar(pedido, exportarPdf: false),
+                        onExport: () => _guardar(pedido, exportarPdf: true),
+                        modoEdicion: widget.cotizacionId != null,
+                      ),
+                    ],
+                  );
+                },
               );
             },
           ),
@@ -171,19 +208,35 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
     ),
   );
 
-  void _ensureInitialized(PedidoDetalle pedido) {
+  void _ensureInitialized(
+    PedidoDetalle pedido,
+    CotizacionPedidoGuardada? selected,
+  ) {
     if (_initialized) return;
-    _productos = pedido.productos
-        .map(
-          (producto) => CotizacionProductoFormItem(
-            producto: producto,
-            precioCotizacion: producto.precioUnitario ?? 0,
-            descuento: producto.descuentoCotizado,
-            tipoDescuento: producto.tipoDescuentoCotizado,
-          ),
-        )
-        .toList();
-    if (pedido.cotizacionVigente) {
+    _cotizacionSeleccionada = selected;
+    final savedByItem = {
+      for (final item in selected?.items ?? const []) item.pedidoItemId: item,
+    };
+    _productos = pedido.productos.map((producto) {
+      final saved = savedByItem[producto.id];
+      return CotizacionProductoFormItem(
+        producto: producto,
+        precioCotizacion:
+            saved?.precioCotizacion ?? producto.precioUnitario ?? 0,
+        descuento: saved?.descuento ?? producto.descuentoCotizado,
+        tipoDescuento: saved?.tipoDescuento ?? producto.tipoDescuentoCotizado,
+      );
+    }).toList();
+
+    if (selected != null) {
+      _totalesValue = CotizacionTotalesValue(
+        descuentoGlobalPorcentaje: selected.descuentoGlobalPorcentaje,
+        descuentoGlobalMonto: selected.descuentoGlobalMonto,
+        observaciones: selected.observaciones,
+        vigenciaDias: selected.vigenciaDias,
+        condiciones: selected.condiciones,
+      );
+    } else if (pedido.cotizacionVigente) {
       _totalesValue = CotizacionTotalesValue(
         descuentoGlobalPorcentaje: pedido.descuentoGlobalPorcentaje,
         descuentoGlobalMonto: pedido.descuentoGlobalMonto,
@@ -240,7 +293,7 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
     required bool exportarPdf,
   }) async {
     if (_saving) return;
-    final esBorrador = !exportarPdf && !widget.modoEdicion;
+    final esBorrador = !exportarPdf;
     if (!esBorrador && !_todosConPrecio) {
       setState(() => _currentStep = 0);
       _continuar();
@@ -261,9 +314,15 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
         observaciones: _totalesValue.observaciones,
         descuentoGlobalPorcentaje: _totalesValue.descuentoGlobalPorcentaje,
         descuentoGlobalMonto: _totalesValue.descuentoGlobalMonto,
-        estado: exportarPdf || widget.modoEdicion ? 'Generada' : 'Borrador',
+        estado: exportarPdf ? 'Generada' : 'Borrador',
       );
-      final guardada = await repository.guardarCotizacion(draft);
+      final selected = _cotizacionSeleccionada;
+      final guardada = selected != null && selected.esBorrador
+          ? await repository.actualizarCotizacion(
+              cotizacionId: selected.id,
+              cotizacion: draft,
+            )
+          : await repository.guardarCotizacion(draft);
       if (!exportarPdf) {
         if (!mounted) return;
         Navigator.of(context).pop(guardada);
@@ -417,62 +476,75 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.pedido});
+  const _Header({required this.pedido, this.cotizacion});
 
   final PedidoDetalle pedido;
+  final CotizacionPedidoGuardada? cotizacion;
 
   @override
-  Widget build(BuildContext context) => Container(
-    color: _GenerarCotizacionDialogState.darkColor,
-    padding: const EdgeInsets.fromLTRB(20, 15, 12, 15),
-    child: Row(
-      children: [
-        Container(
-          width: 43,
-          height: 43,
-          decoration: BoxDecoration(
-            color: _GenerarCotizacionDialogState.primaryColor,
-            borderRadius: BorderRadius.circular(12),
+  Widget build(BuildContext context) {
+    final selected = cotizacion;
+    final title = selected == null
+        ? 'Nueva cotización'
+        : selected.esBorrador
+        ? 'Editar borrador'
+        : 'Editar como nueva versión';
+    final subtitle = selected == null
+        ? '${pedido.codigo} · ${pedido.clienteNombre}'
+        : '${selected.codigoVersion} · ${selected.estado} · ${pedido.clienteNombre}';
+
+    return Container(
+      color: _GenerarCotizacionDialogState.darkColor,
+      padding: const EdgeInsets.fromLTRB(20, 15, 12, 15),
+      child: Row(
+        children: [
+          Container(
+            width: 43,
+            height: 43,
+            decoration: BoxDecoration(
+              color: _GenerarCotizacionDialogState.primaryColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.request_quote_outlined,
+              color: _GenerarCotizacionDialogState.darkColor,
+            ),
           ),
-          child: const Icon(
-            Icons.request_quote_outlined,
-            color: _GenerarCotizacionDialogState.darkColor,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Generar cotización',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
-                  color: Colors.white,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 20,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '${pedido.codigo} · ${pedido.clienteNombre}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  color: const Color(0xFFB7BAC1),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: const Color(0xFFB7BAC1),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        IconButton(
-          tooltip: 'Cerrar',
-          onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.close_rounded, color: Colors.white),
-        ),
-      ],
-    ),
-  );
+          IconButton(
+            tooltip: 'Cerrar',
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close_rounded, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _StepHeader extends StatelessWidget {
@@ -649,17 +721,18 @@ class _BottomBar extends StatelessWidget {
                 : onClose,
             child: Text(currentStep > 0 ? 'Volver' : 'Cancelar'),
           ),
-          if (!modoEdicion)
-            OutlinedButton.icon(
-              key: const Key('guardar_borrador_cotizacion'),
-              onPressed: saving ? null : onSaveDraft,
-              icon: const Icon(Icons.save_outlined),
-              label: const Text('Guardar borrador'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _GenerarCotizacionDialogState.darkColor,
-                side: const BorderSide(color: Color(0xFFFFC500)),
-              ),
+          OutlinedButton.icon(
+            key: const Key('guardar_borrador_cotizacion'),
+            onPressed: saving ? null : onSaveDraft,
+            icon: const Icon(Icons.save_outlined),
+            label: Text(
+              modoEdicion ? 'Guardar como borrador' : 'Guardar borrador',
             ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _GenerarCotizacionDialogState.darkColor,
+              side: const BorderSide(color: Color(0xFFFFC500)),
+            ),
+          ),
           if (currentStep < 2)
             FilledButton.icon(
               onPressed: saving ? null : onContinue,

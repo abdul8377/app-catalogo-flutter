@@ -139,6 +139,66 @@ class CotizacionPedidoItemDraft extends Equatable {
   ];
 }
 
+class CotizacionPedidoItemGuardado extends Equatable {
+  const CotizacionPedidoItemGuardado({
+    required this.id,
+    required this.pedidoItemId,
+    required this.productoId,
+    required this.codigo,
+    required this.nombre,
+    required this.presentacion,
+    required this.cantidad,
+    required this.precioCotizacion,
+    required this.descuento,
+    required this.tipoDescuento,
+    required this.precioFinal,
+    required this.subtotal,
+  });
+
+  final String id;
+  final String pedidoItemId;
+  final String productoId;
+  final String codigo;
+  final String nombre;
+  final String presentacion;
+  final int cantidad;
+  final double precioCotizacion;
+  final double descuento;
+  final String tipoDescuento;
+  final double precioFinal;
+  final double subtotal;
+
+  CotizacionPedidoItemDraft toDraft() => CotizacionPedidoItemDraft(
+    pedidoItemId: pedidoItemId,
+    productoId: productoId,
+    codigo: codigo,
+    nombre: nombre,
+    presentacion: presentacion,
+    cantidad: cantidad,
+    precioCotizacion: precioCotizacion,
+    descuento: descuento,
+    tipoDescuento: tipoDescuento,
+    precioFinal: precioFinal,
+    subtotal: subtotal,
+  );
+
+  @override
+  List<Object?> get props => [
+    id,
+    pedidoItemId,
+    productoId,
+    codigo,
+    nombre,
+    presentacion,
+    cantidad,
+    precioCotizacion,
+    descuento,
+    tipoDescuento,
+    precioFinal,
+    subtotal,
+  ];
+}
+
 class CotizacionPedidoGuardada extends Equatable {
   const CotizacionPedidoGuardada({
     required this.id,
@@ -153,6 +213,12 @@ class CotizacionPedidoGuardada extends Equatable {
     this.descuento = 0,
     this.totalSinIgv = 0,
     this.igv = 0,
+    this.vigenciaDias = 7,
+    this.condiciones = '',
+    this.observaciones = '',
+    this.descuentoGlobalPorcentaje = 0,
+    this.descuentoGlobalMonto = 0,
+    this.items = const [],
   });
 
   final String id;
@@ -167,22 +233,46 @@ class CotizacionPedidoGuardada extends Equatable {
   final double descuento;
   final double totalSinIgv;
   final double igv;
+  final int vigenciaDias;
+  final String condiciones;
+  final String observaciones;
+  final double descuentoGlobalPorcentaje;
+  final double descuentoGlobalMonto;
+  final List<CotizacionPedidoItemGuardado> items;
 
-  CotizacionPedidoGuardada copyWith({String? pdfPath}) =>
-      CotizacionPedidoGuardada(
-        id: id,
-        pedidoId: pedidoId,
-        codigo: codigo,
-        total: total,
-        creadoEn: creadoEn,
-        pdfPath: pdfPath ?? this.pdfPath,
-        version: version,
-        estado: estado,
-        subtotalProductos: subtotalProductos,
-        descuento: descuento,
-        totalSinIgv: totalSinIgv,
-        igv: igv,
-      );
+  bool get esBorrador => estado.trim().toLowerCase() == 'borrador';
+  bool get esGenerada => estado.trim().toLowerCase() == 'generada';
+  bool get esArchivada => estado.trim().toLowerCase() == 'archivada';
+
+  String get codigoVersion =>
+      version <= 1 || codigo.toUpperCase().endsWith('-V$version')
+      ? codigo
+      : '$codigo-V$version';
+
+  CotizacionPedidoGuardada copyWith({
+    String? pdfPath,
+    String? estado,
+    List<CotizacionPedidoItemGuardado>? items,
+  }) => CotizacionPedidoGuardada(
+    id: id,
+    pedidoId: pedidoId,
+    codigo: codigo,
+    total: total,
+    creadoEn: creadoEn,
+    pdfPath: pdfPath ?? this.pdfPath,
+    version: version,
+    estado: estado ?? this.estado,
+    subtotalProductos: subtotalProductos,
+    descuento: descuento,
+    totalSinIgv: totalSinIgv,
+    igv: igv,
+    vigenciaDias: vigenciaDias,
+    condiciones: condiciones,
+    observaciones: observaciones,
+    descuentoGlobalPorcentaje: descuentoGlobalPorcentaje,
+    descuentoGlobalMonto: descuentoGlobalMonto,
+    items: items ?? this.items,
+  );
 
   @override
   List<Object?> get props => [
@@ -198,5 +288,11 @@ class CotizacionPedidoGuardada extends Equatable {
     descuento,
     totalSinIgv,
     igv,
+    vigenciaDias,
+    condiciones,
+    observaciones,
+    descuentoGlobalPorcentaje,
+    descuentoGlobalMonto,
+    items,
   ];
 }
