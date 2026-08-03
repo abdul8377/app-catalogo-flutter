@@ -1,10 +1,14 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 
 import '../../../../core/platform/file_actions_service.dart';
 import '../../../../core/presentation/widgets/app_notice.dart';
-import '../../data/services/cotizacion_pdf_service.dart';
 import '../../domain/entities/cotizacion_pedido.dart';
 import '../../domain/entities/pedido_detalle.dart';
 import '../../domain/repositories/pedidos_repository.dart';
@@ -50,7 +54,7 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
 
   late final Future<PedidoDetalle?> _pedidoFuture;
   late final Future<CotizacionPedidoGuardada?> _cotizacionFuture;
-  final _pdfExporter = CotizacionPdfService();
+  final _pdfExporter = _CotizacionPdfExporter();
 
   int _currentStep = 0;
   bool _initialized = false;
@@ -328,20 +332,14 @@ class _GenerarCotizacionDialogState extends State<GenerarCotizacionDialog> {
       final pdfPath = await _pdfExporter.exportar(
         cotizacion: guardada,
         pedido: pedido,
-        productos: _productos
-            .map(
-              (item) => CotizacionPdfProducto(
-                producto: item.producto,
-                precioUnitarioConIgv: item.precioCotizacion,
-                subtotalConIgv: item.subtotalSinDescuento,
-              ),
-            )
-            .toList(),
+        productos: _productos,
         subtotalProductos: _subtotalProductos,
         descuentosProductos: _descuentosProductos,
         descuentoGeneral: _descuentoGeneral,
         total: _totalConDescuento,
         observaciones: _totalesValue.observaciones,
+        vigenciaDias: _totalesValue.vigenciaDias,
+        condiciones: _totalesValue.condiciones,
       );
       await repository.registrarPdfCotizacion(
         cotizacionId: guardada.id,
@@ -818,4 +816,209 @@ class _DialogError extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _CotizacionPdfExporter {
+  Future<String> exportar({
+    required CotizacionPedidoGuardada cotizacion,
+    required PedidoDetalle pedido,
+    required List<CotizacionProductoFormItem> productos,
+    required double subtotalProductos,
+    required double descuentosProductos,
+    required double descuentoGeneral,
+    required double total,
+    required String observaciones,
+    required int vigenciaDias,
+    required String condiciones,
+  }) async {
+    final directory = await getApplicationSupportDirectory();
+    final folder = Directory(path.join(directory.path, 'cotizaciones'));
+    if (!folder.existsSync()) {
+      await folder.create(recursive: true);
+    }
+    final file = File(
+      path.join(folder.path, '${cotizacion.codigo}-V${cotizacion.version}.pdf'),
+    );
+    final lines = _buildLines(
+      cotizacion: cotizacion,
+      pedido: pedido,
+      productos: productos,
+      subtotalProductos: subtotalProductos,
+      descuentosProductos: descuentosProductos,
+      descuentoGeneral: descuentoGeneral,
+      total: total,
+      observaciones: observaciones,
+      vigenciaDias: vigenciaDias,
+      condiciones: condiciones,
+    );
+    await file.writeAsBytes(_buildPdf(lines), flush: true);
+    return file.path;
+  }
+
+  List<String> _buildLines({
+    required CotizacionPedidoGuardada cotizacion,
+    required PedidoDetalle pedido,
+    required List<CotizacionProductoFormItem> productos,
+    required double subtotalProductos,
+    required double descuentosProductos,
+    required double descuentoGeneral,
+    required double total,
+    required String observaciones,
+    required int vigenciaDias,
+    required String condiciones,
+  }) {
+    final lines = <String>[
+      'COTIZACION N. ${cotizacion.codigo} - VERSION ${cotizacion.version}',
+      'Pedido: ${pedido.codigo}',
+      'Cliente: ${pedido.clienteNombre}',
+      if (pedido.clienteRuc.isNotEmpty) 'RUC: ${pedido.clienteRuc}',
+      if (pedido.clienteDni.isNotEmpty) 'DNI: ${pedido.clienteDni}',
+      'Telefono: ${pedido.telefono}',
+      'Direccion: ${pedido.direccion}',
+      'Fecha: ${_formatDate(DateTime.now())}',
+      'Vigencia: $vigenciaDias días',
+      if (condiciones.trim().isNotEmpty) 'Condiciones: ${condiciones.trim()}',
+      '',
+      'PRODUCTO | CANTIDAD | P. UNITARIO | SUBTOTAL',
+    ];
+    for (final item in productos) {
+      lines.add(
+        '${item.producto.nombre} | ${item.producto.cantidad} ${item.producto.presentacion} | S/ ${item.precioCotizacion.toStringAsFixed(2)} | S/ ${item.subtotalCotizacion.toStringAsFixed(2)}',
+      );
+    }
+    lines.addAll([
+      '',
+      'Subtotal de productos: S/ ${subtotalProductos.toStringAsFixed(2)}',
+      'Descuento: -S/ ${(descuentosProductos + descuentoGeneral).toStringAsFixed(2)}',
+      'Total sin IGV: S/ ${CotizacionIgv.totalSinIgv(total).toStringAsFixed(2)}',
+      'IGV: S/ ${CotizacionIgv.igvIncluido(total).toStringAsFixed(2)}',
+      'Total de cotización: S/ ${total.toStringAsFixed(2)}',
+      if (observaciones.isNotEmpty) '',
+      if (observaciones.isNotEmpty) 'Observaciones: $observaciones',
+    ]);
+    return lines;
+  }
+
+  List<int> _buildPdf(List<String> lines) {
+    const linesPerPage = 48;
+    final pages = <List<String>>[];
+    if (lines.isEmpty) {
+      pages.add(const []);
+    } else {
+      for (var index = 0; index < lines.length; index += linesPerPage) {
+        final candidateEnd = index + linesPerPage;
+        final end = candidateEnd < lines.length ? candidateEnd : lines.length;
+        pages.add(lines.sublist(index, end));
+      }
+    }
+
+    final fontObjectId = 3 + pages.length * 2;
+    final pageObjectIds = <int>[];
+    final objects = <int, String>{};
+
+    for (var index = 0; index < pages.length; index++) {
+      pageObjectIds.add(3 + index * 2);
+    }
+
+    objects[1] = '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n';
+    objects[2] =
+        '2 0 obj\n<< /Type /Pages /Kids '
+        '[${pageObjectIds.map((id) => '$id 0 R').join(' ')}] '
+        '/Count ${pages.length} >>\nendobj\n';
+
+    for (var index = 0; index < pages.length; index++) {
+      final pageObjectId = 3 + index * 2;
+      final contentObjectId = pageObjectId + 1;
+      final content = StringBuffer()
+        ..writeln('BT')
+        ..writeln('/F1 10 Tf')
+        ..writeln('50 800 Td')
+        ..writeln('14 TL');
+
+      if (index > 0) {
+        content
+          ..writeln('(${_escapePdf('Continuacion ${index + 1}')}) Tj')
+          ..writeln('T*');
+      }
+      for (final line in pages[index]) {
+        content
+          ..write('(')
+          ..write(_escapePdf(_ascii(line)))
+          ..writeln(') Tj')
+          ..writeln('T*');
+      }
+      content.writeln('ET');
+
+      final stream = content.toString();
+      final streamLength = latin1.encode(stream).length;
+      objects[pageObjectId] =
+          '$pageObjectId 0 obj\n'
+          '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] '
+          '/Contents $contentObjectId 0 R '
+          '/Resources << /Font << /F1 $fontObjectId 0 R >> >> >>\n'
+          'endobj\n';
+      objects[contentObjectId] =
+          '$contentObjectId 0 obj\n'
+          '<< /Length $streamLength >>\n'
+          'stream\n$stream'
+          'endstream\nendobj\n';
+    }
+
+    objects[fontObjectId] =
+        '$fontObjectId 0 obj\n'
+        '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\n'
+        'endobj\n';
+
+    var pdf = '%PDF-1.4\n';
+    final offsets = <int>[];
+    for (var objectId = 1; objectId <= fontObjectId; objectId++) {
+      final object = objects[objectId];
+      if (object == null) {
+        throw StateError('Objeto PDF $objectId no generado.');
+      }
+      offsets.add(latin1.encode(pdf).length);
+      pdf += object;
+    }
+
+    final startXref = latin1.encode(pdf).length;
+    final xref = StringBuffer()
+      ..writeln('xref')
+      ..writeln('0 ${fontObjectId + 1}')
+      ..writeln('0000000000 65535 f ');
+    for (final offset in offsets) {
+      xref.writeln('${offset.toString().padLeft(10, '0')} 00000 n ');
+    }
+    pdf +=
+        '${xref}trailer\n'
+        '<< /Size ${fontObjectId + 1} /Root 1 0 R >>\n'
+        'startxref\n$startXref\n%%EOF';
+    return latin1.encode(pdf);
+  }
+
+  String _formatDate(DateTime date) =>
+      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+
+  String _escapePdf(String value) => value
+      .replaceAll('\\', '\\\\')
+      .replaceAll('(', r'\(')
+      .replaceAll(')', r'\)');
+
+  String _ascii(String value) {
+    final normalized = value
+        .replaceAll(RegExp('[áÁ]'), 'a')
+        .replaceAll(RegExp('[éÉ]'), 'e')
+        .replaceAll(RegExp('[íÍ]'), 'i')
+        .replaceAll(RegExp('[óÓ]'), 'o')
+        .replaceAll(RegExp('[úÚ]'), 'u')
+        .replaceAll('ñ', 'n')
+        .replaceAll('Ñ', 'N')
+        .replaceAll('°', '.')
+        .replaceAll('•', '-')
+        .replaceAll('—', '-');
+    final buffer = StringBuffer();
+    for (final rune in normalized.runes) {
+      buffer.writeCharCode(rune >= 32 && rune <= 126 ? rune : 32);
+    }
+    return buffer.toString();
+  }
 }

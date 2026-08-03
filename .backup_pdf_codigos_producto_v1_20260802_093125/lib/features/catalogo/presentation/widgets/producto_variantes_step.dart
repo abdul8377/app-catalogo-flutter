@@ -587,7 +587,7 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
                 key: const Key('variante_codigo_interno'),
                 label: 'Código interno',
                 controller: _sku,
-                hint: 'PER-001-001',
+                hint: 'VAR-XXXXXXXXXX',
                 validator: _validarSku,
                 readOnly: true,
               ),
@@ -875,10 +875,7 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
     if (!_puedeCambiarSeleccion()) return;
     _sincronizandoCampos = true;
     _formKey.currentState?.reset();
-    _sku.text = CodigoInternoGenerator.siguienteVariante(
-      codigoFamilia: widget.state.codigo,
-      codigosExistentes: widget.state.variantes.map((item) => item.sku),
-    );
+    _sku.text = CodigoInternoGenerator.nuevaVariante();
     _codigoProveedor.clear();
     _nombre.clear();
     _prepararAtributos();
@@ -1092,10 +1089,7 @@ class _ProductoVariantesStepState extends State<ProductoVariantesStep> {
     if (selected == null) return;
     final copy = selected.copyWith(
       id: const Uuid().v4(),
-      sku: CodigoInternoGenerator.siguienteVariante(
-        codigoFamilia: widget.state.codigo,
-        codigosExistentes: widget.state.variantes.map((item) => item.sku),
-      ),
+      sku: CodigoInternoGenerator.nuevaVariante(),
       codigoProveedor: '',
       nombreCorto: '${selected.nombreCorto} (copia)',
     );

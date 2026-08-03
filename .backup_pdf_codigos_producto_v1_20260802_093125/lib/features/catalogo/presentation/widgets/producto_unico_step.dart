@@ -189,24 +189,6 @@ class _ProductoUnicoStepState extends State<ProductoUnicoStep> {
   }
 
   @override
-  void didUpdateWidget(covariant ProductoUnicoStep oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.state.editando ||
-        oldWidget.state.codigo == widget.state.codigo) {
-      return;
-    }
-    final codigo = CodigoInternoGenerator.codigoProductoUnico(
-      widget.state.codigo,
-    );
-    if (_singleGeneratedSku == codigo) return;
-    _singleGeneratedSku = codigo;
-    _singleInternalCodeController.text = codigo;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _syncVariant();
-    });
-  }
-
-  @override
   void dispose() {
     productoUnicoStepController.detach();
     _singleInternalCodeController.dispose();
@@ -233,7 +215,7 @@ class _ProductoUnicoStepState extends State<ProductoUnicoStep> {
 
     final savedSku = existing?.sku.trim() ?? '';
     _singleGeneratedSku = savedSku.isEmpty
-        ? CodigoInternoGenerator.codigoProductoUnico(widget.state.codigo)
+        ? CodigoInternoGenerator.nuevaVariante()
         : savedSku.toUpperCase();
     _singleInternalCodeController.text = _singleGeneratedSku;
     _singleSupplierCodeController.text = existing?.codigoProveedor ?? '';
@@ -793,8 +775,8 @@ class _ProductoUnicoStepState extends State<ProductoUnicoStep> {
                   fieldKey: const Key('producto_unico_codigo_interno'),
                   label: 'Código interno',
                   controller: _singleInternalCodeController,
-                  hint: 'PER-001',
-                  helper: 'Generado automáticamente desde el nombre comercial.',
+                  hint: 'VAR-XXXXXXXXXX',
+                  helper: 'Generado automáticamente. No es editable.',
                   readOnly: true,
                 );
                 final supplierCodeField = _buildSingleTextField(

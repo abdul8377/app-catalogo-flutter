@@ -325,7 +325,6 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
   _MatrixCombinationDraft _createDefaultMatrixCombination({
     required String rowLabel,
     required String columnLabel,
-    required Iterable<String> codigosExistentes,
     bool included = false,
   }) {
     final key = _MatrixCombinationDraft.buildKey(rowLabel, columnLabel);
@@ -335,10 +334,7 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
       rowValue: rowLabel,
       columnValue: columnLabel,
       included: included,
-      sku: CodigoInternoGenerator.siguienteVariante(
-        codigoFamilia: widget.state.codigo,
-        codigosExistentes: codigosExistentes,
-      ),
+      sku: CodigoInternoGenerator.nuevaVariante(),
       supplierCode: '',
       generatedName: '$_matrixFamilyLabel $columnLabel × $rowLabel',
       initialActive: true,
@@ -710,10 +706,6 @@ class _ProductoMatrizStepState extends State<ProductoMatrizStep> {
             _createDefaultMatrixCombination(
               rowLabel: row.label,
               columnLabel: column.label,
-              codigosExistentes: [
-                ..._matrixCombinations.values.map((item) => item.sku),
-                ...nextCombinations.values.map((item) => item.sku),
-              ],
             );
       }
     }

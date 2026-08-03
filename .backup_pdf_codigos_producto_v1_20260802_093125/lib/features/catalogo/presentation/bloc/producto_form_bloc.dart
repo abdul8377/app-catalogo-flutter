@@ -41,7 +41,16 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       );
     });
     on<ProductoFormClasificacionCambiada>(_clasificacion);
-    on<ProductoFormFamiliaCambiada>(_familiaCambiada);
+    on<ProductoFormFamiliaCambiada>(
+      (event, emit) => emit(
+        state.copyWith(
+          codigo: event.codigo,
+          nombre: event.nombre,
+          descripcion: event.descripcion,
+          limpiarError: true,
+        ),
+      ),
+    );
     on<ProductoFormImagenCambiada>(
       (event, emit) => emit(
         state.copyWith(
@@ -382,7 +391,13 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
       emit(state.copyWith(loading: true, productoId: event.productoId));
       final datos = await _repository.obtenerDatosFormulario();
       if (event.productoId == null) {
-        emit(state.copyWith(loading: false, datos: datos, codigo: ''));
+        emit(
+          state.copyWith(
+            loading: false,
+            datos: datos,
+            codigo: CodigoInternoGenerator.nuevoProducto(),
+          ),
+        );
         return;
       }
       final producto = await _repository.obtenerDetalleProducto(
@@ -461,86 +476,6 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
         ),
       );
     }
-  }
-
-  Future<void> _familiaCambiada(
-    ProductoFormFamiliaCambiada event,
-    Emitter<ProductoFormState> emit,
-  ) async {
-    final codigoAnterior = state.codigo;
-    final nombre = event.nombre ?? state.nombre;
-    emit(
-      state.copyWith(
-        codigo: event.codigo,
-        nombre: event.nombre,
-        descripcion: event.descripcion,
-        limpiarError: true,
-      ),
-    );
-
-    if (state.editando || event.codigo != null || event.nombre == null) return;
-    final nombreBase = nombre.trim();
-    if (nombreBase.isEmpty) return;
-
-    final prefijo = CodigoInternoGenerator.prefijoDesdeNombre(nombreBase);
-    final codigoActual = state.codigo.trim().toUpperCase();
-    final tienePrefijoActual = RegExp(
-      '^${RegExp.escape(prefijo)}-\\d+\$',
-    ).hasMatch(codigoActual);
-    if (tienePrefijoActual) return;
-
-    if (state.tipoRegistro != 'unico' &&
-        state.variantes.isNotEmpty &&
-        codigoAnterior.trim().isNotEmpty) {
-      return;
-    }
-
-    try {
-      final productos = await _repository.obtenerProductos();
-      final codigo = CodigoInternoGenerator.siguienteProducto(
-        nombreBase: nombreBase,
-        codigosExistentes: productos
-            .where((producto) => producto.id != state.productoId)
-            .map((producto) => producto.codigo),
-      );
-      if (state.editando || state.nombre.trim() != nombreBase) return;
-      emit(
-        state.copyWith(
-          codigo: codigo,
-          variantes: state.tipoRegistro == 'unico'
-              ? _actualizarCodigoProductoUnico(state.variantes, codigo)
-              : null,
-          limpiarError: true,
-        ),
-      );
-    } catch (_) {
-      final codigo = CodigoInternoGenerator.siguienteProducto(
-        nombreBase: nombreBase,
-        codigosExistentes: const [],
-      );
-      if (state.editando || state.nombre.trim() != nombreBase) return;
-      emit(
-        state.copyWith(
-          codigo: codigo,
-          variantes: state.tipoRegistro == 'unico'
-              ? _actualizarCodigoProductoUnico(state.variantes, codigo)
-              : null,
-          limpiarError: true,
-        ),
-      );
-    }
-  }
-
-  List<ProductoVariante> _actualizarCodigoProductoUnico(
-    List<ProductoVariante> variantes,
-    String codigo,
-  ) {
-    if (variantes.isEmpty) return variantes;
-    return [
-      variantes.first.copyWith(
-        sku: CodigoInternoGenerator.codigoProductoUnico(codigo),
-      ),
-    ];
   }
 
   void _clasificacion(
@@ -663,42 +598,33 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
     }
   }
 
-  NuevoProducto _productoDesdeEstado({bool? activo}) {
-    final codigo = state.codigo.trim().isEmpty
-        ? CodigoInternoGenerator.siguienteProducto(
-            nombreBase: state.nombre,
-            codigosExistentes: const [],
-          )
-        : state.codigo.trim().toUpperCase();
-    final variantes = state.tipoRegistro == 'unico'
-        ? _actualizarCodigoProductoUnico(state.variantes, codigo)
-        : state.variantes;
-    return NuevoProducto(
-      codigo: codigo,
-      nombre: state.nombre.trim(),
-      descripcion: state.descripcion.trim(),
-      empresa: state.empresa!,
-      marca: state.marca!,
-      categoria: state.categoria!,
-      subcategoria: state.subcategoria ?? '',
-      tipoRegistro: state.tipoRegistro,
-      atributos: state.atributos,
-      variantes: variantes,
-      presentaciones: state.presentaciones,
-      ventaLogisticaContenido: state.ventaLogisticaContenido == null
-          ? null
-          : step4SalesDraftToMap(state.ventaLogisticaContenido!),
-      preciosConfigurados: state.preciosConfigurados == null
-          ? null
-          : step5PricingDraftToMap(state.preciosConfigurados!),
-      imagenesConfiguradas: state.imagenesConfiguradas == null
-          ? null
-          : step6ImagesDraftToMap(state.imagenesConfiguradas!),
-      precios: state.precios,
-      imagenesPaths: state.imagenesPaths,
-      activo: activo ?? state.activo,
-    );
-  }
+  NuevoProducto _productoDesdeEstado({bool? activo}) => NuevoProducto(
+    codigo: state.codigo.trim().isEmpty
+        ? CodigoInternoGenerator.nuevoProducto()
+        : state.codigo.trim().toUpperCase(),
+    nombre: state.nombre.trim(),
+    descripcion: state.descripcion.trim(),
+    empresa: state.empresa!,
+    marca: state.marca!,
+    categoria: state.categoria!,
+    subcategoria: state.subcategoria ?? '',
+    tipoRegistro: state.tipoRegistro,
+    atributos: state.atributos,
+    variantes: state.variantes,
+    presentaciones: state.presentaciones,
+    ventaLogisticaContenido: state.ventaLogisticaContenido == null
+        ? null
+        : step4SalesDraftToMap(state.ventaLogisticaContenido!),
+    preciosConfigurados: state.preciosConfigurados == null
+        ? null
+        : step5PricingDraftToMap(state.preciosConfigurados!),
+    imagenesConfiguradas: state.imagenesConfiguradas == null
+        ? null
+        : step6ImagesDraftToMap(state.imagenesConfiguradas!),
+    precios: state.precios,
+    imagenesPaths: state.imagenesPaths,
+    activo: activo ?? state.activo,
+  );
 
   Future<void> _persistirProducto(NuevoProducto producto) async {
     if (state.productoId == null) {

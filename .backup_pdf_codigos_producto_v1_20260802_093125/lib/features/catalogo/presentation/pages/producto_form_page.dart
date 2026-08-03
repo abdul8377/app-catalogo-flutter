@@ -653,18 +653,6 @@ class _PasoFamiliaTipo extends StatelessWidget {
   }
 
   Widget _familyFields(BuildContext context, {required bool compact}) {
-    final code = TextFormField(
-      key: ValueKey('familia_codigo_${state.codigo}'),
-      initialValue: state.codigo,
-      readOnly: true,
-      decoration: const InputDecoration(
-        labelText: 'Código de familia',
-        hintText: 'PER-001',
-        helperText: 'Se genera automáticamente desde el nombre.',
-        prefixIcon: Icon(Icons.qr_code_2_rounded),
-        border: OutlineInputBorder(),
-      ),
-    );
     final name = TextFormField(
       key: const Key('familia_nombre'),
       initialValue: state.nombre,
@@ -691,24 +679,14 @@ class _PasoFamiliaTipo extends StatelessWidget {
       ),
     );
     if (compact) {
-      return Column(
-        children: [
-          code,
-          const SizedBox(height: 10),
-          name,
-          const SizedBox(height: 10),
-          description,
-        ],
-      );
+      return Column(children: [name, const SizedBox(height: 10), description]);
     }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: code),
+        Expanded(child: name),
         const SizedBox(width: 12),
-        Expanded(flex: 2, child: name),
-        const SizedBox(width: 12),
-        Expanded(flex: 2, child: description),
+        Expanded(child: description),
       ],
     );
   }
