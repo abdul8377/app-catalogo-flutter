@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets(
-    'categoría y subcategorías se gestionan únicamente desde Más filtros',
+    'categoría y subcategoría se gestionan únicamente desde Más filtros',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(900, 700));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -63,7 +63,7 @@ void main() {
 
       expect(find.text('Más filtros'), findsOneWidget);
       expect(find.text('Categoría'), findsWidgets);
-      expect(find.text('Subcategorías'), findsWidgets);
+      expect(find.text('Subcategoría'), findsWidgets);
       expect(tester.takeException(), isNull);
     },
   );

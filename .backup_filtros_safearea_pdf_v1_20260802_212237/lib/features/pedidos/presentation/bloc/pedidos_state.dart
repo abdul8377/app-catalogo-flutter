@@ -23,7 +23,6 @@ class PedidosState extends Equatable {
     this.marca,
     this.categoria,
     this.subcategoria,
-    this.subcategoriasSeleccionadas = const {},
     this.estado,
     this.imagen,
     this.pedidoIdEditando,
@@ -57,7 +56,6 @@ class PedidosState extends Equatable {
   final String? marca;
   final String? categoria;
   final String? subcategoria;
-  final Set<String> subcategoriasSeleccionadas;
   final String? estado;
   final String? imagen;
   final String? pedidoIdEditando;
@@ -71,17 +69,6 @@ class PedidosState extends Equatable {
   final ClientePedido? cliente;
   final PedidoRegistrado? resultado;
   final String? error;
-
-  Set<String> get subcategoriasActivas {
-    final result = <String>{
-      ...subcategoriasSeleccionadas
-          .map((value) => value.trim())
-          .where((value) => value.isNotEmpty),
-    };
-    final legacy = subcategoria?.trim() ?? '';
-    if (legacy.isNotEmpty) result.add(legacy);
-    return Set<String>.unmodifiable(result);
-  }
 
   List<ProductoResumen> get productosFiltrados {
     final query = busqueda.trim().toLowerCase();
@@ -117,8 +104,7 @@ class PedidosState extends Equatable {
           (empresa == null || producto.empresa == empresa) &&
           (marca == null || producto.marca == marca) &&
           (categoria == null || producto.categoria == categoria) &&
-          (subcategoriasActivas.isEmpty ||
-              subcategoriasActivas.contains(producto.subcategoria)) &&
+          (subcategoria == null || producto.subcategoria == subcategoria) &&
           (estado == null || estado == 'Activo') &&
           (imagen == null ||
               (imagen == 'Con imagen'
@@ -152,15 +138,19 @@ class PedidosState extends Equatable {
     for (final item in productos)
       if (item.subcategoria.isNotEmpty) item.subcategoria,
   }.toList()..sort());
-  int get filtrosAvanzadosActivos =>
-      [empresa, marca, categoria, estado, imagen].whereType<String>().length +
-      subcategoriasActivas.length;
-
+  int get filtrosAvanzadosActivos => [
+    empresa,
+    marca,
+    categoria,
+    subcategoria,
+    estado,
+    imagen,
+  ].whereType<String>().length;
   CatalogoFiltros get catalogoFiltros => CatalogoFiltros(
     empresa: empresa,
     marca: marca,
     categoria: categoria,
-    subcategorias: subcategoriasActivas,
+    subcategoria: subcategoria,
     estado: estado,
     precio: filtroPrecio == 'Todos' ? null : filtroPrecio,
     imagen: imagen,
@@ -201,7 +191,6 @@ class PedidosState extends Equatable {
     String? marca,
     String? categoria,
     String? subcategoria,
-    Set<String>? subcategoriasSeleccionadas,
     String? estado,
     String? imagen,
     String? pedidoIdEditando,
@@ -231,14 +220,7 @@ class PedidosState extends Equatable {
     empresa: limpiarFiltros ? null : empresa ?? this.empresa,
     marca: limpiarFiltros ? null : marca ?? this.marca,
     categoria: limpiarFiltros ? null : categoria ?? this.categoria,
-    subcategoria: limpiarFiltros || subcategoriasSeleccionadas != null
-        ? null
-        : subcategoria ?? this.subcategoria,
-    subcategoriasSeleccionadas: limpiarFiltros
-        ? const {}
-        : subcategoria != null
-        ? const {}
-        : subcategoriasSeleccionadas ?? this.subcategoriasSeleccionadas,
+    subcategoria: limpiarFiltros ? null : subcategoria ?? this.subcategoria,
     estado: limpiarFiltros ? null : estado ?? this.estado,
     imagen: limpiarFiltros ? null : imagen ?? this.imagen,
     pedidoIdEditando: pedidoIdEditando ?? this.pedidoIdEditando,
@@ -267,7 +249,6 @@ class PedidosState extends Equatable {
     marca,
     categoria,
     subcategoria,
-    subcategoriasSeleccionadas,
     estado,
     imagen,
     pedidoIdEditando,

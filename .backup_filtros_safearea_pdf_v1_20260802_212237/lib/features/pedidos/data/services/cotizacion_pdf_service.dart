@@ -9,39 +9,6 @@ import 'package:pdf/widgets.dart' as pw;
 import '../../domain/entities/cotizacion_pedido.dart';
 import '../../domain/entities/pedido_detalle.dart';
 
-String normalizarTextoCotizacionPdf(String value) {
-  var normalized = value;
-  const replacements = <String, String>{
-    '\u00A0': ' ',
-    '″': ' in',
-    '′': "'",
-    '×': ' x ',
-    '·': ' - ',
-    '–': '-',
-    '—': '-',
-    '…': '...',
-    '“': '"',
-    '”': '"',
-    '‘': "'",
-    '’': "'",
-    '⌀': 'Diam. ',
-    'Ø': 'Diam. ',
-    'ø': 'diam. ',
-    '²': '2',
-    '³': '3',
-    'µ': 'u',
-    '®': '(R)',
-    '™': '(TM)',
-  };
-  replacements.forEach((source, target) {
-    normalized = normalized.replaceAll(source, target);
-  });
-  normalized = normalized
-      .replaceAll(RegExp(r'[ \t]+'), ' ')
-      .replaceAll(RegExp(r' ?\n ?'), '\n');
-  return normalized.trim();
-}
-
 class CotizacionPdfProducto {
   const CotizacionPdfProducto({
     required this.producto,
@@ -55,9 +22,7 @@ class CotizacionPdfProducto {
 
   String get codigo {
     final variante = producto.varianteSku.trim();
-    return normalizarTextoCotizacionPdf(
-      variante.isEmpty ? producto.codigo.trim() : variante,
-    );
+    return variante.isEmpty ? producto.codigo.trim() : variante;
   }
 
   String get descripcion {
@@ -75,7 +40,7 @@ class CotizacionPdfProducto {
         .map((entry) => '${entry.key.trim()}: ${entry.value.trim()}')
         .join(' · ');
     if (atributos.isNotEmpty) partes.add(atributos);
-    return normalizarTextoCotizacionPdf(partes.join(' · '));
+    return partes.join(' · ');
   }
 }
 
@@ -270,10 +235,7 @@ class CotizacionPdfService {
       ),
       pw.Padding(
         padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-        child: pw.Text(
-          normalizarTextoCotizacionPdf(value),
-          style: const pw.TextStyle(fontSize: 8),
-        ),
+        child: pw.Text(value, style: const pw.TextStyle(fontSize: 8)),
       ),
     ],
   );
@@ -336,11 +298,7 @@ class CotizacionPdfService {
           text: '$label ',
           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
         ),
-        pw.TextSpan(
-          text: normalizarTextoCotizacionPdf(
-            value.isEmpty ? 'No especificado' : value,
-          ),
-        ),
+        pw.TextSpan(text: value.isEmpty ? 'No especificado' : value),
       ],
     ),
   );
@@ -414,7 +372,7 @@ class CotizacionPdfService {
       pw.Padding(
         padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 7),
         child: pw.Text(
-          normalizarTextoCotizacionPdf(value),
+          value,
           textAlign: align,
           style: const pw.TextStyle(fontSize: 7),
         ),
@@ -426,13 +384,13 @@ class CotizacionPdfService {
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Text(
-          normalizarTextoCotizacionPdf(item.producto.nombre),
+          item.producto.nombre,
           style: pw.TextStyle(fontSize: 7.2, fontWeight: pw.FontWeight.bold),
         ),
         if (item.descripcion.isNotEmpty) ...[
           pw.SizedBox(height: 2),
           pw.Text(
-            normalizarTextoCotizacionPdf(item.descripcion),
+            item.descripcion,
             style: const pw.TextStyle(fontSize: 6.7, color: _dark),
           ),
         ],
@@ -445,14 +403,11 @@ class CotizacionPdfService {
     child: pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(
-          normalizarTextoCotizacionPdf(producto.presentacion),
-          style: const pw.TextStyle(fontSize: 7),
-        ),
+        pw.Text(producto.presentacion, style: const pw.TextStyle(fontSize: 7)),
         if (producto.equivalencia.trim().isNotEmpty) ...[
           pw.SizedBox(height: 2),
           pw.Text(
-            normalizarTextoCotizacionPdf(producto.equivalencia),
+            producto.equivalencia.trim(),
             style: const pw.TextStyle(fontSize: 6.4, color: _muted),
           ),
         ],
@@ -470,13 +425,11 @@ class CotizacionPdfService {
     final descuento = descuentosProductos + descuentoGeneral;
     final valorVenta = CotizacionIgv.totalSinIgv(total);
     final igv = CotizacionIgv.igvIncluido(total);
-    final observacion = normalizarTextoCotizacionPdf(
-      observaciones.trim().isEmpty
-          ? 'Los precios unitarios y subtotales se muestran sin IGV. '
-                'Stock, disponibilidad y fecha de entrega están sujetos a '
-                'confirmación al momento de registrar el pedido.'
-          : observaciones,
-    );
+    final observacion = observaciones.trim().isEmpty
+        ? 'Los precios unitarios y subtotales se muestran sin IGV. '
+              'Stock, disponibilidad y fecha de entrega están sujetos a '
+              'confirmación al momento de registrar el pedido.'
+        : observaciones.trim();
 
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,

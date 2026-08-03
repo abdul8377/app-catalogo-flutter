@@ -285,14 +285,11 @@ class _ActiveFilters extends StatelessWidget {
             filters.copyWith(clearCategoria: true, clearSubcategoria: true),
           ),
         ),
-      for (final subcategoria in filters.subcategoriasActivas)
-        _chip('Subcategoría: $subcategoria', () {
-          final restantes = {...filters.subcategoriasActivas}
-            ..remove(subcategoria);
-          onChanged(
-            filters.copyWith(subcategorias: restantes, clearSubcategoria: true),
-          );
-        }),
+      if (filters.subcategoria != null)
+        _chip(
+          'Subcategoría: ${filters.subcategoria}',
+          () => onChanged(filters.copyWith(clearSubcategoria: true)),
+        ),
       if (filters.estado != null)
         _chip(
           filters.estado!,
@@ -409,19 +406,14 @@ class _FiltrosAvanzadosDialogState extends State<_FiltrosAvanzadosDialog> {
 
   CatalogoFiltros _normalize(CatalogoFiltros value) {
     var result = value;
-    if (result.marca != null && !_brands(result).contains(result.marca)) {
+    if (!_brands(result).contains(result.marca)) {
       result = result.copyWith(clearMarca: true);
     }
-    if (result.categoria != null &&
-        !_categories(result).contains(result.categoria)) {
+    if (!_categories(result).contains(result.categoria)) {
       result = result.copyWith(clearCategoria: true, clearSubcategoria: true);
     }
-
-    final disponibles = _subcategories(result).toSet();
-    final actuales = result.subcategoriasActivas;
-    final validas = actuales.where(disponibles.contains).toSet();
-    if (validas.length != actuales.length) {
-      result = result.copyWith(subcategorias: validas, clearSubcategoria: true);
+    if (!_subcategories(result).contains(result.subcategoria)) {
+      result = result.copyWith(clearSubcategoria: true);
     }
     return result;
   }
@@ -568,16 +560,17 @@ class _FiltrosAvanzadosDialogState extends State<_FiltrosAvanzadosDialog> {
                               ),
                             ),
                           ),
-                          _DialogMultiSelect(
-                            key: const Key('dialog_subcategorias_multiple'),
-                            label: 'Subcategorías',
-                            selected: _draft.subcategoriasActivas,
+                          _DialogSelect(
+                            label: 'Subcategoría',
+                            value: subcategories.contains(_draft.subcategoria)
+                                ? _draft.subcategoria
+                                : null,
                             options: subcategories,
                             allLabel: 'Todas las subcategorías',
-                            onChanged: (values) => _update(
+                            onChanged: (value) => _update(
                               _draft.copyWith(
-                                subcategorias: values,
-                                clearSubcategoria: true,
+                                subcategoria: value,
+                                clearSubcategoria: value == null,
                               ),
                             ),
                           ),
@@ -658,7 +651,6 @@ class _FiltrosAvanzadosDialogState extends State<_FiltrosAvanzadosDialog> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: FilledButton.icon(
-                        key: const Key('aplicar_filtros_avanzados'),
                         onPressed: () => Navigator.pop(context, _draft),
                         style: FilledButton.styleFrom(
                           backgroundColor: _filterYellow,
@@ -736,151 +728,6 @@ class _DialogSectionTitle extends StatelessWidget {
           ),
         ),
       ],
-    ),
-  );
-}
-
-class _DialogMultiSelect extends StatelessWidget {
-  const _DialogMultiSelect({
-    required this.label,
-    required this.selected,
-    required this.options,
-    required this.allLabel,
-    required this.onChanged,
-    super.key,
-  });
-
-  final String label;
-  final Set<String> selected;
-  final List<String> options;
-  final String allLabel;
-  final ValueChanged<Set<String>> onChanged;
-
-  String get _summary {
-    final values = selected.where(options.contains).toList()..sort();
-    if (values.isEmpty) return allLabel;
-    if (values.length == 1) return values.single;
-    return '${values.length} subcategorías';
-  }
-
-  Future<void> _open(BuildContext context) async {
-    var draft = selected.where(options.contains).toSet();
-    final result = await showDialog<Set<String>>(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: .42),
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
-          title: Text(label),
-          content: SizedBox(
-            width: 450,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 360),
-              child: options.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Text(
-                        'No hay subcategorías disponibles para los filtros '
-                        'seleccionados.',
-                        textAlign: TextAlign.center,
-                      ),
-                    )
-                  : ListView(
-                      shrinkWrap: true,
-                      children: options
-                          .map(
-                            (option) => CheckboxListTile(
-                              key: ValueKey('subcategoria_opcion_$option'),
-                              value: draft.contains(option),
-                              activeColor: _filterYellow,
-                              checkColor: Colors.black,
-                              controlAffinity: ListTileControlAffinity.leading,
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(option),
-                              onChanged: (checked) {
-                                setDialogState(() {
-                                  if (checked == true) {
-                                    draft.add(option);
-                                  } else {
-                                    draft.remove(option);
-                                  }
-                                });
-                              },
-                            ),
-                          )
-                          .toList(),
-                    ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              key: const Key('limpiar_subcategorias'),
-              onPressed: draft.isEmpty
-                  ? null
-                  : () => setDialogState(draft.clear),
-              child: const Text('Limpiar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              key: const Key('aplicar_subcategorias'),
-              onPressed: () =>
-                  Navigator.pop(dialogContext, Set<String>.of(draft)),
-              style: FilledButton.styleFrom(
-                backgroundColor: _filterYellow,
-                foregroundColor: Colors.black,
-              ),
-              child: const Text('Aplicar'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (result != null) onChanged(result);
-  }
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: options.isEmpty ? null : () => _open(context),
-      borderRadius: BorderRadius.circular(12),
-      child: InputDecorator(
-        isEmpty: selected.isEmpty,
-        decoration: InputDecoration(
-          labelText: label,
-          enabled: options.isNotEmpty,
-          filled: true,
-          fillColor: _filterSurface,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: _filterBorder),
-          ),
-          disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: _filterBorder),
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                _summary,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: selected.isEmpty ? _filterMuted : _filterInk,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.arrow_drop_down_rounded, color: _filterMuted),
-          ],
-        ),
-      ),
     ),
   );
 }

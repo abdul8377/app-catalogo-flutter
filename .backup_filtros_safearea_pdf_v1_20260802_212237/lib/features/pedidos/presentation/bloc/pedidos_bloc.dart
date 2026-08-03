@@ -54,7 +54,7 @@ class PedidosBloc extends Bloc<PedidosEvent, PedidosState> {
               empresa: filtros.empresa,
               marca: filtros.marca,
               categoria: filtros.categoria,
-              subcategoriasSeleccionadas: filtros.subcategoriasActivas,
+              subcategoria: filtros.subcategoria,
               estado: filtros.estado,
               imagen: filtros.imagen,
               filtroPrecio: filtros.precio ?? 'Todos',

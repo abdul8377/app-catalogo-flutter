@@ -6,13 +6,6 @@ import 'package:app_catalogo/features/pedidos/domain/entities/pedido_detalle.dar
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('normaliza símbolos técnicos incompatibles con la fuente PDF', () {
-    expect(
-      normalizarTextoCotizacionPdf('Perno 1/4″ × 1″ · Diámetro: 1/4″ — acero'),
-      'Perno 1/4 in x 1 in - Diámetro: 1/4 in - acero',
-    );
-  });
-
   test('genera una cotización PDF válida', () async {
     final pedido = PedidoDetalle(
       id: 'pedido-1',
@@ -54,8 +47,8 @@ void main() {
       precioUnitario: 59,
       subtotal: 118,
       varianteSku: 'PER-023-001',
-      varianteNombre: 'Perno hexagonal 1/4″ × 4″',
-      atributosVariante: {'Diámetro': '1/4″', 'Largo': '4″'},
+      varianteNombre: 'Perno hexagonal 1/4 x 4',
+      atributosVariante: {'Diámetro': '1/4 in', 'Largo': '4 in'},
     );
 
     final bytes = await CotizacionPdfService().generarBytes(

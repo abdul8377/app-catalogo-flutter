@@ -2449,75 +2449,67 @@ class _Step5PricingPanelState extends State<Step5PricingPanel> {
   }
 
   Widget _buildFooter() {
-    return SafeArea(
-      key: const Key('precios_footer_safe_area'),
-      top: false,
-      minimum: const EdgeInsets.only(bottom: 8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: _border)),
-        ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final back = OutlinedButton(
-              onPressed: widget.onBack,
-              style: _outlinedStyle(),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text('Anterior'),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: _border)),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final back = OutlinedButton(
+            onPressed: widget.onBack,
+            style: _outlinedStyle(),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Text('Anterior'),
+            ),
+          );
+          const progress = Text(
+            'Paso 5 de 7',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: _muted, fontSize: 12),
+          );
+          final next = FilledButton(
+            onPressed: _continueToImages,
+            style: FilledButton.styleFrom(
+              backgroundColor: _primary,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(11),
               ),
-            );
-            const progress = Text(
-              'Paso 5 de 7',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: _muted, fontSize: 12),
-            );
-            final next = FilledButton(
-              onPressed: _continueToImages,
-              style: FilledButton.styleFrom(
-                backgroundColor: _primary,
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 16,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(11),
-                ),
-              ),
-              child: const Text(
-                'Siguiente: imágenes',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-            );
+            ),
+            child: const Text(
+              'Siguiente: imágenes',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+          );
 
-            if (constraints.maxWidth < 520) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  next,
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(child: back),
-                      const Expanded(child: progress),
-                    ],
-                  ),
-                ],
-              );
-            }
-
-            return Row(
+          if (constraints.maxWidth < 520) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                back,
-                const Expanded(child: progress),
                 next,
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: back),
+                    const Expanded(child: progress),
+                  ],
+                ),
               ],
             );
-          },
-        ),
+          }
+
+          return Row(
+            children: [
+              back,
+              const Expanded(child: progress),
+              next,
+            ],
+          );
+        },
       ),
     );
   }

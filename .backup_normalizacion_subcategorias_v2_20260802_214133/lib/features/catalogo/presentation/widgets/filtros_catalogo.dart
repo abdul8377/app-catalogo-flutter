@@ -409,11 +409,10 @@ class _FiltrosAvanzadosDialogState extends State<_FiltrosAvanzadosDialog> {
 
   CatalogoFiltros _normalize(CatalogoFiltros value) {
     var result = value;
-    if (result.marca != null && !_brands(result).contains(result.marca)) {
+    if (!_brands(result).contains(result.marca)) {
       result = result.copyWith(clearMarca: true);
     }
-    if (result.categoria != null &&
-        !_categories(result).contains(result.categoria)) {
+    if (!_categories(result).contains(result.categoria)) {
       result = result.copyWith(clearCategoria: true, clearSubcategoria: true);
     }
 

@@ -36,16 +36,6 @@ void main() {
     );
     bloc.add(
       const CatalogoFiltrosAplicados(
-        CatalogoFiltros(subcategorias: {'Pernos hexagonales', 'Taladros'}),
-      ),
-    );
-    await bloc.stream.firstWhere(
-      (state) => state.filtros.subcategoriasActivas.length == 2,
-    );
-    expect(bloc.state.productosFiltrados, hasLength(2));
-
-    bloc.add(
-      const CatalogoFiltrosAplicados(
         CatalogoFiltros(
           categoria: 'Pernería',
           subcategoria: 'Pernos hexagonales',

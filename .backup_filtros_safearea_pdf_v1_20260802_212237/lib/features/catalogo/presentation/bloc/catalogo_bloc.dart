@@ -125,15 +125,13 @@ class CatalogoBloc extends Bloc<CatalogoEvent, CatalogoState> {
           (!r.contains('Sin variantes') || p.tipoRegistro == 'unico');
     }).toList();
     final f = estado.filtros;
-    final subcategorias = f.subcategoriasActivas;
     productos = productos
         .where(
           (p) =>
               (f.empresa == null || p.empresa == f.empresa) &&
               (f.marca == null || p.marca == f.marca) &&
               (f.categoria == null || p.categoria == f.categoria) &&
-              (subcategorias.isEmpty ||
-                  subcategorias.contains(p.subcategoria)) &&
+              (f.subcategoria == null || p.subcategoria == f.subcategoria) &&
               (f.estado == null ||
                   (f.estado == 'Activo' ? p.activo : !p.activo)) &&
               (f.precio == null ||
