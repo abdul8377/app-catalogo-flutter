@@ -14,5 +14,7 @@ abstract interface class SyncRepository {
 
   Future<SyncRunResult> synchronize({bool forceBootstrap = false});
 
+  Future<void> chooseInitialSource(SyncInitialSource source);
+
   Future<void> unlink();
 }

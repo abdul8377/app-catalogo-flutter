@@ -1,0 +1,16 @@
+{
+  "nextCursor": 151,
+  "hasMore": false,
+  "changes": [
+    {
+      "sequence": 151,
+      "entityType": "PRODUCT",
+      "entityId": "product-1",
+      "operation": "UPSERT",
+      "version": 4,
+      "originDeviceId": "web-admin",
+      "payload": {"productId": "product-1"},
+      "changedAt": "2026-08-04T18:05:00Z"
+    }
+  ]
+}

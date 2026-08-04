@@ -1,0 +1,16 @@
+{
+  "page": 0,
+  "nextPage": 1,
+  "hasMore": true,
+  "snapshotCursor": 150,
+  "records": [
+    {
+      "entityType": "PRODUCT",
+      "entityId": "product-1",
+      "version": 3,
+      "deleted": false,
+      "payload": {"productId": "product-1"},
+      "updatedAt": "2026-08-04T18:00:00Z"
+    }
+  ]
+}

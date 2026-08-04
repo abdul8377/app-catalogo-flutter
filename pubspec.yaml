@@ -45,6 +45,7 @@ dependencies:
   image_picker: 1.2.3
   image_cropper: 12.2.1
   path_provider: 2.1.6
+  crypto: 3.0.7
   pdf: ^3.13.0
   dio: 5.11.0
   flutter_secure_storage: 10.3.1

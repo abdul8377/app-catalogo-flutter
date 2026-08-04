@@ -18,7 +18,7 @@ class SyncConfiguration extends Equatable {
   final String serverUrlCache;
   final String deviceId;
   final String deviceName;
-  final int contractVersion;
+  final String contractVersion;
   final DateTime linkedAt;
 
   @override
@@ -39,12 +39,22 @@ class SyncServerCandidate extends Equatable {
     required this.url,
     this.serverId = '',
     this.name = '',
+    this.serviceType = '_appcatalogo._tcp',
+    this.apiContractVersion = '',
   });
 
   final String url;
   final String serverId;
   final String name;
+  final String serviceType;
+  final String apiContractVersion;
 
   @override
-  List<Object?> get props => [url, serverId, name];
+  List<Object?> get props => [
+    url,
+    serverId,
+    name,
+    serviceType,
+    apiContractVersion,
+  ];
 }

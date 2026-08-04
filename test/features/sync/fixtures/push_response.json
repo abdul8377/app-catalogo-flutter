@@ -1,0 +1,12 @@
+{
+  "results": [
+    {
+      "eventId": "event-1",
+      "status": "CONFLICT",
+      "serverVersion": 4,
+      "serverSequence": 151,
+      "conflictId": "conflict-backend-1",
+      "message": "La version del servidor cambio."
+    }
+  ]
+}

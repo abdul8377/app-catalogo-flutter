@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:nsd/nsd.dart';
 
 import '../../domain/entities/sync_configuration.dart';
+import '../../domain/entities/sync_pairing_payload.dart';
 
 class SyncDiscoveryDatasource {
   const SyncDiscoveryDatasource();
@@ -16,7 +17,7 @@ class SyncDiscoveryDatasource {
     final candidates = <String, SyncServerCandidate>{};
     try {
       discovery = await startDiscovery(
-        serviceType.replaceFirst(RegExp(r'\.local$'), ''),
+        SyncPairingPayload.normalizeServiceType(serviceType),
         ipLookupType: IpLookupType.v4,
       );
       discovery.addServiceListener((service, status) {
@@ -28,6 +29,8 @@ class SyncDiscoveryDatasource {
           url: url,
           serverId: _txt(service, 'serverId'),
           name: service.name ?? '',
+          serviceType: SyncPairingPayload.normalizeServiceType(serviceType),
+          apiContractVersion: _txt(service, 'contract'),
         );
       });
       await Future<void>.delayed(timeout);

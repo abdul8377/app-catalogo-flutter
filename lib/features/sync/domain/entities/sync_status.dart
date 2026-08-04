@@ -10,6 +10,8 @@ class SyncStatus extends Equatable {
     this.serverName = '',
     this.serverUrl = '',
     this.lastSuccessAt,
+    this.initializationStatus = 'ready',
+    this.hasPendingAck = false,
   });
 
   const SyncStatus.unlinked()
@@ -20,7 +22,9 @@ class SyncStatus extends Equatable {
       pendingFiles = 0,
       serverName = '',
       serverUrl = '',
-      lastSuccessAt = null;
+      lastSuccessAt = null,
+      initializationStatus = 'pending',
+      hasPendingAck = false;
 
   final bool isLinked;
   final int pendingEvents;
@@ -30,8 +34,13 @@ class SyncStatus extends Equatable {
   final String serverName;
   final String serverUrl;
   final DateTime? lastSuccessAt;
+  final String initializationStatus;
+  final bool hasPendingAck;
 
-  int get totalPending => pendingEvents + retryEvents + pendingFiles;
+  bool get requiresInitialSource => initializationStatus == 'decision_required';
+
+  int get totalPending =>
+      pendingEvents + retryEvents + pendingFiles + (hasPendingAck ? 1 : 0);
 
   @override
   List<Object?> get props => [
@@ -43,8 +52,12 @@ class SyncStatus extends Equatable {
     serverName,
     serverUrl,
     lastSuccessAt,
+    initializationStatus,
+    hasPendingAck,
   ];
 }
+
+enum SyncInitialSource { tablet, server }
 
 class SyncRunResult extends Equatable {
   const SyncRunResult({

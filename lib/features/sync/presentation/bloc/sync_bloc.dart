@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -22,6 +23,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     on<SyncQrPairingRequested>(_pairQr);
     on<SyncManualPairingRequested>(_pairManual);
     on<SyncCandidatePairingRequested>(_pairCandidate);
+    on<SyncInitialSourceSelected>(_selectInitialSource);
     on<SyncDiscoveryRequested>(_discover);
     on<SyncUnlinkRequested>(_unlink);
     on<SyncConnectivityRestored>(_connectivityRestored);
@@ -30,6 +32,8 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
   final SyncRepository _repository;
   final Stream<List<ConnectivityResult>> _connectivityChanges;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  Timer? _automaticRetry;
+  int _automaticFailures = 0;
 
   Future<void> _start(SyncStarted event, Emitter<SyncState> emit) async {
     final status = await _repository.getStatus();
@@ -45,7 +49,9 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     SyncRequested event,
     Emitter<SyncState> emit,
   ) async {
-    if (!state.status.isLinked || state.phase == SyncPhase.synchronizing) {
+    if (!state.status.isLinked ||
+        state.status.requiresInitialSource ||
+        state.phase == SyncPhase.synchronizing) {
       return;
     }
     emit(
@@ -60,12 +66,14 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
         forceBootstrap: event.forceBootstrap,
       );
       final status = await _repository.getStatus();
+      _automaticFailures = 0;
+      _automaticRetry?.cancel();
       emit(
         state.copyWith(
           phase: SyncPhase.idle,
           status: status,
           message:
-              'Sincronización completa: ${result.pushed} enviados y '
+              'Sincronizacion completa: ${result.pushed} enviados y '
               '${result.pulled} recibidos.',
           clearError: true,
         ),
@@ -79,6 +87,11 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
           clearMessage: true,
         ),
       );
+      if (event.automatic &&
+          error is SyncException &&
+          error.code == 'PC_UNAVAILABLE') {
+        _scheduleAutomaticRetry();
+      }
     }
   }
 
@@ -107,12 +120,24 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     SyncManualPairingRequested event,
     Emitter<SyncState> emit,
   ) async {
-    final payload = SyncPairingPayload.manual(event.address);
-    if (payload.currentUrlHint.isEmpty) {
+    final payload = SyncPairingPayload.manual(
+      address: event.address,
+      pairingCode: event.pairingCode,
+    );
+    if (payload.currentUrlHint?.isEmpty ?? true) {
       emit(
         state.copyWith(
           phase: SyncPhase.idle,
-          error: 'Escribe una dirección válida, por ejemplo 192.168.1.20:8080.',
+          error: 'Escribe una direccion valida, por ejemplo 192.168.1.20:8081.',
+        ),
+      );
+      return;
+    }
+    if (payload.pairingCode.isEmpty) {
+      emit(
+        state.copyWith(
+          phase: SyncPhase.idle,
+          error: 'Escribe el codigo de vinculacion mostrado por la PC.',
         ),
       );
       return;
@@ -125,10 +150,8 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     Emitter<SyncState> emit,
   ) => _pair(
     SyncPairingPayload(
-      serverId: event.serverId.isEmpty
-          ? 'mdns:${event.address}'
-          : event.serverId,
-      pairingCode: 'mdns',
+      serverId: event.serverId,
+      pairingCode: event.pairingCode,
       currentUrlHint: event.address,
       serverName: event.serverName,
     ),
@@ -150,11 +173,14 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     );
     try {
       await _repository.pair(payload: payload, deviceName: deviceName);
+      final status = await _repository.getStatus();
       emit(
         state.copyWith(
           phase: SyncPhase.idle,
-          status: await _repository.getStatus(),
-          message: 'Tablet vinculada correctamente.',
+          status: status,
+          message: status.requiresInitialSource
+              ? 'Tablet vinculada. Elige ahora la fuente inicial de datos.'
+              : 'Tablet vinculada correctamente.',
           clearError: true,
         ),
       );
@@ -164,6 +190,43 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
           phase: SyncPhase.idle,
           error: _message(error),
           clearMessage: true,
+        ),
+      );
+    }
+  }
+
+  Future<void> _selectInitialSource(
+    SyncInitialSourceSelected event,
+    Emitter<SyncState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        phase: SyncPhase.synchronizing,
+        clearError: true,
+        clearMessage: true,
+      ),
+    );
+    try {
+      final source = event.source == 'tablet'
+          ? SyncInitialSource.tablet
+          : SyncInitialSource.server;
+      await _repository.chooseInitialSource(source);
+      emit(
+        state.copyWith(
+          phase: SyncPhase.idle,
+          status: await _repository.getStatus(),
+          message: source == SyncInitialSource.tablet
+              ? 'La tablet quedo elegida como fuente inicial.'
+              : 'La PC quedo elegida como fuente inicial.',
+        ),
+      );
+      add(SyncRequested(forceBootstrap: source == SyncInitialSource.server));
+    } catch (error) {
+      emit(
+        state.copyWith(
+          phase: SyncPhase.idle,
+          status: await _repository.getStatus(),
+          error: _message(error),
         ),
       );
     }
@@ -181,22 +244,27 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
         clearMessage: true,
       ),
     );
-    final candidates = await _repository.discoverServers();
-    emit(
-      state.copyWith(
-        phase: SyncPhase.idle,
-        candidates: candidates,
-        message: candidates.isEmpty
-            ? 'No se encontraron PCs compatibles en esta red.'
-            : '${candidates.length} servidor(es) encontrado(s).',
-      ),
-    );
+    try {
+      final candidates = await _repository.discoverServers();
+      emit(
+        state.copyWith(
+          phase: SyncPhase.idle,
+          candidates: candidates,
+          message: candidates.isEmpty
+              ? 'No se encontraron PCs compatibles en esta red.'
+              : '${candidates.length} servidor(es) encontrado(s).',
+        ),
+      );
+    } catch (error) {
+      emit(state.copyWith(phase: SyncPhase.idle, error: _message(error)));
+    }
   }
 
   Future<void> _unlink(
     SyncUnlinkRequested event,
     Emitter<SyncState> emit,
   ) async {
+    _automaticRetry?.cancel();
     await _repository.unlink();
     emit(
       state.copyWith(
@@ -214,20 +282,34 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     SyncConnectivityRestored event,
     Emitter<SyncState> emit,
   ) async {
-    if (state.status.isLinked && state.phase == SyncPhase.idle) {
-      add(const SyncRequested());
+    if (state.status.isLinked &&
+        !state.status.requiresInitialSource &&
+        state.phase == SyncPhase.idle) {
+      add(const SyncRequested(automatic: true));
     }
+  }
+
+  void _scheduleAutomaticRetry() {
+    if (_automaticRetry?.isActive == true) return;
+    _automaticFailures++;
+    final seconds = math.min(300, 5 * math.pow(2, _automaticFailures - 1));
+    _automaticRetry = Timer(Duration(seconds: seconds.toInt()), () {
+      if (!isClosed && state.status.isLinked && state.phase == SyncPhase.idle) {
+        add(const SyncRequested(automatic: true));
+      }
+    });
   }
 
   String _message(Object error) => switch (error) {
     SyncException() => error.message,
     FormatException() => error.message,
-    _ => 'No se pudo completar la operación de sincronización.',
+    _ => 'No se pudo completar la operacion de sincronizacion.',
   };
 
   @override
   Future<void> close() async {
     await _connectivitySubscription?.cancel();
+    _automaticRetry?.cancel();
     return super.close();
   }
 }

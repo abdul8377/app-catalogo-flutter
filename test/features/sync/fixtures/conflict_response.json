@@ -1,0 +1,15 @@
+{
+  "conflictId": "conflict-backend-1",
+  "entityType": "PRODUCT",
+  "entityId": "product-1",
+  "serverVersion": 4,
+  "clientBaseVersion": 3,
+  "serverPayload": {"name": "Servidor"},
+  "clientPayload": {"name": "Tablet"},
+  "originDeviceId": "tablet-1",
+  "status": "PENDING",
+  "createdAt": "2026-08-04T18:00:00Z",
+  "resolvedAt": null,
+  "resolvedBy": null,
+  "resolution": null
+}

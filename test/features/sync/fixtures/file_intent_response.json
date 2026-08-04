@@ -1,0 +1,6 @@
+{
+  "fileId": "file-1",
+  "uploadUrl": "/api/v1/files/intents/file-1/content",
+  "completeUrl": "/api/v1/files/intents/file-1/complete",
+  "status": "INTENT"
+}

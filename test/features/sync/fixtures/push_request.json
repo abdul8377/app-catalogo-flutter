@@ -1,0 +1,18 @@
+{
+  "deviceId": "tablet-1",
+  "apiContractVersion": "1.0",
+  "events": [
+    {
+      "eventId": "event-1",
+      "entityType": "PRODUCT",
+      "entityId": "product-1",
+      "operation": "UPSERT",
+      "baseVersion": 3,
+      "payloadVersion": 1,
+      "schemaVersion": "1.0",
+      "checksum": null,
+      "occurredAt": "2026-08-04T18:00:00Z",
+      "payload": {"productId": "product-1"}
+    }
+  ]
+}

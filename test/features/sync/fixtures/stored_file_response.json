@@ -1,0 +1,10 @@
+{
+  "fileId": "file-1",
+  "storageKey": "files/file-1/content",
+  "downloadUrl": "/public/files/file-1",
+  "contentType": "image/jpeg",
+  "sizeBytes": 4,
+  "checksumSha256": "9f64a747e1b97f131fabb6b447296c9b6f0201e79fb3c5356e6c77e89b6a806a",
+  "visibility": "PUBLIC",
+  "status": "READY"
+}

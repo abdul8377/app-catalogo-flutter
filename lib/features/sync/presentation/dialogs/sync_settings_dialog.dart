@@ -16,11 +16,13 @@ class SyncSettingsDialog extends StatefulWidget {
 class _SyncSettingsDialogState extends State<SyncSettingsDialog> {
   final _deviceController = TextEditingController(text: 'Tablet de ventas');
   final _addressController = TextEditingController();
+  final _pairingCodeController = TextEditingController();
 
   @override
   void dispose() {
     _deviceController.dispose();
     _addressController.dispose();
+    _pairingCodeController.dispose();
     super.dispose();
   }
 
@@ -101,11 +103,15 @@ class _SyncSettingsDialogState extends State<SyncSettingsDialog> {
           style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
         ),
       ],
+      if (state.status.requiresInitialSource) ...[
+        const SizedBox(height: 16),
+        _initialSourceDecision(context, state),
+      ],
       _feedback(state),
       const SizedBox(height: 18),
       FilledButton.icon(
         key: const ValueKey('sync-settings-run'),
-        onPressed: state.isBusy
+        onPressed: state.isBusy || state.status.requiresInitialSource
             ? null
             : () => context.read<SyncBloc>().add(const SyncRequested()),
         style: FilledButton.styleFrom(
@@ -123,7 +129,7 @@ class _SyncSettingsDialogState extends State<SyncSettingsDialog> {
       ),
       const SizedBox(height: 10),
       OutlinedButton.icon(
-        onPressed: state.isBusy
+        onPressed: state.isBusy || state.status.requiresInitialSource
             ? null
             : () => context.read<SyncBloc>().add(
                 const SyncRequested(forceBootstrap: true),
@@ -184,6 +190,17 @@ class _SyncSettingsDialogState extends State<SyncSettingsDialog> {
         ],
       ),
       const SizedBox(height: 14),
+      TextField(
+        controller: _pairingCodeController,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(
+          labelText: 'Codigo de vinculacion',
+          hintText: '12345678',
+          prefixIcon: Icon(Icons.password_rounded),
+          border: OutlineInputBorder(),
+        ),
+      ),
+      const SizedBox(height: 14),
       OutlinedButton.icon(
         onPressed: state.isBusy
             ? null
@@ -216,6 +233,7 @@ class _SyncSettingsDialogState extends State<SyncSettingsDialog> {
                           address: candidate.url,
                           serverId: candidate.serverId,
                           serverName: candidate.name,
+                          pairingCode: _pairingCodeController.text,
                           deviceName: _deviceController.text,
                         ),
                       ),
@@ -231,7 +249,7 @@ class _SyncSettingsDialogState extends State<SyncSettingsDialog> {
         keyboardType: TextInputType.url,
         decoration: const InputDecoration(
           labelText: 'Dirección temporal de la PC',
-          hintText: '192.168.1.20:8080',
+          hintText: '192.168.1.20:8081',
           prefixIcon: Icon(Icons.lan_outlined),
           border: OutlineInputBorder(),
         ),
@@ -244,6 +262,7 @@ class _SyncSettingsDialogState extends State<SyncSettingsDialog> {
             : () => context.read<SyncBloc>().add(
                 SyncManualPairingRequested(
                   address: _addressController.text,
+                  pairingCode: _pairingCodeController.text,
                   deviceName: _deviceController.text,
                 ),
               ),
@@ -273,6 +292,52 @@ class _SyncSettingsDialogState extends State<SyncSettingsDialog> {
       ),
     );
   }
+
+  Widget _initialSourceDecision(BuildContext context, SyncState state) =>
+      Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFAEB),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFFEC84B)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Elige la fuente inicial',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'La PC y la tablet ya contienen datos. Esta decision solo '
+              'define la primera sincronizacion.',
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              key: const ValueKey('sync-source-tablet'),
+              onPressed: state.isBusy
+                  ? null
+                  : () => context.read<SyncBloc>().add(
+                      const SyncInitialSourceSelected('tablet'),
+                    ),
+              icon: const Icon(Icons.tablet_android_rounded),
+              label: const Text('Enviar datos de la tablet'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              key: const ValueKey('sync-source-server'),
+              onPressed: state.isBusy
+                  ? null
+                  : () => context.read<SyncBloc>().add(
+                      const SyncInitialSourceSelected('server'),
+                    ),
+              icon: const Icon(Icons.computer_rounded),
+              label: const Text('Reconstruir desde la PC'),
+            ),
+          ],
+        ),
+      );
 
   Future<void> _scanQr(BuildContext context) async {
     final raw = await showDialog<String>(

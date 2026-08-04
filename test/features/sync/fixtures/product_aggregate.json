@@ -1,0 +1,56 @@
+{
+  "productId": "product-1",
+  "code": "FAM-001",
+  "name": "Taladro",
+  "description": "",
+  "company": "Empresa",
+  "companyId": "company-1",
+  "brand": "Marca",
+  "brandId": "brand-1",
+  "category": "Herramientas",
+  "categoryId": "category-1",
+  "subcategory": "",
+  "subcategoryId": "",
+  "productType": "SINGLE",
+  "status": "ACTIVE",
+  "attributes": {},
+  "variants": [
+    {
+      "id": "variant-1",
+      "sku": "SKU-001",
+      "supplierCode": "PROV-001",
+      "shortName": "Taladro",
+      "status": "ACTIVE",
+      "attributes": {}
+    }
+  ],
+  "presentations": [
+    {
+      "sku": "SKU-001",
+      "name": "Unidad",
+      "equivalence": 1,
+      "baseUnit": "UND",
+      "minimumSale": 1,
+      "status": "ACTIVE"
+    }
+  ],
+  "prices": [
+    {
+      "sku": "SKU-001",
+      "priceList": "General",
+      "presentation": "Unidad",
+      "currency": "PEN",
+      "taxRate": 18,
+      "price": 10.0,
+      "quoteRequired": false
+    }
+  ],
+  "images": [
+    {
+      "sku": "",
+      "storageKey": "files/file-1/content",
+      "type": "PRODUCT",
+      "primary": true
+    }
+  ]
+}

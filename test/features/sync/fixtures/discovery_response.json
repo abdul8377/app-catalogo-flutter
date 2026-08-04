@@ -1,0 +1,8 @@
+{
+  "serverId": "server-1",
+  "serverName": "PC principal",
+  "serviceType": "_appcatalogo._tcp",
+  "port": 8081,
+  "apiContractVersion": "1.0",
+  "pairingAvailable": true
+}

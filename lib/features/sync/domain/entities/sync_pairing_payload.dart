@@ -6,49 +6,64 @@ class SyncPairingPayload extends Equatable {
   const SyncPairingPayload({
     required this.serverId,
     required this.pairingCode,
-    required this.currentUrlHint,
+    this.currentUrlHint,
     this.serverName = '',
     this.serviceType = '_appcatalogo._tcp',
-    this.apiContractVersion = 1,
+    this.apiContractVersion = '',
   });
 
   factory SyncPairingPayload.fromQr(String raw) {
     final decoded = jsonDecode(raw);
     if (decoded is! Map) {
       throw const FormatException(
-        'El QR no contiene una configuración válida.',
+        'El QR no contiene una configuracion valida.',
       );
     }
     final json = Map<String, Object?>.from(decoded);
     final serverId = (json['serverId'] as String? ?? '').trim();
     final pairingCode = (json['pairingCode'] as String? ?? '').trim();
-    final url = normalizeServerUrl(json['currentUrlHint'] as String? ?? '');
-    if (serverId.isEmpty || pairingCode.isEmpty || url.isEmpty) {
-      throw const FormatException('El QR de vinculación está incompleto.');
+    final rawUrl = json['currentUrlHint'] as String?;
+    final url = rawUrl == null ? null : normalizeServerUrl(rawUrl);
+    final apiContractVersion = (json['apiContractVersion'] as String? ?? '')
+        .trim();
+    if (serverId.isEmpty ||
+        pairingCode.isEmpty ||
+        url == '' ||
+        apiContractVersion.isEmpty) {
+      throw const FormatException('El QR de vinculacion esta incompleto.');
     }
     return SyncPairingPayload(
       serverId: serverId,
       pairingCode: pairingCode,
       currentUrlHint: url,
       serverName: (json['serverName'] as String? ?? '').trim(),
-      serviceType: (json['serviceType'] as String? ?? '_appcatalogo._tcp')
-          .trim(),
-      apiContractVersion: (json['apiContractVersion'] as num? ?? 1).toInt(),
+      serviceType: normalizeServiceType(
+        json['serviceType'] as String? ?? '_appcatalogo._tcp',
+      ),
+      apiContractVersion: apiContractVersion,
     );
   }
 
-  factory SyncPairingPayload.manual(String address) => SyncPairingPayload(
-    serverId: 'manual:${normalizeServerUrl(address)}',
-    pairingCode: 'manual',
+  factory SyncPairingPayload.manual({
+    required String address,
+    required String pairingCode,
+  }) => SyncPairingPayload(
+    serverId: '',
+    pairingCode: pairingCode.trim(),
     currentUrlHint: normalizeServerUrl(address),
   );
 
   final String serverId;
   final String pairingCode;
-  final String currentUrlHint;
+  final String? currentUrlHint;
   final String serverName;
   final String serviceType;
-  final int apiContractVersion;
+  final String apiContractVersion;
+
+  static String normalizeServiceType(String value) => value.trim().replaceFirst(
+    RegExp(r'\.local\.?$', caseSensitive: false),
+    '',
+  );
 
   static String normalizeServerUrl(String value) {
     var normalized = value.trim();

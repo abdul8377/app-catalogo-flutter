@@ -23,7 +23,8 @@ void main() {
     await bloc.stream.firstWhere((state) => state.phase == SyncPhase.idle);
     bloc.add(
       const SyncManualPairingRequested(
-        address: '192.168.1.10:8080',
+        address: '192.168.1.10:8081',
+        pairingCode: '12345678',
         deviceName: 'Tablet 1',
       ),
     );
@@ -33,7 +34,7 @@ void main() {
 
     expect(linked.error, isNull);
     expect(linked.message, 'Tablet vinculada correctamente.');
-    expect(repository.lastPayload?.currentUrlHint, 'http://192.168.1.10:8080');
+    expect(repository.lastPayload?.currentUrlHint, 'http://192.168.1.10:8081');
   });
 
   test('sincroniza automáticamente al recuperar conectividad', () async {
@@ -51,7 +52,7 @@ void main() {
     await bloc.stream.firstWhere(
       (state) =>
           state.phase == SyncPhase.idle &&
-          state.message?.startsWith('Sincronización completa') == true,
+          state.message?.startsWith('Sincronizacion completa') == true,
     );
 
     expect(repository.syncCalls, 1);
@@ -77,7 +78,7 @@ class _SyncRepositoryFake implements SyncRepository {
           conflicts: 0,
           pendingFiles: 0,
           serverName: 'PC principal',
-          serverUrl: 'http://192.168.1.10:8080',
+          serverUrl: 'http://192.168.1.10:8081',
         )
       : const SyncStatus.unlinked();
 
@@ -92,10 +93,10 @@ class _SyncRepositoryFake implements SyncRepository {
       serverId: payload.serverId,
       serverName: 'PC principal',
       serviceType: payload.serviceType,
-      serverUrlCache: payload.currentUrlHint,
+      serverUrlCache: payload.currentUrlHint ?? '',
       deviceId: 'device-1',
       deviceName: deviceName,
-      contractVersion: 1,
+      contractVersion: '1.0',
       linkedAt: DateTime(2026, 8, 4),
     );
   }
@@ -105,6 +106,9 @@ class _SyncRepositoryFake implements SyncRepository {
     syncCalls++;
     return const SyncRunResult(pushed: 1, pulled: 2, conflicts: 0, pending: 0);
   }
+
+  @override
+  Future<void> chooseInitialSource(SyncInitialSource source) async {}
 
   @override
   Future<void> unlink() async => _linked = false;

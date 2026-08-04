@@ -1,0 +1,7 @@
+{
+  "deviceId": "tablet-1",
+  "token": "device-token-256-bits",
+  "apiContractVersion": "1.0",
+  "bootstrapStatus": "PENDING",
+  "registeredAt": "2026-08-04T18:00:00Z"
+}

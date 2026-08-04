@@ -34,13 +34,17 @@ void main() {
     expect(find.text('Escanear QR de la PC'), findsOneWidget);
     await tester.enterText(
       find.widgetWithText(TextField, 'Dirección temporal de la PC'),
-      '192.168.1.50:8080',
+      '192.168.1.50:8081',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Codigo de vinculacion'),
+      '12345678',
     );
     await tester.tap(find.byKey(const ValueKey('sync-pair-manual')));
     await tester.pumpAndSettle();
 
     expect(find.text('Tablet vinculada'), findsOneWidget);
-    expect(repository.address, 'http://192.168.1.50:8080');
+    expect(repository.address, 'http://192.168.1.50:8081');
     expect(tester.takeException(), isNull);
   });
 }
@@ -76,10 +80,10 @@ class _DialogSyncRepositoryFake implements SyncRepository {
       serverId: payload.serverId,
       serverName: 'PC principal',
       serviceType: payload.serviceType,
-      serverUrlCache: payload.currentUrlHint,
+      serverUrlCache: payload.currentUrlHint ?? '',
       deviceId: 'tablet-1',
       deviceName: deviceName,
-      contractVersion: 1,
+      contractVersion: '1.0',
       linkedAt: DateTime(2026, 8, 4),
     );
   }
@@ -87,6 +91,9 @@ class _DialogSyncRepositoryFake implements SyncRepository {
   @override
   Future<SyncRunResult> synchronize({bool forceBootstrap = false}) async =>
       const SyncRunResult(pushed: 0, pulled: 0, conflicts: 0, pending: 0);
+
+  @override
+  Future<void> chooseInitialSource(SyncInitialSource source) async {}
 
   @override
   Future<void> unlink() async => linked = false;

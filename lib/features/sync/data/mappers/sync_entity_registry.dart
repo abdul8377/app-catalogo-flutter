@@ -2,8 +2,36 @@ import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 
+import 'product_sync_mapper.dart';
+
 class SyncEntityRegistry {
-  const SyncEntityRegistry();
+  const SyncEntityRegistry([this._productMapper = const ProductSyncMapper()]);
+
+  final ProductSyncMapper _productMapper;
+
+  static const initialSnapshotOrder = <String>[
+    'COMPANY',
+    'BRAND',
+    'CATEGORY',
+    'BRAND_CATEGORY',
+    'MEASUREMENT_UNIT',
+    'CATEGORY_ATTRIBUTE',
+    'CATEGORY_ATTRIBUTE_OPTION',
+    'CATEGORY_ATTRIBUTE_UNIT',
+    'LEGACY_ATTRIBUTE_DEFINITION',
+    'PRODUCT',
+    'CLIENT',
+    'ORDER_SHEET',
+    'ORDER',
+    'ORDER_ITEM',
+    'QUOTE',
+    'QUOTE_ITEM',
+    'PREPARATION',
+    'PREPARATION_STOCK_MOVEMENT',
+    'ORDER_LOAD',
+    'ORDER_HISTORY',
+    'ORDER_SHEET_HISTORY',
+  ];
 
   Future<Map<String, Object?>> exportEntity(
     DatabaseExecutor database, {
@@ -12,6 +40,13 @@ class SyncEntityRegistry {
     required String operation,
   }) async {
     if (operation == 'DELETE') return const {};
+    if (entityType == 'PRODUCT') {
+      return _productMapper.exportProductAggregate(
+        database,
+        productId: entityId,
+        operation: operation,
+      );
+    }
     final spec = _spec(entityType);
     final rows = await database.query(
       spec.table,
@@ -21,6 +56,11 @@ class SyncEntityRegistry {
     );
     if (rows.isEmpty) return const {};
     final payload = Map<String, Object?>.from(rows.single);
+    final localFilePath = switch (entityType) {
+      'CLIENT' => payload['foto_ubicacion_path']?.toString(),
+      'QUOTE' => payload['pdf_path']?.toString(),
+      _ => null,
+    };
     payload.remove('sync_id');
     for (final localOnly in const [
       'imagen_path',
@@ -32,6 +72,24 @@ class SyncEntityRegistry {
       payload.remove(localOnly);
     }
     if (spec.identityColumn == 'sync_id') payload['id'] = entityId;
+    if (localFilePath != null && localFilePath.isNotEmpty) {
+      final fileRows = await database.query(
+        'sync_file_queue',
+        columns: const ['object_key'],
+        where:
+            'owner_type = ? AND owner_id = ? AND local_path = ? '
+            "AND status = 'ready'",
+        whereArgs: [entityType, entityId, localFilePath],
+        limit: 1,
+      );
+      final storageKey = fileRows.firstOrNull?['object_key']?.toString() ?? '';
+      if (storageKey.isNotEmpty) {
+        payload[entityType == 'CLIENT'
+                ? 'locationPhotoStorageKey'
+                : 'pdfStorageKey'] =
+            storageKey;
+      }
+    }
     for (final reference in spec.integerReferences.entries) {
       final value = payload[reference.key];
       if (value == null) continue;
@@ -54,6 +112,15 @@ class SyncEntityRegistry {
     required String operation,
     required Map<String, Object?> payload,
   }) async {
+    if (entityType == 'PRODUCT') {
+      await _productMapper.applyProductAggregate(
+        database,
+        productId: entityId,
+        operation: operation,
+        payload: payload,
+      );
+      return;
+    }
     final spec = _spec(entityType);
     if (operation == 'DELETE') {
       await database.delete(
@@ -103,15 +170,8 @@ class SyncEntityRegistry {
     if (spec.identityColumn == 'sync_id') {
       values['sync_id'] = entityId;
       values.remove('id');
-    } else if (spec.identityColumn == 'id') {
-      values['id'] = entityId;
     } else {
-      final parts = entityId.split('|');
-      for (var index = 0; index < spec.compositeIdentity.length; index++) {
-        if (index < parts.length) {
-          values[spec.compositeIdentity[index]] = parts[index];
-        }
-      }
+      values['id'] = entityId;
     }
 
     final existing = await database.query(
@@ -124,9 +184,6 @@ class SyncEntityRegistry {
     if (existing.isNotEmpty) {
       values.remove('id');
       values.remove('sync_id');
-      for (final key in spec.compositeIdentity) {
-        values.remove(key);
-      }
       if (values.isNotEmpty) {
         await database.update(
           spec.table,
@@ -138,10 +195,50 @@ class SyncEntityRegistry {
       return;
     }
 
-    for (final entry in spec.insertDefaults.entries) {
-      values.putIfAbsent(entry.key, () => entry.value);
-    }
     await database.insert(spec.table, values);
+  }
+
+  Future<List<String>> listEntityIdentities(
+    DatabaseExecutor database,
+    String entityType,
+  ) async {
+    if (entityType == 'PRODUCT') {
+      return (await database.query('productos', columns: const ['id']))
+          .map((row) => row['id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toList();
+    }
+    final spec = _spec(entityType);
+    final rows = await database.query(
+      spec.table,
+      columns: [spec.identityColumn],
+    );
+    return rows
+        .map((row) => row[spec.identityColumn]?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> pruneMissingRemoteEntities(DatabaseExecutor database) async {
+    for (final entityType in initialSnapshotOrder.reversed) {
+      final table = entityType == 'PRODUCT'
+          ? 'productos'
+          : _spec(entityType).table;
+      final identityColumn = entityType == 'PRODUCT'
+          ? 'id'
+          : _spec(entityType).identityColumn;
+      await database.rawDelete(
+        '''
+        DELETE FROM $table
+        WHERE $identityColumn NOT IN (
+          SELECT entity_id
+          FROM sync_entity_state
+          WHERE entity_type = ?
+        )
+      ''',
+        [entityType],
+      );
+    }
   }
 
   _SyncEntitySpec _spec(String entityType) {
@@ -282,47 +379,17 @@ class _SyncEntitySpec {
   const _SyncEntitySpec({
     required this.table,
     this.identityColumn = 'id',
-    this.compositeIdentity = const [],
     this.integerReferences = const {},
-    this.insertDefaults = const {},
   });
 
   final String table;
   final String identityColumn;
-  final List<String> compositeIdentity;
   final Map<String, String> integerReferences;
-  final Map<String, Object?> insertDefaults;
 
-  String get whereIdentity => compositeIdentity.isEmpty
-      ? '$identityColumn = ?'
-      : compositeIdentity.map((column) => '$column = ?').join(' AND ');
+  String get whereIdentity => '$identityColumn = ?';
 
-  List<Object?> identityArgs(String entityId) =>
-      compositeIdentity.isEmpty ? [entityId] : entityId.split('|');
+  List<Object?> identityArgs(String entityId) => [entityId];
 }
-
-const _productDefaults = <String, Object?>{
-  'codigo': '',
-  'nombre': '',
-  'descripcion': '',
-  'empresa': '',
-  'marca': '',
-  'categoria': '',
-  'subcategoria': '',
-  'tipo_registro': 'simple',
-  'atributos_json': '{}',
-  'variantes_json': '[]',
-  'presentaciones_json': '[]',
-  'venta_logistica_json': '{}',
-  'precios_configurados_json': '{}',
-  'imagenes_configuradas_json': '{}',
-  'precios_json': '[]',
-  'unidad_venta': 'UND',
-  'sin_precio': 1,
-  'activo': 1,
-  'imagenes_json': '[]',
-  'creado_en': '',
-};
 
 const _specs = <String, _SyncEntitySpec>{
   'COMPANY': _SyncEntitySpec(table: 'empresas', identityColumn: 'sync_id'),
@@ -356,22 +423,6 @@ const _specs = <String, _SyncEntitySpec>{
     table: 'atributos_def',
     identityColumn: 'sync_id',
     integerReferences: {'categoria_id': 'categorias'},
-  ),
-  'PRODUCT': _SyncEntitySpec(
-    table: 'productos',
-    insertDefaults: _productDefaults,
-  ),
-  'PRODUCT_VARIANT': _SyncEntitySpec(table: 'producto_variantes_catalogo'),
-  'PRODUCT_FAMILY_AXIS': _SyncEntitySpec(
-    table: 'producto_familia_ejes',
-    identityColumn: '',
-    compositeIdentity: ['producto_id', 'categoria_atributo_id'],
-  ),
-  'PRODUCT_ATTRIBUTE': _SyncEntitySpec(table: 'producto_atributos'),
-  'PRODUCT_ATTRIBUTE_OPTION': _SyncEntitySpec(
-    table: 'producto_atributo_opciones',
-    identityColumn: '',
-    compositeIdentity: ['producto_atributo_id', 'opcion_id'],
   ),
   'CLIENT': _SyncEntitySpec(table: 'clientes'),
   'ORDER_SHEET': _SyncEntitySpec(table: 'hojas_pedido'),
