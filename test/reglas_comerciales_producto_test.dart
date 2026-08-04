@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:app_catalogo/features/catalogo/presentation/widgets/paso4_venta_logistica_contenido.dart';
-import 'package:app_catalogo/features/catalogo/presentation/widgets/paso5_precios_corregido.dart';
+import 'package:app_catalogo/features/catalogo/presentation/models/producto_form/precios_draft.dart';
+import 'package:app_catalogo/features/catalogo/presentation/models/producto_form/venta_logistica_draft.dart';
 
 void main() {
   test('una presentación resuelve excepciones por variante', () {

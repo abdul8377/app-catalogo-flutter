@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../bloc/preparacion_carga_state.dart';
+import '../bloc/preparacion_carga/preparacion_carga_state.dart';
 
 class PreparacionModoChips extends StatelessWidget {
   const PreparacionModoChips({

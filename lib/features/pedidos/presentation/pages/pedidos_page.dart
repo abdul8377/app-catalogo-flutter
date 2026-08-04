@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/repositories/pedidos_repository.dart';
-import '../bloc/pedidos_listado_bloc.dart';
-import '../bloc/pedidos_listado_event.dart';
-import '../bloc/pedidos_listado_state.dart';
-import '../bloc/productos_consolidados_bloc.dart';
-import '../bloc/productos_consolidados_event.dart';
-import '../views/pedidos_listado_view.dart';
-import '../views/preparacion_carga_view.dart';
-import '../views/productos_consolidados_view.dart';
+import '../bloc/pedidos_listado/pedidos_listado_bloc.dart';
+import '../bloc/pedidos_listado/pedidos_listado_event.dart';
+import '../bloc/pedidos_listado/pedidos_listado_state.dart';
+import '../bloc/productos_consolidados/productos_consolidados_bloc.dart';
+import '../bloc/productos_consolidados/productos_consolidados_event.dart';
+import '../sections/pedidos_listado_section.dart';
+import '../sections/preparacion_carga_section.dart';
+import '../sections/productos_consolidados_section.dart';
 import '../widgets/pedidos_header.dart';
 
 class PedidosPage extends StatelessWidget {
@@ -99,13 +99,13 @@ class _PedidosPageViewState extends State<_PedidosPageView> {
     body: IndexedStack(
       index: _currentTab,
       children: [
-        PedidosListadoView(
+        PedidosListadoSection(
           vistaLista: true,
           onOpenCliente: widget.onOpenCliente,
           onOpenHoja: widget.onOpenHoja,
         ),
-        ProductosConsolidadosView(initialHojaCodigo: widget.hojaCodigo),
-        PreparacionCargaView(
+        ProductosConsolidadosSection(initialHojaCodigo: widget.hojaCodigo),
+        PreparacionCargaSection(
           key: ValueKey('preparacion-$_preparacionRevision'),
         ),
       ],

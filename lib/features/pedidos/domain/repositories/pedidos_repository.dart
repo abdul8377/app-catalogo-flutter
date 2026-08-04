@@ -17,7 +17,9 @@ abstract class PedidosRepository {
     productosSinPrecio: 0,
     cambiosSinSincronizar: 0,
   );
-  Future<HojaPedidoActiva> crearHojaActiva();
+  Future<HojaPedidoActiva> crearHojaActiva({
+    String vendedor = 'Alfonzo Esteban',
+  });
   Future<List<PedidoResumen>> obtenerPedidosResumen();
   Future<PedidoDetalle?> obtenerPedidoDetalle(String id);
   Future<CotizacionPedidoGuardada?> obtenerCotizacion(String id) async => null;

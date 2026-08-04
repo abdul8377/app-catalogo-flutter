@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../domain/entities/cotizacion_pedido.dart';
 import '../../domain/entities/pedido_detalle.dart';
+import '../formatters/money_input_formatter.dart';
 
 class CotizacionProductoFormItem {
   CotizacionProductoFormItem({
@@ -253,9 +253,9 @@ class _CotizacionProductoItemState extends State<CotizacionProductoItem> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     ),
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-    inputFormatters: [_MoneyInputFormatter()],
+    inputFormatters: [MoneyInputFormatter()],
     onChanged: (value) {
-      widget.item.precioCotizacion = _parseMoney(value);
+      widget.item.precioCotizacion = parseMoney(value);
       setState(() {});
       widget.onChanged();
     },
@@ -269,9 +269,9 @@ class _CotizacionProductoItemState extends State<CotizacionProductoItem> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     ),
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-    inputFormatters: [_MoneyInputFormatter()],
+    inputFormatters: [MoneyInputFormatter()],
     onChanged: (value) {
-      widget.item.descuento = _parseMoney(value);
+      widget.item.descuento = parseMoney(value);
       setState(() {});
       widget.onChanged();
     },
@@ -318,21 +318,3 @@ class _ProductImage extends StatelessWidget {
     );
   }
 }
-
-class _MoneyInputFormatter extends TextInputFormatter {
-  final _allowed = RegExp(r'^\d*([,.]\d{0,2})?$');
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    if (newValue.text.isEmpty || _allowed.hasMatch(newValue.text)) {
-      return newValue;
-    }
-    return oldValue;
-  }
-}
-
-double _parseMoney(String value) =>
-    double.tryParse(value.replaceAll(',', '.')) ?? 0;

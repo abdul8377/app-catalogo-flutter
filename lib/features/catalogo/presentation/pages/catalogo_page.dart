@@ -3,12 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/presentation/widgets/app_notice.dart';
-import '../bloc/catalogo_bloc.dart';
-import '../bloc/catalogo_event.dart';
-import '../bloc/catalogo_state.dart';
+import '../bloc/catalogo/catalogo_bloc.dart';
+import '../bloc/catalogo/catalogo_event.dart';
+import '../bloc/catalogo/catalogo_state.dart';
 import '../widgets/filtros_catalogo.dart';
 import '../widgets/producto_card.dart';
-import '../widgets/producto_detalle_dialog.dart';
+import '../dialogs/producto_detalle_dialog.dart';
 import 'producto_form_page.dart';
 
 class CatalogoPage extends StatelessWidget {

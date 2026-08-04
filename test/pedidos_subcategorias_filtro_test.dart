@@ -1,5 +1,5 @@
 import 'package:app_catalogo/features/catalogo/domain/entities/producto_resumen.dart';
-import 'package:app_catalogo/features/pedidos/presentation/bloc/pedidos_state.dart';
+import 'package:app_catalogo/features/pedidos/presentation/bloc/nuevo_pedido/pedidos_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

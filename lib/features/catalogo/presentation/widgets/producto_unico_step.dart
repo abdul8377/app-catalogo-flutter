@@ -3,9 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/producto_variante.dart';
 import '../../domain/services/codigo_interno_generator.dart';
-import '../bloc/producto_form_bloc.dart';
-import '../bloc/producto_form_event.dart';
-import '../bloc/producto_form_state.dart';
+import '../bloc/producto_form/producto_form_bloc.dart';
+import '../bloc/producto_form/producto_form_event.dart';
+import '../bloc/producto_form/producto_form_state.dart';
 
 class ProductoUnicoStepController {
   bool Function()? _validator;

@@ -3,9 +3,9 @@ import 'package:app_catalogo/features/catalogo/domain/entities/nuevo_producto.da
 import 'package:app_catalogo/features/catalogo/domain/entities/producto_detalle.dart';
 import 'package:app_catalogo/features/catalogo/domain/entities/producto_resumen.dart';
 import 'package:app_catalogo/features/catalogo/domain/repositories/catalogo_repository.dart';
-import 'package:app_catalogo/features/catalogo/presentation/bloc/catalogo_bloc.dart';
-import 'package:app_catalogo/features/catalogo/presentation/bloc/catalogo_event.dart';
-import 'package:app_catalogo/features/catalogo/presentation/bloc/catalogo_state.dart';
+import 'package:app_catalogo/features/catalogo/presentation/bloc/catalogo/catalogo_bloc.dart';
+import 'package:app_catalogo/features/catalogo/presentation/bloc/catalogo/catalogo_event.dart';
+import 'package:app_catalogo/features/catalogo/presentation/bloc/catalogo/catalogo_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

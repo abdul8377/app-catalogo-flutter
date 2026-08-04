@@ -3,12 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../bloc/producto_form_bloc.dart';
-import '../bloc/producto_form_event.dart';
-import '../bloc/producto_form_state.dart';
-import 'paso5_precios_corregido.dart';
-import 'paso6_imagenes_corregido.dart';
-import 'paso7_revisar_activar_corregido.dart';
+import '../bloc/producto_form/producto_form_bloc.dart';
+import '../bloc/producto_form/producto_form_event.dart';
+import '../bloc/producto_form/producto_form_state.dart';
+import '../models/producto_form/imagenes_draft.dart';
+import '../models/producto_form/precios_draft.dart';
+import '../models/producto_form/revision_draft.dart';
+import '../sections/producto_form/revision_section.dart';
 
 class ProductoRevisionStep extends StatelessWidget {
   const ProductoRevisionStep({required this.state, super.key});

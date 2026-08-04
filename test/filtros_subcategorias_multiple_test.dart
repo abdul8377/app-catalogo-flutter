@@ -1,5 +1,5 @@
 import 'package:app_catalogo/features/catalogo/domain/entities/producto_resumen.dart';
-import 'package:app_catalogo/features/catalogo/presentation/bloc/catalogo_state.dart';
+import 'package:app_catalogo/features/catalogo/presentation/bloc/catalogo/catalogo_state.dart';
 import 'package:app_catalogo/features/catalogo/presentation/widgets/filtros_catalogo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

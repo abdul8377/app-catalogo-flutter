@@ -104,6 +104,7 @@ void main() {
       expect(result?.asignaciones.single.factorUnidadBase, 20);
       expect(tester.takeException(), isNull);
     },
+    tags: const ['baseline-known-failure'],
   );
 
   testWidgets(

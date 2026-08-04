@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/platform/file_actions_service.dart';
 import '../../../../core/presentation/widgets/app_notice.dart';
-import '../../data/services/cotizacion_pdf_service.dart';
+import '../../application/services/cotizacion_pdf_service.dart';
 import '../../domain/entities/cotizacion_pedido.dart';
 import '../../domain/entities/pedido_detalle.dart';
 import '../../domain/repositories/pedidos_repository.dart';

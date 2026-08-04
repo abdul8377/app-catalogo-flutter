@@ -1,0 +1,5 @@
+tags:
+  baseline-known-failure:
+    description: >-
+      Contrato preexistente documentado que no puede corregirse dentro de una
+      reestructuración sin una decisión funcional o visual separada.

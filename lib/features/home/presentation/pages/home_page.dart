@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/navigation/app_destination.dart';
 import '../bloc/home_bloc.dart';
 import '../bloc/home_state.dart';
 
 class HomePage extends StatelessWidget {
-  final ValueChanged<int> onNavigate;
+  final ValueChanged<AppDestination> onNavigate;
 
   const HomePage({super.key, required this.onNavigate});
 
@@ -31,7 +32,7 @@ class _HomeContent extends StatelessWidget {
   const _HomeContent({required this.state, required this.onNavigate});
 
   final HomeState state;
-  final ValueChanged<int> onNavigate;
+  final ValueChanged<AppDestination> onNavigate;
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +133,7 @@ class _HomeContent extends StatelessWidget {
                           icon: Icons.search,
                           color: const Color(0xFFE3F2FD),
                           iconColor: const Color(0xFF1565C0),
-                          onTap: () => onNavigate(1),
+                          onTap: () => onNavigate(AppDestination.catalogo),
                         ),
                         const SizedBox(width: 10),
                         _QuickActionChip(
@@ -140,7 +141,7 @@ class _HomeContent extends StatelessWidget {
                           icon: Icons.person_add_alt_1,
                           color: const Color(0xFFF3E5F5),
                           iconColor: const Color(0xFF7B1FA2),
-                          onTap: () => onNavigate(2),
+                          onTap: () => onNavigate(AppDestination.clientes),
                         ),
                         const SizedBox(width: 10),
                         _QuickActionChip(
@@ -148,7 +149,7 @@ class _HomeContent extends StatelessWidget {
                           icon: Icons.inventory_2_outlined,
                           color: const Color(0xFFFFF8E1),
                           iconColor: const Color(0xFFF57F17),
-                          onTap: () => onNavigate(1),
+                          onTap: () => onNavigate(AppDestination.catalogo),
                         ),
                       ],
                     ),
@@ -237,7 +238,7 @@ class _ActiveSheetCard extends StatelessWidget {
 
   final Color primaryColor;
   final HomeState state;
-  final ValueChanged<int> onNavigate;
+  final ValueChanged<AppDestination> onNavigate;
 
   @override
   Widget build(BuildContext context) {
@@ -283,7 +284,7 @@ class _ActiveSheetCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => onNavigate(5),
+                onPressed: () => onNavigate(AppDestination.hojasPedido),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Nueva hoja de pedido'),
                 style: ElevatedButton.styleFrom(
@@ -400,7 +401,7 @@ class _ActiveSheetCard extends StatelessWidget {
             ),
           ),
           TextButton.icon(
-            onPressed: () => onNavigate(5),
+            onPressed: () => onNavigate(AppDestination.hojasPedido),
             icon: const Icon(Icons.swap_horiz, size: 18),
             label: const Text('Cambiar'),
             style: TextButton.styleFrom(
@@ -426,7 +427,7 @@ class _NewOrderButton extends StatelessWidget {
 
   final Color primaryColor;
   final bool enabled;
-  final ValueChanged<int> onNavigate;
+  final ValueChanged<AppDestination> onNavigate;
 
   @override
   Widget build(BuildContext context) {
@@ -434,7 +435,9 @@ class _NewOrderButton extends StatelessWidget {
       width: double.infinity,
       height: 56,
       child: ElevatedButton.icon(
-        onPressed: enabled ? () => onNavigate(3) : null,
+        onPressed: enabled
+            ? () => onNavigate(AppDestination.nuevoPedido)
+            : null,
         icon: const Icon(Icons.add_shopping_cart, size: 22),
         label: const Text('Nuevo pedido'),
         style: ElevatedButton.styleFrom(
@@ -462,17 +465,38 @@ class _NewOrderButton extends StatelessWidget {
 class _MainActionsGrid extends StatelessWidget {
   const _MainActionsGrid({required this.onNavigate});
 
-  final ValueChanged<int> onNavigate;
+  final ValueChanged<AppDestination> onNavigate;
 
   @override
   Widget build(BuildContext context) {
-    final actions = [
-      {'icon': Icons.storefront_outlined, 'label': 'Catálogo', 'navIndex': 1},
-      {'icon': Icons.people_outline, 'label': 'Clientes', 'navIndex': 2},
-      {'icon': Icons.list_alt, 'label': 'Pedidos', 'navIndex': 4},
-      {'icon': Icons.receipt_long, 'label': 'Hoja de pedido', 'navIndex': 5},
-      {'icon': Icons.dashboard_outlined, 'label': 'Dashboard', 'navIndex': 6},
-    ];
+    final actions =
+        <({IconData icon, String label, AppDestination destination})>[
+          (
+            icon: Icons.storefront_outlined,
+            label: 'Catálogo',
+            destination: AppDestination.catalogo,
+          ),
+          (
+            icon: Icons.people_outline,
+            label: 'Clientes',
+            destination: AppDestination.clientes,
+          ),
+          (
+            icon: Icons.list_alt,
+            label: 'Pedidos',
+            destination: AppDestination.pedidos,
+          ),
+          (
+            icon: Icons.receipt_long,
+            label: 'Hoja de pedido',
+            destination: AppDestination.hojasPedido,
+          ),
+          (
+            icon: Icons.dashboard_outlined,
+            label: 'Dashboard',
+            destination: AppDestination.dashboard,
+          ),
+        ];
 
     return GridView.builder(
       shrinkWrap: true,
@@ -493,7 +517,7 @@ class _MainActionsGrid extends StatelessWidget {
           elevation: 0,
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            onTap: () => onNavigate(action['navIndex'] as int),
+            onTap: () => onNavigate(action.destination),
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
@@ -516,7 +540,7 @@ class _MainActionsGrid extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      action['icon'] as IconData,
+                      action.icon,
                       color: const Color(0xFF1A1A2E),
                       size: 22,
                     ),
@@ -524,7 +548,7 @@ class _MainActionsGrid extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      action['label'] as String,
+                      action.label,
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,

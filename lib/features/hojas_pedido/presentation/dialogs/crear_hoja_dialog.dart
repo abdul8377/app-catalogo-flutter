@@ -27,10 +27,14 @@ class CrearHojaDialog extends StatefulWidget {
   static Future<CrearHojaResultado?> show(
     BuildContext context, {
     required String codigoSugerido,
+    String vendedorInicial = 'Alfonzo Esteban',
   }) => showDialog<CrearHojaResultado>(
     context: context,
     barrierColor: Colors.black54,
-    builder: (_) => CrearHojaDialog(codigoSugerido: codigoSugerido),
+    builder: (_) => CrearHojaDialog(
+      codigoSugerido: codigoSugerido,
+      vendedorInicial: vendedorInicial,
+    ),
   );
 
   @override

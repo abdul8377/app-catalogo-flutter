@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../domain/entities/cotizacion_pedido.dart';
+import '../formatters/money_input_formatter.dart';
 
 class CotizacionTotalesValue {
   const CotizacionTotalesValue({
@@ -64,8 +65,8 @@ class _CotizacionTotalesState extends State<CotizacionTotales> {
           .toDouble();
 
   double get _descuentoGeneral => CotizacionTotalesValue(
-    descuentoGlobalPorcentaje: _parseMoney(_porcentajeController.text),
-    descuentoGlobalMonto: _parseMoney(_montoController.text),
+    descuentoGlobalPorcentaje: parseMoney(_porcentajeController.text),
+    descuentoGlobalMonto: parseMoney(_montoController.text),
     observaciones: _observacionesController.text,
     vigenciaDias: _parseDays(_vigenciaController.text),
     condiciones: _condicionesController.text,
@@ -313,7 +314,7 @@ class _CotizacionTotalesState extends State<CotizacionTotales> {
     controller: controller,
     decoration: _inputDecoration(label, prefix: prefix, suffix: suffix),
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-    inputFormatters: [_MoneyInputFormatter()],
+    inputFormatters: [MoneyInputFormatter()],
     onChanged: (_) {
       setState(() {});
       _notifyChange();
@@ -378,8 +379,8 @@ class _CotizacionTotalesState extends State<CotizacionTotales> {
   void _notifyChange() {
     widget.onChanged(
       CotizacionTotalesValue(
-        descuentoGlobalPorcentaje: _parseMoney(_porcentajeController.text),
-        descuentoGlobalMonto: _parseMoney(_montoController.text),
+        descuentoGlobalPorcentaje: parseMoney(_porcentajeController.text),
+        descuentoGlobalMonto: parseMoney(_montoController.text),
         observaciones: _observacionesController.text.trim(),
         vigenciaDias: _parseDays(_vigenciaController.text),
         condiciones: _condicionesController.text.trim(),
@@ -387,24 +388,6 @@ class _CotizacionTotalesState extends State<CotizacionTotales> {
     );
   }
 }
-
-class _MoneyInputFormatter extends TextInputFormatter {
-  final _allowed = RegExp(r'^\d*([,.]\d{0,2})?$');
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    if (newValue.text.isEmpty || _allowed.hasMatch(newValue.text)) {
-      return newValue;
-    }
-    return oldValue;
-  }
-}
-
-double _parseMoney(String value) =>
-    double.tryParse(value.replaceAll(',', '.')) ?? 0;
 
 int _parseDays(String value) {
   final parsed = int.tryParse(value) ?? 7;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/navigation/app_destination.dart';
 import '../../../../core/presentation/widgets/app_notice.dart';
 import '../../domain/entities/hoja_pedido.dart';
 import '../../domain/repositories/hojas_pedido_repository.dart';
@@ -10,8 +11,8 @@ import '../bloc/hojas_pedido_state.dart';
 import '../dialogs/completar_hoja_dialog.dart';
 import '../dialogs/crear_hoja_dialog.dart';
 import '../dialogs/hoja_pedido_detalle_dialog.dart';
-import '../views/hoja_activa_view.dart';
-import '../views/hojas_historial_view.dart';
+import '../sections/hoja_activa_section.dart';
+import '../sections/hojas_historial_section.dart';
 import '../widgets/hojas_pedido_empty_state.dart';
 import '../widgets/hojas_pedido_header.dart';
 import '../widgets/hojas_pedido_loading_skeleton.dart';
@@ -21,12 +22,14 @@ class HojasPedidoPage extends StatelessWidget {
     this.onNavigate,
     this.onOpenPedidos,
     this.initialHojaCodigo,
+    this.sellerName = 'Alfonzo Esteban',
     super.key,
   });
 
-  final ValueChanged<int>? onNavigate;
+  final ValueChanged<AppDestination>? onNavigate;
   final void Function(int tab, String hojaCodigo)? onOpenPedidos;
   final String? initialHojaCodigo;
+  final String sellerName;
 
   @override
   Widget build(BuildContext context) => BlocProvider(
@@ -37,6 +40,7 @@ class HojasPedidoPage extends StatelessWidget {
       onNavigate: onNavigate,
       onOpenPedidos: onOpenPedidos,
       initialHojaCodigo: initialHojaCodigo,
+      sellerName: sellerName,
     ),
   );
 }
@@ -45,12 +49,14 @@ class _HojasPedidoPageView extends StatefulWidget {
   const _HojasPedidoPageView({
     required this.onNavigate,
     required this.onOpenPedidos,
+    required this.sellerName,
     this.initialHojaCodigo,
   });
 
-  final ValueChanged<int>? onNavigate;
+  final ValueChanged<AppDestination>? onNavigate;
   final void Function(int tab, String hojaCodigo)? onOpenPedidos;
   final String? initialHojaCodigo;
+  final String sellerName;
 
   @override
   State<_HojasPedidoPageView> createState() => _HojasPedidoPageViewState();
@@ -112,7 +118,7 @@ class _HojasPedidoPageViewState extends State<_HojasPedidoPageView> {
                     index: state.currentTab,
                     children: [
                       _hojaActiva(context, state),
-                      HojasHistorialView(
+                      HojasHistorialSection(
                         hojas: state.historial,
                         busqueda: state.busqueda,
                         filtro: state.filtro,
@@ -154,7 +160,7 @@ class _HojasPedidoPageViewState extends State<_HojasPedidoPageView> {
         onAction: () => _crearHoja(context, state),
       );
     }
-    return HojaActivaView(
+    return HojaActivaSection(
       hoja: hoja,
       onVerDetalle: () => _verDetalle(context, hoja),
       onVerPedidos: () => _abrirPedidos(context, 0, hoja.codigo),
@@ -173,6 +179,7 @@ class _HojasPedidoPageViewState extends State<_HojasPedidoPageView> {
     final result = await CrearHojaDialog.show(
       context,
       codigoSugerido: 'HP-$year-${(count + 1).toString().padLeft(3, '0')}',
+      vendedorInicial: widget.sellerName,
     );
     if (!context.mounted || result == null) return;
     context.read<HojasPedidoBloc>().add(
@@ -211,7 +218,7 @@ class _HojasPedidoPageViewState extends State<_HojasPedidoPageView> {
       return;
     }
     if (widget.onNavigate != null) {
-      widget.onNavigate!(4);
+      widget.onNavigate!(AppDestination.pedidos);
       return;
     }
     AppNotice.info(context, 'Abre el módulo Pedidos para continuar.');

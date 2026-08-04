@@ -1,4 +1,5 @@
-import 'package:app_catalogo/features/catalogo/presentation/widgets/paso5_precios_corregido.dart';
+import 'package:app_catalogo/features/catalogo/presentation/models/producto_form/precios_draft.dart';
+import 'package:app_catalogo/features/catalogo/presentation/sections/producto_form/precios_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

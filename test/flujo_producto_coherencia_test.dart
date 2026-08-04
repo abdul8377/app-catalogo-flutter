@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app_catalogo/features/catalogo/domain/entities/catalogo_form_data.dart';
 import 'package:app_catalogo/features/catalogo/domain/entities/producto_variante.dart';
-import 'package:app_catalogo/features/catalogo/presentation/bloc/producto_form_state.dart';
+import 'package:app_catalogo/features/catalogo/presentation/bloc/producto_form/producto_form_state.dart';
 
 void main() {
   CatalogoFormData data() => const CatalogoFormData(

@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:app_catalogo/features/pedidos/data/services/cotizacion_pdf_service.dart';
+import 'package:app_catalogo/features/pedidos/application/services/cotizacion_pdf_service.dart';
 import 'package:app_catalogo/features/pedidos/domain/entities/cotizacion_pedido.dart';
 import 'package:app_catalogo/features/pedidos/domain/entities/pedido_detalle.dart';
 import 'package:flutter_test/flutter_test.dart';

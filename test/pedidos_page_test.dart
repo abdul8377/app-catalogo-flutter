@@ -429,7 +429,9 @@ class _PedidosListadoRepositoryFake implements PedidosRepository {
   Future<List<ClientePedido>> buscarClientes(String query) async => const [];
 
   @override
-  Future<HojaPedidoActiva> crearHojaActiva() async => const HojaPedidoActiva(
+  Future<HojaPedidoActiva> crearHojaActiva({
+    String vendedor = 'Alfonzo Esteban',
+  }) async => const HojaPedidoActiva(
     id: 'hoja-1',
     codigo: 'HP-2026-001',
     estado: 'Abierta',

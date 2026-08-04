@@ -4,9 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/catalogo_form_data.dart';
 import '../../domain/services/valor_tecnico_parser.dart';
-import '../bloc/producto_form_bloc.dart';
-import '../bloc/producto_form_event.dart';
-import '../bloc/producto_form_state.dart';
+import '../bloc/producto_form/producto_form_bloc.dart';
+import '../bloc/producto_form/producto_form_event.dart';
+import '../bloc/producto_form/producto_form_state.dart';
 
 class ProductoAtributosFamilia extends StatelessWidget {
   const ProductoAtributosFamilia({required this.state, super.key});

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../bloc/catalogo_state.dart';
+import '../bloc/catalogo/catalogo_state.dart';
 
 const _filterYellow = Color(0xFFFFC500);
 const _filterInk = Color(0xFF1F1F1F);

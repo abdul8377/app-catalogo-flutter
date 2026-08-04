@@ -11,8 +11,8 @@ import 'package:app_catalogo/features/pedidos/domain/entities/pedido_resumen.dar
 import 'package:app_catalogo/features/pedidos/domain/entities/producto_consolidado.dart';
 import 'package:app_catalogo/features/pedidos/domain/entities/resumen_hoy.dart';
 import 'package:app_catalogo/features/pedidos/domain/repositories/pedidos_repository.dart';
-import 'package:app_catalogo/features/pedidos/presentation/bloc/pedidos_bloc.dart';
-import 'package:app_catalogo/features/pedidos/presentation/bloc/pedidos_event.dart';
+import 'package:app_catalogo/features/pedidos/presentation/bloc/nuevo_pedido/pedidos_bloc.dart';
+import 'package:app_catalogo/features/pedidos/presentation/bloc/nuevo_pedido/pedidos_event.dart';
 import 'package:app_catalogo/features/home/presentation/bloc/home_bloc.dart';
 import 'package:app_catalogo/features/home/presentation/bloc/home_event.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,7 +41,11 @@ void main() {
 
   test('gestiona catálogo vendible, carrito, cliente y confirmación', () async {
     final pedidosRepository = _PedidosRepositoryFake();
-    final bloc = PedidosBloc(_CatalogoRepositoryFake(), pedidosRepository);
+    final bloc = PedidosBloc(
+      _CatalogoRepositoryFake(),
+      pedidosRepository,
+      sellerName: 'Vendedora Norte',
+    );
     addTearDown(bloc.close);
 
     bloc.add(const PedidosStarted());
@@ -52,6 +56,12 @@ void main() {
       unorderedEquals(['precio', 'sin-precio']),
     );
     expect(bloc.state.hojaActiva?.codigo, 'HP-2026-001');
+
+    bloc.add(const PedidoHojaActivaCreada());
+    await bloc.stream.firstWhere(
+      (state) => !state.loading && pedidosRepository.vendedorHojaCreada != null,
+    );
+    expect(pedidosRepository.vendedorHojaCreada, 'Vendedora Norte');
 
     bloc.add(
       const PedidoProductoAgregado(
@@ -106,6 +116,7 @@ void main() {
     await bloc.stream.firstWhere((state) => state.resultado != null);
 
     expect(pedidosRepository.itemsGuardados, hasLength(2));
+    expect(pedidosRepository.vendedorGuardado, 'Vendedora Norte');
     expect(pedidosRepository.hojaGuardada?.codigo, 'HP-2026-002');
     expect(bloc.state.resultado?.codigo, 'PED-2026-0001');
     expect(bloc.state.carrito, isEmpty);
@@ -312,6 +323,8 @@ class _PedidosRepositoryFake implements PedidosRepository {
   PedidoDetalle? detalle;
   String? pedidoIdActualizado;
   List<PedidoItem> itemsActualizados = [];
+  String? vendedorGuardado;
+  String? vendedorHojaCreada;
   int _consultasHoja = 0;
 
   @override
@@ -329,11 +342,16 @@ class _PedidosRepositoryFake implements PedidosRepository {
   Future<List<ClientePedido>> buscarClientes(String query) async => const [];
 
   @override
-  Future<HojaPedidoActiva> crearHojaActiva() async => const HojaPedidoActiva(
-    id: 'h1',
-    codigo: 'HP-2026-001',
-    estado: 'Abierta',
-  );
+  Future<HojaPedidoActiva> crearHojaActiva({
+    String vendedor = 'Alfonzo Esteban',
+  }) async {
+    vendedorHojaCreada = vendedor;
+    return const HojaPedidoActiva(
+      id: 'h1',
+      codigo: 'HP-2026-001',
+      estado: 'Abierta',
+    );
+  }
 
   @override
   Future<HojaPedidoActiva?> obtenerHojaActiva() async {
@@ -451,6 +469,7 @@ class _PedidosRepositoryFake implements PedidosRepository {
   }) async {
     itemsGuardados = items;
     hojaGuardada = hoja;
+    vendedorGuardado = vendedor;
     return PedidoRegistrado(
       id: 'pedido-1',
       codigo: 'PED-2026-0001',

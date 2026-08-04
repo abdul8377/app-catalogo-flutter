@@ -1,17 +1,64 @@
-# app_catalogo
+# App Catálogo
 
-app catalogo comercial only first
+Aplicación Flutter offline para catálogo, clientes, pedidos, cotizaciones,
+preparación, carga, hojas de pedido, dashboard y estructura comercial.
 
-## Getting Started
+## Regla de oro
 
-This project is a starting point for a Flutter application.
+El código puede reorganizarse; la aplicación observable no. Un refactor debe
+conservar funcionalidad, reglas comerciales, diseño, navegación, datos, SQL,
+migraciones, transacciones y serialización.
 
-A few resources to get you started if this is your first Flutter project:
+## Requisitos
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- Flutter 3.44.5 o compatible con Dart 3.12.2.
+- Dependencias instaladas con `flutter pub get`.
+- Dispositivo o emulador para ejecutar la aplicación.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Comandos
+
+```powershell
+flutter pub get
+dart format --output=none --set-exit-if-changed lib test
+dart analyze
+flutter test --no-pub --exclude-tags baseline-known-failure
+flutter test --no-pub
+flutter build apk --debug --no-pub
+flutter run
+```
+
+El gate estable contiene 130 pruebas verdes. La suite completa conserva seis
+fallos anteriores al refactor, documentados y etiquetados; no se modificó la UI
+ni la lógica para hacerlos pasar.
+
+## Organización
+
+```text
+lib/
+  app/       # composición, inyección y navegación
+  core/      # SQLite, plataforma y componentes transversales
+  features/  # módulos por responsabilidades reales
+```
+
+Las features siguen las capas `domain`, `application`, `data` y
+`presentation` cuando las necesitan. No se crean carpetas vacías para forzar
+simetría: un caso de uso, servicio o modelo sólo existe cuando tiene una
+responsabilidad y un consumidor.
+
+`features/auth/domain` contiene contratos para identidad, roles dinámicos,
+permisos y alcance por vendedor. La sesión heredada mantiene el comportamiento
+actual; login, administración y aislamiento multi-vendedor son evoluciones
+funcionales separadas.
+
+## Persistencia
+
+La base continúa siendo `app_catalogo.db`, versión 22. La implementación está
+ordenada en esquema, migraciones y seed, pero no cambió SQL ni orden de
+ejecución. Hay pruebas de creación v22, migración sintética v21 → v22 y
+transacciones de pedidos.
+
+## Documentación
+
+- [Arquitectura técnica](docs/architecture.md)
+- [Baseline y validación](docs/refactor_baseline.md)
+- [Acceso y escalabilidad futura](docs/access_and_scalability.md)

@@ -1,3 +1,4 @@
+import 'package:app_catalogo/core/navigation/app_destination.dart';
 import 'package:app_catalogo/features/dashboard/domain/entities/dashboard_data.dart';
 import 'package:app_catalogo/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:app_catalogo/features/dashboard/presentation/pages/dashboard_page.dart';
@@ -15,11 +16,13 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final repository = _DashboardRepositoryFake(_dashboardData());
-    int? navigationIndex;
+    AppDestination? navigationDestination;
     await tester.pumpWidget(
       _TestApp(
         repository: repository,
-        child: DashboardPage(onNavigate: (value) => navigationIndex = value),
+        child: DashboardPage(
+          onNavigate: (value) => navigationDestination = value,
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -44,7 +47,7 @@ void main() {
       find.byKey(const ValueKey('dashboard-kpi-clientes')),
     );
     await tester.tap(find.byKey(const ValueKey('dashboard-kpi-clientes')));
-    expect(navigationIndex, 2);
+    expect(navigationDestination, AppDestination.clientes);
   });
 
   testWidgets('el error inicial es breve, recuperable y no desborda', (

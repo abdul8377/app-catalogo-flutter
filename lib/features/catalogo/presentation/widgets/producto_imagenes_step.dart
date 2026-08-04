@@ -7,10 +7,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 
 import '../../domain/entities/producto_variante.dart';
-import '../bloc/producto_form_bloc.dart';
-import '../bloc/producto_form_event.dart';
-import '../bloc/producto_form_state.dart';
-import 'paso6_imagenes_corregido.dart';
+import '../bloc/producto_form/producto_form_bloc.dart';
+import '../bloc/producto_form/producto_form_event.dart';
+import '../bloc/producto_form/producto_form_state.dart';
+import '../models/producto_form/imagenes_draft.dart';
+import '../sections/producto_form/imagenes_section.dart';
 
 class ProductoImagenesStep extends StatelessWidget {
   const ProductoImagenesStep({required this.state, super.key});

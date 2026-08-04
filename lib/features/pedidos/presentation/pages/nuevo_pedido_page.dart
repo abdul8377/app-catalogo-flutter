@@ -4,28 +4,34 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/presentation/widgets/app_notice.dart';
 import '../../../catalogo/domain/repositories/catalogo_repository.dart';
-import '../../../catalogo/presentation/bloc/catalogo_state.dart';
+import '../../../catalogo/presentation/bloc/catalogo/catalogo_state.dart';
 import '../../../catalogo/presentation/widgets/filtros_catalogo.dart';
 import '../../../catalogo/presentation/widgets/producto_card.dart';
-import '../../../catalogo/presentation/widgets/producto_detalle_dialog.dart';
+import '../../../catalogo/presentation/dialogs/producto_detalle_dialog.dart';
 import '../../domain/entities/pedido.dart';
 import '../../domain/repositories/pedidos_repository.dart';
-import '../bloc/pedidos_bloc.dart';
-import '../bloc/pedidos_event.dart';
-import '../bloc/pedidos_state.dart';
-import '../widgets/agregar_producto_dialog.dart';
-import '../widgets/confirmar_pedido_dialog.dart';
+import '../bloc/nuevo_pedido/pedidos_bloc.dart';
+import '../bloc/nuevo_pedido/pedidos_event.dart';
+import '../bloc/nuevo_pedido/pedidos_state.dart';
+import '../dialogs/agregar_producto_dialog.dart';
+import '../dialogs/confirmar_pedido_dialog.dart';
 
 class NuevoPedidoPage extends StatelessWidget {
-  const NuevoPedidoPage({this.pedidoId, super.key});
+  const NuevoPedidoPage({
+    this.pedidoId,
+    this.sellerName = 'Alfonzo Esteban',
+    super.key,
+  });
 
   final String? pedidoId;
+  final String sellerName;
 
   @override
   Widget build(BuildContext context) => BlocProvider(
     create: (_) => PedidosBloc(
       context.read<CatalogoRepository>(),
       context.read<PedidosRepository>(),
+      sellerName: sellerName,
     )..add(PedidosStarted(pedidoId: pedidoId)),
     child: const _NuevoPedidoView(),
   );

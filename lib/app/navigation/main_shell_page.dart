@@ -1,29 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../features/catalogo/presentation/pages/catalogo_page.dart';
 import '../../features/clientes/presentation/pages/clientes_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/estructura_catalogo/presentation/pages/estructura_catalogo_page.dart';
+import '../../features/auth/domain/entities/app_permission.dart';
+import '../../features/auth/domain/entities/auth_session.dart';
 import '../../features/hojas_pedido/presentation/pages/hojas_pedido_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/bloc/home_bloc.dart';
 import '../../features/home/presentation/bloc/home_event.dart';
 import '../../features/pedidos/presentation/pages/nuevo_pedido_page.dart';
 import '../../features/pedidos/presentation/pages/pedidos_page.dart';
+import '../../core/navigation/app_destination.dart';
+import 'app_destination_access_policy.dart';
+import 'widgets/app_navigation_rail.dart';
+
+export 'widgets/app_navigation_rail.dart';
 
 class MainShellPage extends StatefulWidget {
-  const MainShellPage({this.isAdministrator = true, super.key});
+  const MainShellPage({this.isAdministrator = true, this.session, super.key});
 
+  /// Adaptador histórico. Una sesión explícita tiene precedencia.
   final bool isAdministrator;
+  final AuthSession? session;
 
   @override
   State<MainShellPage> createState() => _MainShellPageState();
 }
 
 class _MainShellPageState extends State<MainShellPage> {
-  int selectedIndex = 0;
+  late AppDestination selectedDestination;
   bool isRailExpanded = false;
   int _pedidosInitialTab = 0;
   String? _pedidosHojaCodigo;
@@ -32,19 +40,56 @@ class _MainShellPageState extends State<MainShellPage> {
   int _hojasRevision = 0;
   int _clientesRevision = 0;
   int _dashboardRevision = 0;
-  final Set<int> _mountedPageIndexes = <int>{0};
+  late final Set<AppDestination> _mountedDestinations;
   String? _clienteInicialId;
   String? _hojaInicialCodigo;
 
+  AuthSession get _session =>
+      widget.session ??
+      (widget.isAdministrator
+          ? AuthSession.legacyAdministrator
+          : AuthSession.legacySeller);
+
+  Set<AppDestination> get _visibleDestinations =>
+      AppDestinationAccessPolicy.visibleDestinations(_session);
+
+  @override
+  void initState() {
+    super.initState();
+    selectedDestination = _initialDestination();
+    _mountedDestinations = <AppDestination>{selectedDestination};
+  }
+
+  @override
+  void didUpdateWidget(covariant MainShellPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!AppDestinationAccessPolicy.canOpen(_session, selectedDestination)) {
+      selectedDestination = _initialDestination();
+      _mountedDestinations.add(selectedDestination);
+    }
+  }
+
+  AppDestination _initialDestination() {
+    final visible = _visibleDestinations;
+    if (visible.contains(AppDestination.home)) return AppDestination.home;
+    return AppDestination.values.firstWhere(
+      visible.contains,
+      orElse: () => AppDestination.home,
+    );
+  }
+
   List<Widget> _buildPages() {
     final pages = <Widget>[
-      HomePage(onNavigate: _onItemSelected),
+      HomePage(onNavigate: _onDestinationSelected),
       const CatalogoPage(),
       ClientesPage(
         key: ValueKey('clientes-$_clientesRevision-$_clienteInicialId'),
         initialClienteId: _clienteInicialId,
       ),
-      NuevoPedidoPage(key: ValueKey('nuevo-pedido-$_nuevoPedidoRevision')),
+      NuevoPedidoPage(
+        key: ValueKey('nuevo-pedido-$_nuevoPedidoRevision'),
+        sellerName: _session.user.displayName,
+      ),
       PedidosPage(
         key: ValueKey(
           'pedidos-$_pedidosRevision-$_pedidosInitialTab-$_pedidosHojaCodigo',
@@ -56,19 +101,23 @@ class _MainShellPageState extends State<MainShellPage> {
       ),
       HojasPedidoPage(
         key: ValueKey('hojas-pedido-$_hojasRevision'),
-        onNavigate: _onItemSelected,
+        onNavigate: _onDestinationSelected,
         onOpenPedidos: _openPedidos,
         initialHojaCodigo: _hojaInicialCodigo,
+        sellerName: _session.user.displayName,
       ),
       DashboardPage(
         key: ValueKey('dashboard-$_dashboardRevision'),
-        onNavigate: _onItemSelected,
+        onNavigate: _onDestinationSelected,
         onOpenPedidos: _openPedidos,
         onOpenHoja: _openHoja,
         onOpenCliente: _openCliente,
       ),
     ];
-    if (widget.isAdministrator) {
+    if (AppDestinationAccessPolicy.canOpen(
+      _session,
+      AppDestination.estructuraCatalogo,
+    )) {
       pages.add(const EstructuraCatalogoPage());
     }
     return pages;
@@ -80,60 +129,82 @@ class _MainShellPageState extends State<MainShellPage> {
     });
   }
 
-  void _onItemSelected(int index) {
+  void _onRailItemSelected(int index) {
+    final destination = AppDestination.tryFromIndex(index);
+    if (destination == null) return;
+    _onDestinationSelected(destination);
+  }
+
+  void _onDestinationSelected(AppDestination destination) {
+    if (!AppDestinationAccessPolicy.canOpen(_session, destination)) return;
     setState(() {
-      selectedIndex = index;
-      _mountedPageIndexes.add(index);
-      if (index == 0) {
-        context.read<HomeBloc>().add(const HomeRefreshed());
-      }
-      if (index == 3) {
-        _nuevoPedidoRevision++;
-      }
-      if (index == 2) {
-        _clientesRevision++;
-        _clienteInicialId = null;
-      }
-      if (index == 4) {
-        _pedidosRevision++;
-        _pedidosInitialTab = 0;
-        _pedidosHojaCodigo = null;
-      }
-      if (index == 5) {
-        _hojasRevision++;
-        _hojaInicialCodigo = null;
-      }
-      if (index == 6) {
-        _dashboardRevision++;
+      selectedDestination = destination;
+      _mountedDestinations.add(destination);
+      switch (destination) {
+        case AppDestination.home:
+          context.read<HomeBloc>().add(const HomeRefreshed());
+        case AppDestination.catalogo:
+          break;
+        case AppDestination.clientes:
+          _clientesRevision++;
+          _clienteInicialId = null;
+        case AppDestination.nuevoPedido:
+          _nuevoPedidoRevision++;
+        case AppDestination.pedidos:
+          _pedidosRevision++;
+          _pedidosInitialTab = 0;
+          _pedidosHojaCodigo = null;
+        case AppDestination.hojasPedido:
+          _hojasRevision++;
+          _hojaInicialCodigo = null;
+        case AppDestination.dashboard:
+          _dashboardRevision++;
+        case AppDestination.estructuraCatalogo:
+          break;
       }
     });
   }
 
   void _openCliente(String clienteId) {
+    if (!AppDestinationAccessPolicy.canOpen(
+      _session,
+      AppDestination.clientes,
+    )) {
+      return;
+    }
     setState(() {
       _clientesRevision++;
       _clienteInicialId = clienteId;
-      _mountedPageIndexes.add(2);
-      selectedIndex = 2;
+      _mountedDestinations.add(AppDestination.clientes);
+      selectedDestination = AppDestination.clientes;
     });
   }
 
   void _openHoja(String hojaCodigo) {
+    if (!AppDestinationAccessPolicy.canOpen(
+      _session,
+      AppDestination.hojasPedido,
+    )) {
+      return;
+    }
     setState(() {
       _hojasRevision++;
       _hojaInicialCodigo = hojaCodigo;
-      _mountedPageIndexes.add(5);
-      selectedIndex = 5;
+      _mountedDestinations.add(AppDestination.hojasPedido);
+      selectedDestination = AppDestination.hojasPedido;
     });
   }
 
   void _openPedidos(int tab, String hojaCodigo) {
+    if (!AppDestinationAccessPolicy.canOpen(_session, AppDestination.pedidos)) {
+      return;
+    }
     setState(() {
       _pedidosRevision++;
       _pedidosInitialTab = tab.clamp(0, 2);
       _pedidosHojaCodigo = hojaCodigo;
-      _mountedPageIndexes.add(4);
-      selectedIndex = 4;
+      _mountedDestinations.add(AppDestination.pedidos);
+      selectedDestination = AppDestination.pedidos;
     });
   }
 
@@ -146,20 +217,26 @@ class _MainShellPageState extends State<MainShellPage> {
           SafeArea(
             child: AppNavigationRail(
               isExpanded: isRailExpanded,
-              selectedIndex: selectedIndex,
-              onItemSelected: _onItemSelected,
+              selectedIndex: selectedDestination.navigationIndex,
+              onItemSelected: _onRailItemSelected,
               onToggleExpansion: _toggleRailExpansion,
-              isAdministrator: widget.isAdministrator,
+              isAdministrator: _session.hasPermission(
+                AppPermission.manageCatalogStructure,
+              ),
+              allowedDestinations: _visibleDestinations,
+              userName: _session.user.displayName,
+              roleLabel: _session.primaryRoleName,
             ),
           ),
           Container(width: 1, color: const Color(0xFFE0E0E0)),
           Expanded(
             child: IndexedStack(
-              index: selectedIndex,
+              index: selectedDestination.navigationIndex,
               children: List<Widget>.generate(pages.length, (index) {
-                final mounted = _mountedPageIndexes.contains(index);
+                final destination = AppDestination.tryFromIndex(index)!;
+                final mounted = _mountedDestinations.contains(destination);
                 return HeroMode(
-                  enabled: index == selectedIndex,
+                  enabled: destination == selectedDestination,
                   child: mounted ? pages[index] : const SizedBox.shrink(),
                 );
               }),
@@ -169,337 +246,4 @@ class _MainShellPageState extends State<MainShellPage> {
       ),
     );
   }
-}
-
-class AppNavigationRail extends StatelessWidget {
-  const AppNavigationRail({
-    required this.isExpanded,
-    required this.selectedIndex,
-    required this.onItemSelected,
-    required this.onToggleExpansion,
-    this.isAdministrator = true,
-    super.key,
-  });
-
-  final bool isExpanded;
-  final int selectedIndex;
-  final ValueChanged<int> onItemSelected;
-  final VoidCallback onToggleExpansion;
-  final bool isAdministrator;
-
-  @override
-  Widget build(BuildContext context) {
-    const primaryColor = Color(0xFFFFC500);
-    const railCollapsedWidth = 72.0;
-    const railExpandedWidth = 220.0;
-
-    final items = <_NavItem>[
-      _NavItem(
-        icon: Icons.home_outlined,
-        activeIcon: Icons.home,
-        label: 'Inicio',
-      ),
-      _NavItem(
-        icon: Icons.storefront_outlined,
-        activeIcon: Icons.storefront,
-        label: 'Catálogo',
-      ),
-      _NavItem(
-        icon: Icons.people_outline,
-        activeIcon: Icons.people,
-        label: 'Clientes',
-      ),
-      _NavItem(
-        icon: Icons.add_shopping_cart_outlined,
-        activeIcon: Icons.add_shopping_cart,
-        label: 'Nuevo pedido',
-      ),
-      _NavItem(
-        icon: Icons.list_alt,
-        activeIcon: Icons.list_alt,
-        label: 'Pedidos',
-      ),
-      _NavItem(
-        icon: Icons.receipt_long_outlined,
-        activeIcon: Icons.receipt_long,
-        label: 'Hojas de pedido',
-      ),
-      _NavItem(
-        icon: Icons.dashboard_outlined,
-        activeIcon: Icons.dashboard,
-        label: 'Dashboard',
-      ),
-    ];
-    if (isAdministrator) {
-      items.add(
-        const _NavItem(
-          icon: Icons.account_tree_outlined,
-          activeIcon: Icons.account_tree,
-          label: 'Estructura del catálogo',
-        ),
-      );
-    }
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      width: isExpanded ? railExpandedWidth : railCollapsedWidth,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(2, 0),
-          ),
-        ],
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // AnimatedContainer entrega anchos intermedios durante la transición.
-          // El contenido ancho solo se muestra cuando realmente tiene espacio.
-          final showExpandedContent = constraints.maxWidth >= 180;
-
-          return Column(
-            children: [
-              const SizedBox(height: 16),
-              _buildToggleButton(primaryColor),
-              const SizedBox(height: 20),
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: items.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final item = entry.value;
-
-                    return _NavRailItem(
-                      item: item,
-                      isSelected: selectedIndex == index,
-                      isExpanded: showExpandedContent,
-                      primaryColor: primaryColor,
-                      onTap: () => onItemSelected(index),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (showExpandedContent)
-                Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: 24,
-                    left: 16,
-                    right: 16,
-                  ),
-                  child: _buildUserSection(),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  child: Icon(
-                    Icons.account_circle,
-                    size: 36,
-                    color: Colors.grey.shade400,
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildToggleButton(Color primaryColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onToggleExpansion,
-          child: Container(
-            height: 44,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: isExpanded
-                  ? primaryColor.withValues(alpha: 0.1)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Icon(
-                isExpanded ? Icons.menu_open : Icons.menu,
-                color: const Color(0xFF1A1A2E),
-                size: 24,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUserSection() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: const Color(0xFFFFC500).withValues(alpha: 0.2),
-            child: Text(
-              'CM',
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: const Color(0xFF1A1A2E),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Alfonzo Esteban',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: const Color(0xFF1A1A2E),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  isAdministrator ? 'Administrador' : 'Vendedor',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavRailItem extends StatelessWidget {
-  const _NavRailItem({
-    required this.item,
-    required this.isSelected,
-    required this.isExpanded,
-    required this.primaryColor,
-    required this.onTap,
-  });
-
-  final _NavItem item;
-  final bool isSelected;
-  final bool isExpanded;
-  final Color primaryColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            padding: EdgeInsets.symmetric(
-              horizontal: isExpanded ? 16 : 12,
-              vertical: 12,
-            ),
-            decoration: BoxDecoration(
-              color: isSelected ? primaryColor : Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: primaryColor.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ]
-                  : [],
-            ),
-            child: isExpanded ? _buildExpandedItem() : _buildCollapsedItem(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExpandedItem() {
-    return Row(
-      children: [
-        Icon(
-          isSelected ? item.activeIcon : item.icon,
-          color: isSelected ? Colors.black : const Color(0xFF555555),
-          size: 22,
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Text(
-            item.label,
-            style: GoogleFonts.inter(
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              fontSize: 14,
-              color: isSelected ? Colors.black : const Color(0xFF555555),
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCollapsedItem() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          isSelected ? item.activeIcon : item.icon,
-          color: isSelected ? Colors.black : const Color(0xFF555555),
-          size: 22,
-        ),
-        if (isSelected) ...[
-          const SizedBox(height: 6),
-          Container(
-            width: 4,
-            height: 4,
-            decoration: const BoxDecoration(
-              color: Colors.black,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _NavItem {
-  const _NavItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-  });
-
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
 }

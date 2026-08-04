@@ -8,9 +8,9 @@ import '../../domain/entities/catalogo_form_data.dart';
 import '../../domain/entities/producto_variante.dart';
 import '../../domain/services/codigo_interno_generator.dart';
 import '../../domain/services/valor_tecnico_parser.dart';
-import '../bloc/producto_form_bloc.dart';
-import '../bloc/producto_form_event.dart';
-import '../bloc/producto_form_state.dart';
+import '../bloc/producto_form/producto_form_bloc.dart';
+import '../bloc/producto_form/producto_form_event.dart';
+import '../bloc/producto_form/producto_form_state.dart';
 
 class ProductoVariantesStep extends StatefulWidget {
   const ProductoVariantesStep({required this.state, super.key});

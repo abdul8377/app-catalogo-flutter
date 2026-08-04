@@ -3,11 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/catalogo_form_data.dart';
 import '../../domain/entities/producto_variante.dart';
-import '../bloc/producto_form_bloc.dart';
-import '../bloc/producto_form_event.dart';
-import '../bloc/producto_form_state.dart';
-import 'paso4_venta_logistica_contenido.dart';
-import 'paso5_precios_corregido.dart';
+import '../bloc/producto_form/producto_form_bloc.dart';
+import '../bloc/producto_form/producto_form_event.dart';
+import '../bloc/producto_form/producto_form_state.dart';
+import '../models/producto_form/precios_draft.dart';
+import '../models/producto_form/venta_logistica_draft.dart';
+import '../sections/producto_form/precios_section.dart';
 
 class ProductoPreciosStep extends StatelessWidget {
   const ProductoPreciosStep({required this.state, super.key});

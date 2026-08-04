@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../bloc/pedidos_listado_state.dart';
+import '../bloc/pedidos_listado/pedidos_listado_state.dart';
 import 'pedido_estado_badge.dart';
 
 class PedidosResumenEstados extends StatelessWidget {

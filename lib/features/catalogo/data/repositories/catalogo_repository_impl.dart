@@ -4,15 +4,11 @@ import '../../domain/entities/producto_resumen.dart';
 import '../../domain/entities/producto_detalle.dart';
 import '../../domain/repositories/catalogo_repository.dart';
 import '../datasources/catalogo_local_datasource.dart';
-import '../datasources/catalogo_remote_datasource.dart';
 
 class CatalogoRepositoryImpl implements CatalogoRepository {
-  const CatalogoRepositoryImpl({
-    required this.localDatasource,
-    required this.remoteDatasource,
-  });
+  const CatalogoRepositoryImpl(this.localDatasource);
+
   final CatalogoLocalDatasource localDatasource;
-  final CatalogoRemoteDatasource remoteDatasource;
 
   @override
   Future<List<ProductoResumen>> obtenerProductos() =>
@@ -35,5 +31,4 @@ class CatalogoRepositoryImpl implements CatalogoRepository {
   @override
   Future<void> cambiarEstadoProducto(String id, {required bool activo}) =>
       localDatasource.cambiarEstadoProducto(id, activo: activo);
-  Future<void> sincronizarCatalogo() => remoteDatasource.sincronizarCatalogo();
 }

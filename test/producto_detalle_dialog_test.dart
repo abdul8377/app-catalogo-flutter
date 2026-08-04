@@ -4,7 +4,7 @@ import 'package:app_catalogo/features/catalogo/domain/entities/producto_detalle.
 import 'package:app_catalogo/features/catalogo/domain/entities/producto_resumen.dart';
 import 'package:app_catalogo/features/catalogo/domain/entities/producto_variante.dart';
 import 'package:app_catalogo/features/catalogo/domain/repositories/catalogo_repository.dart';
-import 'package:app_catalogo/features/catalogo/presentation/widgets/producto_detalle_dialog.dart';
+import 'package:app_catalogo/features/catalogo/presentation/dialogs/producto_detalle_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';

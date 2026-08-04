@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../bloc/productos_consolidados_state.dart';
+import '../bloc/productos_consolidados/productos_consolidados_state.dart';
 
 class ConsolidadoFiltros {
   const ConsolidadoFiltros({

@@ -3,9 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../domain/repositories/catalogo_repository.dart';
-import '../bloc/producto_form_bloc.dart';
-import '../bloc/producto_form_event.dart';
-import '../bloc/producto_form_state.dart';
+import '../bloc/producto_form/producto_form_bloc.dart';
+import '../bloc/producto_form/producto_form_event.dart';
+import '../bloc/producto_form/producto_form_state.dart';
 import '../widgets/producto_matriz_step.dart';
 import '../widgets/producto_atributos_familia.dart';
 import '../widgets/producto_imagenes_step.dart';
@@ -805,55 +805,6 @@ class _PasoFamiliaTipo extends StatelessWidget {
   }
 }
 
-class _StepCard extends StatelessWidget {
-  const _StepCard({
-    required this.title,
-    required this.subtitle,
-    required this.children,
-  });
-  final String title, subtitle;
-  final List<Widget> children;
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final compact = constraints.maxWidth < 500;
-      return ListView(
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        padding: EdgeInsets.all(compact ? 12 : 24),
-        children: [
-          Card(
-            margin: EdgeInsets.zero,
-            color: Colors.white,
-            elevation: 0,
-            child: Padding(
-              padding: EdgeInsets.all(compact ? 16 : 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.inter(
-                      fontSize: compact ? 18 : 20,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(color: Color(0xFF757575)),
-                  ),
-                  SizedBox(height: compact ? 18 : 24),
-                  ...children,
-                ],
-              ),
-            ),
-          ),
-        ],
-      );
-    },
-  );
-}
-
 class _BottomNavigation extends StatelessWidget {
   const _BottomNavigation({required this.state});
   final ProductoFormState state;
@@ -936,21 +887,3 @@ class _BottomNavigation extends StatelessWidget {
     ),
   );
 }
-
-InputDecoration _decoration(
-  String label,
-  IconData icon, {
-  String? helperText,
-}) => InputDecoration(
-  labelText: label,
-  floatingLabelBehavior: FloatingLabelBehavior.always,
-  helperText: helperText,
-  helperMaxLines: 2,
-  prefixIcon: Icon(icon),
-  filled: true,
-  fillColor: Colors.white,
-  border: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(12),
-    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-  ),
-);

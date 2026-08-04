@@ -8,7 +8,7 @@ import '../../domain/repositories/estructura_catalogo_repository.dart';
 import '../bloc/estructura_catalogo_bloc.dart';
 import '../bloc/estructura_catalogo_event.dart';
 import '../bloc/estructura_catalogo_state.dart';
-import 'estructura_catalogo_integrada.dart';
+import 'estructura_catalogo_content.dart';
 
 class EstructuraCatalogoPage extends StatelessWidget {
   const EstructuraCatalogoPage({this.puedeAdministrar = true, super.key});
@@ -21,7 +21,7 @@ class EstructuraCatalogoPage extends StatelessWidget {
         EstructuraCatalogoBloc(context.read<EstructuraCatalogoRepository>())
           ..add(const EstructuraCatalogoStarted()),
     child: puedeAdministrar
-        ? const EstructuraCatalogoIntegradaView()
+        ? const EstructuraCatalogoContent()
         : _EstructuraCatalogoView(puedeAdministrar: puedeAdministrar),
   );
 }

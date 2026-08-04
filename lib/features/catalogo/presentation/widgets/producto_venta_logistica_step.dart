@@ -3,10 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/catalogo_form_data.dart';
 import '../../domain/entities/producto_variante.dart';
-import '../bloc/producto_form_bloc.dart';
-import '../bloc/producto_form_event.dart';
-import '../bloc/producto_form_state.dart';
-import 'paso4_venta_logistica_contenido.dart';
+import '../bloc/producto_form/producto_form_bloc.dart';
+import '../bloc/producto_form/producto_form_event.dart';
+import '../bloc/producto_form/producto_form_state.dart';
+import '../models/producto_form/venta_logistica_draft.dart';
+import '../sections/producto_form/venta_logistica_section.dart';
 
 class ProductoVentaLogisticaStep extends StatelessWidget {
   const ProductoVentaLogisticaStep({required this.state, super.key});

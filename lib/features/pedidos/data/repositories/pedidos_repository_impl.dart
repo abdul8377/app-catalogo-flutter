@@ -20,8 +20,9 @@ class PedidosRepositoryImpl implements PedidosRepository {
   Future<ResumenHoy> obtenerResumenHoy() => localDatasource.obtenerResumenHoy();
 
   @override
-  Future<HojaPedidoActiva> crearHojaActiva() =>
-      localDatasource.crearHojaActiva();
+  Future<HojaPedidoActiva> crearHojaActiva({
+    String vendedor = 'Alfonzo Esteban',
+  }) => localDatasource.crearHojaActiva(vendedor: vendedor);
 
   @override
   Future<List<PedidoResumen>> obtenerPedidosResumen() =>

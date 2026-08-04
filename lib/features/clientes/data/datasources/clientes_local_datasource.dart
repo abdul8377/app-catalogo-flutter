@@ -5,6 +5,10 @@ import '../../../../core/database/app_database.dart';
 import '../../domain/entities/cliente.dart';
 import '../../domain/entities/cliente_pedido_resumen.dart';
 import '../../domain/entities/nuevo_cliente.dart';
+import '../mappers/cliente_mapper.dart';
+import '../mappers/cliente_pedido_resumen_mapper.dart';
+import '../models/cliente_local_model.dart';
+import '../models/cliente_pedido_resumen_local_model.dart';
 
 class ClientesLocalDatasource {
   const ClientesLocalDatasource(this._appDatabase);
@@ -23,7 +27,10 @@ class ClientesLocalDatasource {
       GROUP BY c.id
       ORDER BY c.nombre COLLATE NOCASE
     ''');
-    return rows.map(_clienteFromMap).toList();
+    return rows
+        .map(ClienteLocalModel.fromRow)
+        .map(ClienteMapper.toEntity)
+        .toList();
   }
 
   Future<Cliente?> obtenerCliente(String id) async {
@@ -41,7 +48,7 @@ class ClientesLocalDatasource {
       [id],
     );
     if (rows.isEmpty) return null;
-    return _clienteFromMap(rows.first);
+    return ClienteMapper.toEntity(ClienteLocalModel.fromRow(rows.first));
   }
 
   Future<List<ClientePedidoResumen>> obtenerPedidosCliente(
@@ -74,14 +81,17 @@ class ClientesLocalDatasource {
     ''',
       [clienteId],
     );
-    return rows.map(_pedidoFromMap).toList();
+    return rows
+        .map(ClientePedidoResumenLocalModel.fromRow)
+        .map(ClientePedidoResumenMapper.toEntity)
+        .toList();
   }
 
   Future<void> guardarCliente(NuevoCliente cliente) async {
     final now = DateTime.now().toIso8601String();
     await (await _db).insert('clientes', {
       'id': const Uuid().v4(),
-      ..._clienteToMap(cliente),
+      ...ClienteMapper.nuevoClienteToMap(cliente),
       'creado_en': now,
       'actualizado_en': now,
     });
@@ -91,7 +101,7 @@ class ClientesLocalDatasource {
     await (await _db).update(
       'clientes',
       {
-        ..._clienteToMap(cliente),
+        ...ClienteMapper.nuevoClienteToMap(cliente),
         'actualizado_en': DateTime.now().toIso8601String(),
       },
       where: 'id = ?',
@@ -110,59 +120,4 @@ class ClientesLocalDatasource {
       whereArgs: [id],
     );
   }
-
-  Map<String, Object?> _clienteToMap(NuevoCliente cliente) => {
-    'nombre': cliente.nombre,
-    'tipo': cliente.tipo,
-    'telefono': cliente.telefono,
-    'dni': cliente.dni,
-    'ruc': cliente.ruc,
-    'tipo_entrega': 'entrega',
-    'direccion': cliente.direccion,
-    'referencia': cliente.referencia,
-    'foto_ubicacion_path': cliente.fotoUbicacionPath,
-    'activo': cliente.activo ? 1 : 0,
-    'observaciones': cliente.observaciones,
-  };
-
-  Cliente _clienteFromMap(Map<String, Object?> row) {
-    final creado = DateTime.tryParse(row['creado_en'] as String? ?? '');
-    final actualizado = DateTime.tryParse(
-      row['actualizado_en'] as String? ?? '',
-    );
-    final ultimoPedido = DateTime.tryParse(
-      row['ultimo_pedido'] as String? ?? '',
-    );
-    final ruc = row['ruc'] as String? ?? '';
-    return Cliente(
-      id: row['id'] as String,
-      nombre: row['nombre'] as String,
-      tipo: row['tipo'] as String? ?? (ruc.isEmpty ? 'Persona' : 'Empresa'),
-      telefono: row['telefono'] as String,
-      dni: row['dni'] as String? ?? '',
-      ruc: ruc,
-      direccion: row['direccion'] as String? ?? '',
-      referencia: row['referencia'] as String? ?? '',
-      fotoUbicacionPath: row['foto_ubicacion_path'] as String?,
-      activo: (row['activo'] as int? ?? 1) == 1,
-      pedidosCount: row['pedidos_count'] as int? ?? 0,
-      ultimoPedido: ultimoPedido,
-      observaciones: row['observaciones'] as String? ?? '',
-      fechaRegistro: creado ?? DateTime.now(),
-      ultimaActualizacion: actualizado,
-    );
-  }
-
-  ClientePedidoResumen _pedidoFromMap(Map<String, Object?> row) =>
-      ClientePedidoResumen(
-        id: row['id'] as String,
-        codigo: row['codigo'] as String,
-        fecha:
-            DateTime.tryParse(row['creado_en'] as String? ?? '') ??
-            DateTime.now(),
-        estado: row['estado'] as String,
-        cantidadProductos: row['cantidad_productos'] as int? ?? 0,
-        total: (row['subtotal_conocido'] as num? ?? 0).toDouble(),
-        totalParcial: (row['total_parcial'] as int? ?? 0) == 1,
-      );
 }

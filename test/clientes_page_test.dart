@@ -3,8 +3,8 @@ import 'package:app_catalogo/features/clientes/domain/entities/cliente_pedido_re
 import 'package:app_catalogo/features/clientes/domain/entities/nuevo_cliente.dart';
 import 'package:app_catalogo/features/clientes/domain/repositories/clientes_repository.dart';
 import 'package:app_catalogo/features/clientes/presentation/pages/clientes_page.dart';
-import 'package:app_catalogo/features/clientes/presentation/widgets/cliente_detalle_dialog.dart';
-import 'package:app_catalogo/features/clientes/presentation/widgets/cliente_formulario.dart';
+import 'package:app_catalogo/features/clientes/presentation/dialogs/cliente_detalle_dialog.dart';
+import 'package:app_catalogo/features/clientes/presentation/forms/cliente_formulario.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
