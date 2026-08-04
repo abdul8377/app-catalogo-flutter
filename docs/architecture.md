@@ -62,8 +62,9 @@ flowchart TD
 | `hojas_pedido` | Apertura, cierre, consulta e historial de hojas. |
 | `home` | Resumen inicial y accesos. |
 | `pedidos` | Pedidos, cotizaciones, preparación, consolidación, carga e historial. |
+| `sync` | Outbox/inbox SQLite, emparejamiento seguro, descubrimiento de PC, push, pull, bootstrap y estado. |
 
-Las features vacías `carrito`, `cotizaciones` y `sync` fueron eliminadas.
+Las features vacías `carrito` y `cotizaciones` fueron eliminadas.
 La cotización real continúa perteneciendo a `pedidos`; no se cambió ownership
 funcional.
 
@@ -85,7 +86,7 @@ funcional.
 `AppDatabase` conserva:
 
 - archivo `app_catalogo.db`;
-- versión `22`;
+- versión `23`;
 - `PRAGMA foreign_keys = ON`;
 - el mismo SQL, orden de creación, seed y cadena incremental de migraciones.
 
@@ -97,8 +98,13 @@ en:
 - `core/database/seeds/`.
 
 Se usaron partes privadas de Dart para mover los mismos métodos sin ampliar la
-API ni cambiar el orden de ejecución. Hay pruebas de creación limpia v22 y de
-migración sintética v21 → v22 con conservación de registros.
+API ni cambiar el orden de ejecución. Hay pruebas de creación limpia v23 y de
+migraciones sintéticas v21 → v22 y v22 → v23 con conservación de registros.
+
+La v23 agrega únicamente infraestructura de sincronización. Los triggers de
+outbox forman parte de la misma transacción SQLite que cada escritura de
+negocio; el contexto de aplicación remota evita el eco al ejecutar pull o
+bootstrap.
 
 ### Pedidos
 
@@ -160,8 +166,9 @@ aislamiento. Véase [acceso y escalabilidad](access_and_scalability.md).
 
 ## Validación vigente
 
-- Formato: 366 archivos conformes.
+- Formato: 388 archivos conformes.
 - Análisis: 0 errores, 0 warnings y 41 infos históricas.
-- Gate estable: 130 pruebas aprobadas.
-- Suite total: las mismas 130 aprobadas y los mismos 6 fallos históricos.
+- Gate estable: 145 pruebas aprobadas.
+- Los 6 escenarios históricos permanecen etiquetados y fuera del gate estable.
 - Guard de arquitectura: 10 reglas aprobadas.
+- Build Android debug: APK generado correctamente.

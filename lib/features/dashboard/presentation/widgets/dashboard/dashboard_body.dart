@@ -3,6 +3,7 @@ part of '../../pages/dashboard_page.dart';
 class _DashboardBody extends StatelessWidget {
   const _DashboardBody({
     required this.state,
+    required this.syncEnabled,
     this.onNavigate,
     this.onOpenPedidos,
     this.onOpenHoja,
@@ -10,6 +11,7 @@ class _DashboardBody extends StatelessWidget {
   });
 
   final DashboardState state;
+  final bool syncEnabled;
   final ValueChanged<AppDestination>? onNavigate;
   final void Function(int tab, String hojaCodigo)? onOpenPedidos;
   final ValueChanged<String>? onOpenHoja;
@@ -96,14 +98,34 @@ class _DashboardBody extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              _SyncCard(
-                sync: data.sincronizacion,
-                updatedAt: state.ultimaActualizacion,
-                onRefresh: () => context.read<DashboardBloc>().add(
-                  const DashboardRefreshed(),
+              if (syncEnabled)
+                BlocBuilder<SyncBloc, SyncState>(
+                  builder: (context, syncState) => _SyncCard(
+                    sync: data.sincronizacion,
+                    updatedAt: state.ultimaActualizacion,
+                    syncEnabled: true,
+                    linked: syncState.status.isLinked,
+                    syncing: syncState.phase == SyncPhase.synchronizing,
+                    onSync: () => syncState.status.isLinked
+                        ? context.read<SyncBloc>().add(const SyncRequested())
+                        : _showSyncSettings(context),
+                    onConfigure: () => _showSyncSettings(context),
+                    onViewPending: () => _showSyncPending(context),
+                  ),
+                )
+              else
+                _SyncCard(
+                  sync: data.sincronizacion,
+                  updatedAt: state.ultimaActualizacion,
+                  syncEnabled: false,
+                  linked: false,
+                  syncing: false,
+                  onSync: () => context.read<DashboardBloc>().add(
+                    const DashboardRefreshed(),
+                  ),
+                  onConfigure: () {},
+                  onViewPending: () => _showSyncPending(context),
                 ),
-                onViewPending: () => _showSyncPending(context),
-              ),
               const SizedBox(height: 10),
               Text(
                 'Última actualización local: '
@@ -155,6 +177,16 @@ class _DashboardBody extends StatelessWidget {
     barrierColor: Colors.black.withValues(alpha: 0.58),
     builder: (_) => _SyncPendingDialog(sync: data.sincronizacion),
   );
+
+  Future<void> _showSyncSettings(BuildContext context) {
+    final bloc = context.read<SyncBloc>();
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) =>
+          BlocProvider.value(value: bloc, child: const SyncSettingsDialog()),
+    );
+  }
 
   Future<void> _registrarCarga(
     BuildContext context,

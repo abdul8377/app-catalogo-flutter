@@ -18,6 +18,13 @@ import '../../features/hojas_pedido/domain/repositories/hojas_pedido_repository.
 import '../../features/pedidos/data/datasources/pedidos_local_datasource.dart';
 import '../../features/pedidos/data/repositories/pedidos_repository_impl.dart';
 import '../../features/pedidos/domain/repositories/pedidos_repository.dart';
+import '../../features/sync/data/datasources/sync_discovery_datasource.dart';
+import '../../features/sync/data/datasources/sync_local_datasource.dart';
+import '../../features/sync/data/datasources/sync_remote_datasource.dart';
+import '../../features/sync/data/datasources/sync_secure_credentials_datasource.dart';
+import '../../features/sync/data/mappers/sync_entity_registry.dart';
+import '../../features/sync/data/repositories/sync_repository_impl.dart';
+import '../../features/sync/domain/repositories/sync_repository.dart';
 
 /// Raíz de composición de repositorios y fuentes de datos de la aplicación.
 class AppDependencies {
@@ -28,6 +35,7 @@ class AppDependencies {
     required this.hojasPedidoRepository,
     required this.estructuraCatalogoRepository,
     required this.dashboardRepository,
+    required this.syncRepository,
     required this.session,
   });
 
@@ -55,6 +63,12 @@ class AppDependencies {
       DashboardLocalDatasource(appDatabase),
       pedidosRepository,
     );
+    final syncRepository = SyncRepositoryImpl(
+      SyncLocalDatasource(appDatabase, const SyncEntityRegistry()),
+      SyncRemoteDatasource(),
+      SyncSecureCredentialsDatasource.create(),
+      const SyncDiscoveryDatasource(),
+    );
 
     return AppDependencies._(
       catalogoRepository: catalogoRepository,
@@ -63,6 +77,7 @@ class AppDependencies {
       hojasPedidoRepository: hojasPedidoRepository,
       estructuraCatalogoRepository: estructuraCatalogoRepository,
       dashboardRepository: dashboardRepository,
+      syncRepository: syncRepository,
       session: session,
     );
   }
@@ -73,5 +88,6 @@ class AppDependencies {
   final HojasPedidoRepository hojasPedidoRepository;
   final EstructuraCatalogoRepository estructuraCatalogoRepository;
   final DashboardRepository dashboardRepository;
+  final SyncRepository syncRepository;
   final AuthSession session;
 }

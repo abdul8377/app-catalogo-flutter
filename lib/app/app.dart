@@ -12,6 +12,7 @@ import '../features/home/presentation/bloc/home_bloc.dart';
 import '../features/home/presentation/bloc/home_event.dart';
 import '../features/hojas_pedido/domain/repositories/hojas_pedido_repository.dart';
 import '../features/pedidos/domain/repositories/pedidos_repository.dart';
+import '../features/sync/domain/repositories/sync_repository.dart';
 import 'di/app_dependencies.dart';
 import 'navigation/main_shell_page.dart';
 
@@ -45,6 +46,9 @@ class AppCatalogo extends StatelessWidget {
         ),
         RepositoryProvider<DashboardRepository>.value(
           value: dependencies.dashboardRepository,
+        ),
+        RepositoryProvider<SyncRepository>.value(
+          value: dependencies.syncRepository,
         ),
       ],
       child: MultiBlocProvider(

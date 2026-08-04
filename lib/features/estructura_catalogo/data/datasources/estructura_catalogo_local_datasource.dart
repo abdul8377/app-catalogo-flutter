@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
@@ -868,18 +866,10 @@ class EstructuraCatalogoLocalDatasource {
     required String accion,
     required Map<String, Object?> payload,
   }) async {
-    final now = DateTime.now().toIso8601String();
-    await db.insert('sync_queue', {
-      'id': const Uuid().v4(),
-      'entidad': entidad,
-      'entidad_id': entidadId,
-      'accion': accion,
-      'payload_json': jsonEncode(payload),
-      'estado': 'pendiente',
-      'intentos': 0,
-      'creado_en': now,
-      'actualizado_en': now,
-    });
+    // La migración v23 instala triggers transaccionales para todas las tablas
+    // sincronizables. Se conserva este punto histórico para no alterar los
+    // flujos de guardado, pero el evento ya fue creado por SQLite en la misma
+    // transacción que el dato de negocio.
   }
 
   Future<List<AtributoCategoriaCatalogo>> _obtenerAtributos(Database db) async {
@@ -891,9 +881,9 @@ class EstructuraCatalogoLocalDatasource {
               WHERE pe.categoria_atributo_id = a.id) AS usado_como_eje,
              EXISTS(
                SELECT 1 FROM sync_queue sq
-               WHERE sq.entidad = 'categoria_atributo'
+               WHERE sq.entidad = 'CATEGORY_ATTRIBUTE'
                  AND sq.entidad_id = a.id
-                 AND sq.estado = 'pendiente'
+                 AND sq.estado IN ('pending', 'retry', 'sending')
              ) AS sync_pendiente
       FROM categoria_atributos a
       INNER JOIN categorias c ON c.id = a.categoria_id

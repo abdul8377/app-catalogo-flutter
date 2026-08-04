@@ -13,6 +13,7 @@ import '../../features/home/presentation/bloc/home_bloc.dart';
 import '../../features/home/presentation/bloc/home_event.dart';
 import '../../features/pedidos/presentation/pages/nuevo_pedido_page.dart';
 import '../../features/pedidos/presentation/pages/pedidos_page.dart';
+import '../../features/sync/domain/repositories/sync_repository.dart';
 import '../../core/navigation/app_destination.dart';
 import 'app_destination_access_policy.dart';
 import 'widgets/app_navigation_rail.dart';
@@ -108,6 +109,7 @@ class _MainShellPageState extends State<MainShellPage> {
       ),
       DashboardPage(
         key: ValueKey('dashboard-$_dashboardRevision'),
+        syncRepository: context.read<SyncRepository>(),
         onNavigate: _onDestinationSelected,
         onOpenPedidos: _openPedidos,
         onOpenHoja: _openHoja,

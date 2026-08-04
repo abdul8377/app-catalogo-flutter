@@ -4,13 +4,21 @@ class _SyncCard extends StatelessWidget {
   const _SyncCard({
     required this.sync,
     required this.updatedAt,
-    required this.onRefresh,
+    required this.syncEnabled,
+    required this.linked,
+    required this.syncing,
+    required this.onSync,
+    required this.onConfigure,
     required this.onViewPending,
   });
 
   final DashboardSincronizacion sync;
   final DateTime updatedAt;
-  final VoidCallback onRefresh;
+  final bool syncEnabled;
+  final bool linked;
+  final bool syncing;
+  final VoidCallback onSync;
+  final VoidCallback onConfigure;
   final VoidCallback onViewPending;
 
   @override
@@ -58,7 +66,11 @@ class _SyncCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        sync.sincronizado
+                        syncEnabled && !linked
+                            ? 'Vincula esta tablet con la PC para activar el intercambio de cambios.'
+                            : syncing
+                            ? 'Enviando y recibiendo cambios de forma segura.'
+                            : sync.sincronizado
                             ? 'La información local está al día.'
                             : 'Los cambios permanecen protegidos en la tablet '
                                   'hasta recuperar conexión.',
@@ -89,14 +101,42 @@ class _SyncCard extends StatelessWidget {
                   icon: const Icon(Icons.list_alt_rounded, size: 18),
                   label: const Text('Ver pendientes'),
                 ),
+                if (syncEnabled && linked)
+                  OutlinedButton.icon(
+                    key: const ValueKey('dashboard-sync-settings'),
+                    onPressed: syncing ? null : onConfigure,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _ink,
+                      side: const BorderSide(color: Color(0xFFD0D5DD)),
+                    ),
+                    icon: const Icon(Icons.settings_outlined, size: 18),
+                    label: const Text('Configurar'),
+                  ),
                 FilledButton.icon(
-                  onPressed: onRefresh,
+                  key: const ValueKey('dashboard-sync-now'),
+                  onPressed: syncing ? null : onSync,
                   style: FilledButton.styleFrom(
                     backgroundColor: _yellow,
                     foregroundColor: _ink,
                   ),
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Actualizar estado'),
+                  icon: syncing
+                      ? const SizedBox.square(
+                          dimension: 17,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          syncEnabled && !linked
+                              ? Icons.link_rounded
+                              : Icons.sync_rounded,
+                          size: 18,
+                        ),
+                  label: Text(
+                    syncEnabled
+                        ? linked
+                              ? 'Sincronizar ahora'
+                              : 'Vincular tablet'
+                        : 'Actualizar estado',
+                  ),
                 ),
               ],
             );

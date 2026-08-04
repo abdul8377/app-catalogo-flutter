@@ -41,7 +41,8 @@ extension ResumenHojaLocalDatasource on PedidosLocalDatasource {
     final queuePending =
         Sqflite.firstIntValue(
           await db.rawQuery(
-            "SELECT COUNT(*) FROM sync_queue WHERE estado = 'pendiente'",
+            "SELECT COUNT(*) FROM sync_queue "
+            "WHERE estado IN ('pending', 'retry', 'sending')",
           ),
         ) ??
         0;

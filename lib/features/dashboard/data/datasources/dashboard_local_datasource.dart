@@ -401,7 +401,7 @@ class DashboardLocalDatasource {
                COALESCE(sq.error, '') AS error,
                sq.actualizado_en AS fecha
         FROM sync_queue sq
-        WHERE sq.estado IN ('pendiente', 'error')
+        WHERE sq.estado IN ('pending', 'retry', 'sending', 'failed', 'conflict')
       ) AS pendiente
       ORDER BY pendiente.fecha DESC
       LIMIT 40
@@ -422,17 +422,17 @@ class DashboardLocalDatasource {
         (
           SELECT COUNT(*)
           FROM sync_queue
-          WHERE estado = 'pendiente'
+          WHERE estado IN ('pending', 'retry', 'sending')
         ) AS cola_pendiente,
         (
           SELECT COUNT(*)
           FROM sync_queue
-          WHERE estado = 'error'
+          WHERE estado IN ('failed', 'conflict')
         ) AS errores,
         (
-          SELECT MAX(creado_en)
-          FROM pedido_historial
-          WHERE LOWER(evento) LIKE '%sincronizaci%'
+          SELECT last_success_at
+          FROM sync_state
+          WHERE id = 1
         ) AS ultima_sincronizacion
     ''')).first;
 

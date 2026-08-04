@@ -24,8 +24,8 @@ void main() {
     }
   });
 
-  test('crea desde cero el esquema SQLite 22 esperado', () async {
-    final path = p.join(tempDirectory.path, 'catalogo_v22.db');
+  test('crea desde cero el esquema SQLite 23 esperado', () async {
+    final path = p.join(tempDirectory.path, 'catalogo_v23.db');
     final appDatabase = AppDatabase.forTesting(factory: factory, path: path);
     addTearDown(appDatabase.close);
 
@@ -50,6 +50,27 @@ void main() {
         'cotizaciones',
         'preparacion_productos',
         'sync_queue',
+        'sync_configuration',
+        'sync_state',
+        'sync_entity_state',
+        'sync_inbox',
+        'sync_conflicts_local',
+        'sync_file_queue',
+      }),
+    );
+
+    final syncQueueColumns = (await database.rawQuery(
+      'PRAGMA table_info(sync_queue)',
+    )).map((row) => row['name']);
+    expect(
+      syncQueueColumns,
+      containsAll(<String>{
+        'base_version',
+        'payload_version',
+        'next_retry_at',
+        'server_version',
+        'server_sequence',
+        'last_error_code',
       }),
     );
 
@@ -131,5 +152,72 @@ void main() {
       indexes.map((row) => row['name']),
       contains('idx_pedido_items_activos'),
     );
+  });
+
+  test('migra 22 a 23 conservando cola e identidades locales', () async {
+    final path = p.join(tempDirectory.path, 'catalogo_v22.db');
+    final legacy = await factory.openDatabase(
+      path,
+      options: OpenDatabaseOptions(
+        version: 22,
+        onCreate: (database, _) async {
+          await database.execute('''CREATE TABLE empresas(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            ruc TEXT NOT NULL DEFAULT '',
+            telefono TEXT NOT NULL DEFAULT '',
+            direccion TEXT NOT NULL DEFAULT '',
+            estado INTEGER NOT NULL DEFAULT 1,
+            actualizado_en TEXT
+          )''');
+          await database.execute('''CREATE TABLE sync_queue(
+            id TEXT PRIMARY KEY,
+            entidad TEXT NOT NULL,
+            entidad_id TEXT NOT NULL,
+            accion TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            estado TEXT NOT NULL DEFAULT 'pendiente',
+            intentos INTEGER NOT NULL DEFAULT 0,
+            error TEXT,
+            creado_en TEXT NOT NULL,
+            actualizado_en TEXT NOT NULL
+          )''');
+          await database.insert('empresas', {'nombre': 'Empresa histórica'});
+          await database.insert('sync_queue', {
+            'id': 'evento-historico',
+            'entidad': 'COMPANY',
+            'entidad_id': 'empresa-historica',
+            'accion': 'upsert',
+            'payload_json': '{"nombre":"Empresa histórica"}',
+            'estado': 'pendiente',
+            'creado_en': '2026-01-01T00:00:00.000Z',
+            'actualizado_en': '2026-01-01T00:00:00.000Z',
+          });
+        },
+      ),
+    );
+    await legacy.close();
+
+    final appDatabase = AppDatabase.forTesting(factory: factory, path: path);
+    addTearDown(appDatabase.close);
+    final database = await appDatabase.database;
+
+    final company = (await database.query('empresas')).single;
+    final historicEvent = (await database.query(
+      'sync_queue',
+      where: 'id = ?',
+      whereArgs: const ['evento-historico'],
+    )).single;
+    final configurationColumns = (await database.rawQuery(
+      'PRAGMA table_info(sync_configuration)',
+    )).map((row) => row['name']);
+
+    expect(company['nombre'], 'Empresa histórica');
+    expect(company['sync_id'], isNotEmpty);
+    expect(historicEvent['estado'], 'pending');
+    expect(historicEvent['accion'], 'UPSERT');
+    expect(historicEvent['base_version'], 0);
+    expect(configurationColumns, isNot(contains('device_token')));
+    expect(configurationColumns, isNot(contains('token')));
   });
 }

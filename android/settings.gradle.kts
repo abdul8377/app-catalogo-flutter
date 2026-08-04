@@ -29,10 +29,21 @@ gradle.beforeProject {
             if (
                 requested.group == "com.android.tools.build" &&
                     requested.name == "gradle" &&
-                    requested.version == "8.13.0"
+                    requested.version in
+                        setOf("8.7.2", "8.12.1", "8.13.0", "8.13.2")
             ) {
                 useVersion("8.13.1")
-                because("Usa el parche compatible ya disponible para image_cropper")
+                because(
+                    "Usa el parche compatible disponible para plugins Flutter nativos",
+                )
+            }
+            if (
+                requested.group == "org.jetbrains.kotlin" &&
+                    requested.name == "kotlin-gradle-plugin" &&
+                    requested.version == "2.4.10"
+            ) {
+                useVersion("2.3.20")
+                because("Alinea mobile_scanner con Kotlin del proyecto y la caché local")
             }
         }
     }

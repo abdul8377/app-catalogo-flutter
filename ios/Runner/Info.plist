@@ -27,7 +27,13 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Seleccionar imágenes para los productos del catálogo.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Tomar fotografías para los productos del catálogo.</string>
+	<string>Tomar fotografías de productos y escanear el QR de vinculación con la PC.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Encontrar y sincronizar cambios con la PC vinculada en la red local.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_appcatalogo._tcp</string>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

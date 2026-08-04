@@ -8,6 +8,11 @@ import 'package:intl/intl.dart';
 import '../../../../core/navigation/app_destination.dart';
 import '../../domain/entities/dashboard_data.dart';
 import '../../domain/repositories/dashboard_repository.dart';
+import '../../../sync/domain/repositories/sync_repository.dart';
+import '../../../sync/presentation/bloc/sync_bloc.dart';
+import '../../../sync/presentation/bloc/sync_event.dart';
+import '../../../sync/presentation/bloc/sync_state.dart';
+import '../../../sync/presentation/dialogs/sync_settings_dialog.dart';
 import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
 import '../bloc/dashboard_state.dart';
@@ -38,6 +43,7 @@ const _background = Color(0xFFF5F6F8);
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({
+    this.syncRepository,
     this.onNavigate,
     this.onOpenPedidos,
     this.onOpenHoja,
@@ -46,26 +52,37 @@ class DashboardPage extends StatelessWidget {
   });
 
   final ValueChanged<AppDestination>? onNavigate;
+  final SyncRepository? syncRepository;
   final void Function(int tab, String hojaCodigo)? onOpenPedidos;
   final ValueChanged<String>? onOpenHoja;
   final ValueChanged<String>? onOpenCliente;
 
   @override
-  Widget build(BuildContext context) => BlocProvider(
-    create: (context) =>
-        DashboardBloc(context.read<DashboardRepository>())
-          ..add(const DashboardStarted()),
-    child: _DashboardView(
-      onNavigate: onNavigate,
-      onOpenPedidos: onOpenPedidos,
-      onOpenHoja: onOpenHoja,
-      onOpenCliente: onOpenCliente,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final dashboard = BlocProvider(
+      create: (context) =>
+          DashboardBloc(context.read<DashboardRepository>())
+            ..add(const DashboardStarted()),
+      child: _DashboardView(
+        syncEnabled: syncRepository != null,
+        onNavigate: onNavigate,
+        onOpenPedidos: onOpenPedidos,
+        onOpenHoja: onOpenHoja,
+        onOpenCliente: onOpenCliente,
+      ),
+    );
+    final repository = syncRepository;
+    if (repository == null) return dashboard;
+    return BlocProvider(
+      create: (_) => SyncBloc(repository)..add(const SyncStarted()),
+      child: dashboard,
+    );
+  }
 }
 
 class _DashboardView extends StatelessWidget {
   const _DashboardView({
+    required this.syncEnabled,
     this.onNavigate,
     this.onOpenPedidos,
     this.onOpenHoja,
@@ -73,13 +90,14 @@ class _DashboardView extends StatelessWidget {
   });
 
   final ValueChanged<AppDestination>? onNavigate;
+  final bool syncEnabled;
   final void Function(int tab, String hojaCodigo)? onOpenPedidos;
   final ValueChanged<String>? onOpenHoja;
   final ValueChanged<String>? onOpenCliente;
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<DashboardBloc, DashboardState>(
+    final dashboard = BlocConsumer<DashboardBloc, DashboardState>(
       listenWhen: (previous, current) =>
           previous.error != current.error ||
           previous.message != current.message,
@@ -144,6 +162,7 @@ class _DashboardView extends StatelessWidget {
                         },
                         child: _DashboardBody(
                           state: state,
+                          syncEnabled: syncEnabled,
                           onNavigate: onNavigate,
                           onOpenPedidos: onOpenPedidos,
                           onOpenHoja: onOpenHoja,
@@ -155,6 +174,28 @@ class _DashboardView extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (!syncEnabled) return dashboard;
+    return BlocListener<SyncBloc, SyncState>(
+      listenWhen: (previous, current) =>
+          previous.phase == SyncPhase.synchronizing &&
+          current.phase == SyncPhase.idle,
+      listener: (context, state) {
+        context.read<DashboardBloc>().add(const DashboardRefreshed());
+        final text = state.error ?? state.message;
+        if (text == null) return;
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(text),
+              backgroundColor: state.error == null
+                  ? const Color(0xFF16794B)
+                  : const Color(0xFFB42318),
+            ),
+          );
+      },
+      child: dashboard,
     );
   }
 

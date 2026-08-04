@@ -27,9 +27,9 @@ flutter build apk --debug --no-pub
 flutter run
 ```
 
-El gate estable contiene 130 pruebas verdes. La suite completa conserva seis
-fallos anteriores al refactor, documentados y etiquetados; no se modificó la UI
-ni la lógica para hacerlos pasar.
+La verificación final debe ejecutar el análisis, el guard de arquitectura, las
+pruebas estables y el build Android. Los fallos históricos del baseline siguen
+documentados y etiquetados; no se modifica UI ni lógica para ocultarlos.
 
 ## Organización
 
@@ -52,13 +52,23 @@ funcionales separadas.
 
 ## Persistencia
 
-La base continúa siendo `app_catalogo.db`, versión 22. La implementación está
-ordenada en esquema, migraciones y seed, pero no cambió SQL ni orden de
-ejecución. Hay pruebas de creación v22, migración sintética v21 → v22 y
-transacciones de pedidos.
+La base continúa siendo `app_catalogo.db` y su versión vigente es `23`. La
+migración es aditiva: conserva datos de negocio y agrega outbox, inbox, cursor,
+conflictos, configuración, estado por entidad y cola de archivos. Hay pruebas
+de creación limpia v23, migraciones sintéticas v21 → v22 → v23, transacciones
+de pedidos y atomicidad dato + outbox.
+
+## Sincronización
+
+`features/sync` implementa sincronización offline-first contra la PC vinculada:
+QR o dirección manual, credencial fuera de SQLite, caché de IP, descubrimiento
+mDNS, push idempotente, pull incremental, bootstrap, reintentos y conflictos.
+SQLite continúa siendo la fuente operativa de la tablet y nunca se sube el
+archivo completo de base de datos.
 
 ## Documentación
 
 - [Arquitectura técnica](docs/architecture.md)
 - [Baseline y validación](docs/refactor_baseline.md)
 - [Acceso y escalabilidad futura](docs/access_and_scalability.md)
+- [Sincronización tablet ↔ PC](docs/synchronization.md)

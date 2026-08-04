@@ -6,12 +6,14 @@ part 'migrations/catalog_structure_migrations.dart';
 part 'migrations/order_columns_migrations.dart';
 part 'migrations/order_support_migrations.dart';
 part 'migrations/quote_migrations.dart';
+part 'migrations/sync_infrastructure_migration.dart';
 part 'migrations/technical_values_migrations.dart';
 part 'schema/catalog_attributes_schema.dart';
 part 'schema/catalog_structure_schema.dart';
 part 'schema/operations_schema.dart';
 part 'schema/orders_schema.dart';
 part 'schema/quotes_schema.dart';
+part 'schema/sync_infrastructure_schema.dart';
 part 'seeds/app_database_seed.dart';
 
 class AppDatabase {
@@ -26,7 +28,7 @@ class AppDatabase {
        _pathResolver = (() async => path);
 
   static final AppDatabase instance = AppDatabase._();
-  static const version = 22;
+  static const version = 23;
 
   final DatabaseFactory? _factory;
   final Future<String> Function() _pathResolver;
@@ -76,6 +78,7 @@ class AppDatabase {
           await _crearTablaColaSincronizacion(db);
           await _seed(db);
           await _migrarAtributosDef(db);
+          await _migrarSincronizacionV23(db);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           if (oldVersion < 2) {
@@ -156,6 +159,9 @@ class AppDatabase {
           }
           if (oldVersion < 22) {
             await _asegurarIdentidadPedidoItems(db);
+          }
+          if (oldVersion < 23) {
+            await _migrarSincronizacionV23(db);
           }
         },
       ),
