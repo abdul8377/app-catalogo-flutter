@@ -171,6 +171,7 @@ class SyncRemoteDatasource {
       '${_base(serverUrl)}/files/intents',
       data: {
         'fileName': fileName,
+        'fileType': _storedFileType(ownerType),
         'contentType': contentType,
         'sizeBytes': sizeBytes,
         'checksumSha256': checksumSha256,
@@ -242,6 +243,11 @@ class SyncRemoteDatasource {
           'application/octet-stream',
     );
   });
+
+  String _storedFileType(String ownerType) =>
+      ownerType.trim().toUpperCase() == 'PRODUCT'
+      ? 'PRODUCT_IMAGE'
+      : 'DOCUMENT';
 
   Options _auth(String deviceId, String token) =>
       Options(headers: {'X-Device-Id': deviceId, 'X-Device-Token': token});
