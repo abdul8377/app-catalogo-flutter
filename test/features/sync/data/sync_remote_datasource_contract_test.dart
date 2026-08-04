@@ -113,6 +113,10 @@ void main() {
         ownerType: 'PRODUCT',
         ownerId: 'product-1',
       );
+      final intentRequest = adapter.requestFor('/files/intents');
+      expect(intentRequest.data, containsPair('fileType', 'PRODUCT_IMAGE'));
+      expect(intentRequest.data, containsPair('visibility', 'PUBLIC'));
+
       final temp = await File(
         '${Directory.systemTemp.path}/sync-contract-upload.jpg',
       ).writeAsBytes(const [1, 2, 3, 4]);
