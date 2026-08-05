@@ -22,17 +22,17 @@ jobs:
           cache: true
       - name: Dependencias
         run: flutter pub get
-      - name: Mostrar formato requerido
+      - name: Verificar formato
         shell: bash
         run: |
           dart format \
-            lib/features/sync/data/mappers/product_sync_backup_mapper.dart \
+            lib/features/sync/data/mappers/product_sync_configuration_mapper.dart \
             test/features/sync/data/sync_contract_fixture_test.dart
           git diff -- \
-            lib/features/sync/data/mappers/product_sync_backup_mapper.dart \
+            lib/features/sync/data/mappers/product_sync_configuration_mapper.dart \
             test/features/sync/data/sync_contract_fixture_test.dart
           git diff --exit-code -- \
-            lib/features/sync/data/mappers/product_sync_backup_mapper.dart \
+            lib/features/sync/data/mappers/product_sync_configuration_mapper.dart \
             test/features/sync/data/sync_contract_fixture_test.dart
       - name: Pruebas de sincronización
         run: flutter test test/features/sync
