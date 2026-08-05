@@ -93,27 +93,33 @@ void main() {
     expect(page.records.single.entityType, 'PRODUCT');
   });
 
-  test('PRODUCT y archivos son estructuras JSON reales', () async {
-    final product = await _fixture('product_aggregate.json');
-    final intent = SyncFileIntentModel.fromJson(
-      await _fixture('file_intent_response.json'),
-    );
-    final stored = SyncStoredFileModel.fromJson(
-      await _fixture('stored_file_response.json'),
-    );
+  test(
+    'PRODUCT conserva catálogo y configuración completa de SQLite',
+    () async {
+      final product = await _fixture('product_aggregate.json');
+      final intent = SyncFileIntentModel.fromJson(
+        await _fixture('file_intent_response.json'),
+      );
+      final stored = SyncStoredFileModel.fromJson(
+        await _fixture('stored_file_response.json'),
+      );
 
-    expect(product['attributes'], isA<Map>());
-    expect(product['variants'], isA<List>());
-    expect(product['presentations'], isA<List>());
-    expect(product['prices'], isA<List>());
-    expect(product['images'], isA<List>());
-    expect(product['familyAxes'], isA<List>());
-    expect(product['attributeValues'], isA<List>());
-    expect(product['attributeOptions'], isA<List>());
-    expect(intent.completeUrl, '/api/v1/files/intents/file-1/complete');
-    expect(stored.storageKey, 'files/file-1/content');
-    expect(stored.status, 'READY');
-  });
+      expect(product['attributes'], isA<Map>());
+      expect(product['variants'], isA<List>());
+      expect(product['presentations'], isA<List>());
+      expect(product['prices'], isA<List>());
+      expect(product['images'], isA<List>());
+      expect(product['familyAxes'], isA<List>());
+      expect(product['attributeValues'], isA<List>());
+      expect(product['attributeOptions'], isA<List>());
+      expect(product['salesConfiguration'], isA<Map>());
+      expect(product['pricingConfiguration'], isA<Map>());
+      expect(product['imageConfiguration'], isA<Map>());
+      expect(intent.completeUrl, '/api/v1/files/intents/file-1/complete');
+      expect(stored.storageKey, 'files/file-1/content');
+      expect(stored.status, 'READY');
+    },
+  );
 
   test('conflicto conserva el ID asignado por el backend', () async {
     final conflict = await _fixture('conflict_response.json');

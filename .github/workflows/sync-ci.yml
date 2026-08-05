@@ -1,0 +1,38 @@
+name: Flutter Sync CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Flutter estable
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Dependencias
+        run: flutter pub get
+      - name: Verificar formato
+        shell: bash
+        run: |
+          dart format \
+            lib/features/sync/data/mappers/product_sync_configuration_mapper.dart \
+            test/features/sync/data/sync_contract_fixture_test.dart
+          git diff -- \
+            lib/features/sync/data/mappers/product_sync_configuration_mapper.dart \
+            test/features/sync/data/sync_contract_fixture_test.dart
+          git diff --exit-code -- \
+            lib/features/sync/data/mappers/product_sync_configuration_mapper.dart \
+            test/features/sync/data/sync_contract_fixture_test.dart
+      - name: Pruebas de sincronización
+        run: flutter test test/features/sync

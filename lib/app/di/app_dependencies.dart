@@ -22,6 +22,7 @@ import '../../features/sync/data/datasources/sync_discovery_datasource.dart';
 import '../../features/sync/data/datasources/sync_local_datasource.dart';
 import '../../features/sync/data/datasources/sync_remote_datasource.dart';
 import '../../features/sync/data/datasources/sync_secure_credentials_datasource.dart';
+import '../../features/sync/data/mappers/product_sync_configuration_mapper.dart';
 import '../../features/sync/data/mappers/sync_entity_registry.dart';
 import '../../features/sync/data/repositories/sync_repository_impl.dart';
 import '../../features/sync/domain/repositories/sync_repository.dart';
@@ -64,7 +65,10 @@ class AppDependencies {
       pedidosRepository,
     );
     final syncRepository = SyncRepositoryImpl(
-      SyncLocalDatasource(appDatabase, const SyncEntityRegistry()),
+      SyncLocalDatasource(
+        appDatabase,
+        const SyncEntityRegistry(ProductSyncConfigurationMapper()),
+      ),
       SyncRemoteDatasource(),
       SyncSecureCredentialsDatasource.create(),
       const SyncDiscoveryDatasource(),
