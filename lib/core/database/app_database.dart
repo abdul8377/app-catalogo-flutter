@@ -8,6 +8,7 @@ part 'migrations/order_support_migrations.dart';
 part 'migrations/quote_migrations.dart';
 part 'migrations/sync_infrastructure_migration.dart';
 part 'migrations/sync_reliability_migration.dart';
+part 'migrations/sync_rejected_events_recovery_migration.dart';
 part 'migrations/technical_values_migrations.dart';
 part 'schema/catalog_attributes_schema.dart';
 part 'schema/catalog_structure_schema.dart';
@@ -29,7 +30,7 @@ class AppDatabase {
        _pathResolver = (() async => path);
 
   static final AppDatabase instance = AppDatabase._();
-  static const version = 24;
+  static const version = 25;
 
   final DatabaseFactory? _factory;
   final Future<String> Function() _pathResolver;
@@ -81,6 +82,7 @@ class AppDatabase {
           await _migrarAtributosDef(db);
           await _migrarSincronizacionV23(db);
           await _migrarSincronizacionV24(db);
+          await _migrarSincronizacionV25(db);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           if (oldVersion < 2) {
@@ -167,6 +169,9 @@ class AppDatabase {
           }
           if (oldVersion < 24) {
             await _migrarSincronizacionV24(db);
+          }
+          if (oldVersion < 25) {
+            await _migrarSincronizacionV25(db);
           }
         },
       ),
