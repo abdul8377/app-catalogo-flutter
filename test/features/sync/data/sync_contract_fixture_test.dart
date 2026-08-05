@@ -93,7 +93,7 @@ void main() {
     expect(page.records.single.entityType, 'PRODUCT');
   });
 
-  test('PRODUCT y archivos son estructuras JSON reales', () async {
+  test('PRODUCT conserva catálogo y configuración completa de SQLite', () async {
     final product = await _fixture('product_aggregate.json');
     final intent = SyncFileIntentModel.fromJson(
       await _fixture('file_intent_response.json'),
@@ -110,6 +110,9 @@ void main() {
     expect(product['familyAxes'], isA<List>());
     expect(product['attributeValues'], isA<List>());
     expect(product['attributeOptions'], isA<List>());
+    expect(product['salesConfiguration'], isA<Map>());
+    expect(product['pricingConfiguration'], isA<Map>());
+    expect(product['imageConfiguration'], isA<Map>());
     expect(intent.completeUrl, '/api/v1/files/intents/file-1/complete');
     expect(stored.storageKey, 'files/file-1/content');
     expect(stored.status, 'READY');
