@@ -107,6 +107,9 @@ void main() {
     expect(product['presentations'], isA<List>());
     expect(product['prices'], isA<List>());
     expect(product['images'], isA<List>());
+    expect(product['familyAxes'], isA<List>());
+    expect(product['attributeValues'], isA<List>());
+    expect(product['attributeOptions'], isA<List>());
     expect(intent.completeUrl, '/api/v1/files/intents/file-1/complete');
     expect(stored.storageKey, 'files/file-1/content');
     expect(stored.status, 'READY');
