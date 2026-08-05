@@ -115,7 +115,6 @@ class ProductSyncBackupMapper extends ProductSyncMapper {
     }
   }
 
-  Map<String, Object?> _object(Object? raw) => raw is Map
-      ? Map<String, Object?>.from(raw)
-      : <String, Object?>{};
+  Map<String, Object?> _object(Object? raw) =>
+      raw is Map ? Map<String, Object?>.from(raw) : <String, Object?>{};
 }
