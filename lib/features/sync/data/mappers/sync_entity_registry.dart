@@ -19,6 +19,7 @@ class SyncEntityRegistry {
     'CATEGORY_ATTRIBUTE_OPTION',
     'CATEGORY_ATTRIBUTE_UNIT',
     'LEGACY_ATTRIBUTE_DEFINITION',
+    'PRICE_LIST',
     'PRODUCT',
     'CLIENT',
     'ORDER_SHEET',
@@ -298,6 +299,12 @@ class SyncEntityRegistry {
       'price': 'precio',
       'no_price': 'sin_precio',
     };
+    const priceListAliases = {
+      'active': 'estado',
+      'currency': 'moneda',
+      'includes_tax': 'incluye_igv',
+      'tax_rate': 'igv_porcentaje',
+    };
     const clientAliases = {
       'phone': 'telefono',
       'customer_type': 'tipo',
@@ -360,6 +367,7 @@ class SyncEntityRegistry {
     final aliases = <String, String>{
       ...commonAliases,
       if (entityType == 'PRODUCT') ...productAliases,
+      if (entityType == 'PRICE_LIST') ...priceListAliases,
       if (entityType == 'CLIENT') ...clientAliases,
       if (entityType == 'ORDER') ...orderAliases,
       if (entityType == 'ORDER_SHEET') ...orderSheetAliases,
@@ -424,6 +432,7 @@ const _specs = <String, _SyncEntitySpec>{
     identityColumn: 'sync_id',
     integerReferences: {'categoria_id': 'categorias'},
   ),
+  'PRICE_LIST': _SyncEntitySpec(table: 'listas_precios'),
   'CLIENT': _SyncEntitySpec(table: 'clientes'),
   'ORDER_SHEET': _SyncEntitySpec(table: 'hojas_pedido'),
   'ORDER': _SyncEntitySpec(table: 'pedidos'),

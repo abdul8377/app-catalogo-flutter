@@ -5,6 +5,7 @@ part 'migrations/catalog_attributes_migration.dart';
 part 'migrations/catalog_structure_migrations.dart';
 part 'migrations/order_columns_migrations.dart';
 part 'migrations/order_support_migrations.dart';
+part 'migrations/price_list_migration.dart';
 part 'migrations/quote_migrations.dart';
 part 'migrations/sync_infrastructure_migration.dart';
 part 'migrations/sync_reliability_migration.dart';
@@ -29,7 +30,7 @@ class AppDatabase {
        _pathResolver = (() async => path);
 
   static final AppDatabase instance = AppDatabase._();
-  static const version = 25;
+  static const version = 26;
 
   final DatabaseFactory? _factory;
   final Future<String> Function() _pathResolver;
@@ -81,6 +82,7 @@ class AppDatabase {
           await _migrarSincronizacionV23(db);
           await _migrarSincronizacionV24(db);
           await _migrarSincronizacionV25(db);
+          await _migrarListasPreciosV26(db);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           if (oldVersion < 2) {
@@ -170,6 +172,9 @@ class AppDatabase {
           }
           if (oldVersion < 25) {
             await _migrarSincronizacionV25(db);
+          }
+          if (oldVersion < 26) {
+            await _migrarListasPreciosV26(db);
           }
         },
       ),
