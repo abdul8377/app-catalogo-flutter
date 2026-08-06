@@ -16,7 +16,6 @@ part 'schema/operations_schema.dart';
 part 'schema/orders_schema.dart';
 part 'schema/quotes_schema.dart';
 part 'schema/sync_infrastructure_schema.dart';
-part 'seeds/app_database_seed.dart';
 
 class AppDatabase {
   AppDatabase._() : _factory = null, _pathResolver = _defaultPath;
@@ -78,7 +77,6 @@ class AppDatabase {
           await _crearTablasAtributosCategoria(db);
           await _crearTablasPedidos(db);
           await _crearTablaColaSincronizacion(db);
-          await _seed(db);
           await _migrarAtributosDef(db);
           await _migrarSincronizacionV23(db);
           await _migrarSincronizacionV24(db);

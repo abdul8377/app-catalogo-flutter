@@ -151,10 +151,13 @@ void main() {
 }
 
 Future<void> _insertCompleteProduct(Database database) async {
-  final category = (await database.query('categorias')).first;
+  final categoryId = await database.insert('categorias', {
+    'nombre': 'Categoria de prueba',
+    'actualizado_en': '2026-08-04T00:00:00Z',
+  });
   await database.insert('categoria_atributos', {
     'id': 'attribute-1',
-    'categoria_id': category['id'],
+    'categoria_id': categoryId,
     'nombre': 'Color',
     'clave': 'color',
     'tipo_dato': 'lista_unica',
@@ -175,7 +178,7 @@ Future<void> _insertCompleteProduct(Database database) async {
     'descripcion': '',
     'empresa': 'DINA',
     'marca': 'DINA',
-    'categoria': category['nombre'],
+    'categoria': 'Categoria de prueba',
     'subcategoria': '',
     'tipo_registro': 'simple',
     'atributos_json': jsonEncode({'Color': 'Rojo'}),

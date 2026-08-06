@@ -89,6 +89,23 @@ void main() {
         'precio_configuracion',
       }),
     );
+
+    for (final table in const [
+      'empresas',
+      'marcas',
+      'categorias',
+      'productos',
+      'clientes',
+      'hojas_pedido',
+      'pedidos',
+      'cotizaciones',
+    ]) {
+      expect(
+        await database.query(table),
+        isEmpty,
+        reason: '$table debe iniciar sin datos de demostracion',
+      );
+    }
   });
 
   test('migra 21 a 22 conservando registros e identidad de items', () async {

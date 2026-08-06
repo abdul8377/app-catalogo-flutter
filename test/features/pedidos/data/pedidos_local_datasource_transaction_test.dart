@@ -24,6 +24,28 @@ void main() {
     );
     datasource = PedidosLocalDatasource(appDatabase);
     await appDatabase.open();
+    final database = await appDatabase.database;
+    await database.insert('hojas_pedido', {
+      'id': 'hoja-prueba',
+      'codigo': 'HP-TEST-001',
+      'estado': 'Abierta',
+      'activa': 1,
+      'vendedor': 'Vendedora Norte',
+      'creado_en': '2026-08-04T00:00:00.000Z',
+    });
+    await database.insert('productos', {
+      'id': 'producto-prueba',
+      'codigo': 'TEST-001',
+      'nombre': 'Producto de prueba',
+      'empresa': 'Empresa de prueba',
+      'marca': 'Marca de prueba',
+      'categoria': 'Categoria de prueba',
+      'tipo_registro': 'unico',
+      'unidad_venta': 'Unidad',
+      'precio': 10.0,
+      'sin_precio': 0,
+      'creado_en': '2026-08-04T00:00:00.000Z',
+    });
   });
 
   tearDown(() async {
