@@ -32,13 +32,6 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
 
-      - name: Show formatted price-list migration
-        run: |
-          dart format lib/core/database/migrations/price_list_migration.dart
-          echo '__FORMATTED_PRICE_LIST__'
-          cat lib/core/database/migrations/price_list_migration.dart
-          echo '__END_FORMATTED_PRICE_LIST__'
-
       - name: Check formatting
         run: dart format --output=none --set-exit-if-changed lib test
 
