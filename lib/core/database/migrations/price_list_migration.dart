@@ -31,7 +31,9 @@ extension _PriceListMigration on AppDatabase {
 
   Future<void> _crearTriggersListasPrecios(Database db) async {
     for (final suffix in const ['insert', 'update', 'delete']) {
-      await db.execute('DROP TRIGGER IF EXISTS trg_sync_listas_precios_$suffix');
+      await db.execute(
+        'DROP TRIGGER IF EXISTS trg_sync_listas_precios_$suffix',
+      );
     }
     await db.execute(
       _priceListTriggerSql(
