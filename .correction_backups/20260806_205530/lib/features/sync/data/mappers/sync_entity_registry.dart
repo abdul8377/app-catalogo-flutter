@@ -168,15 +168,6 @@ class SyncEntityRegistry {
       values[reference.key] = parent.single['id'];
     }
 
-    if (entityType == 'MEASUREMENT_UNIT') {
-      await _applyRemoteMeasurementUnit(
-        database,
-        entityId: entityId,
-        values: values,
-      );
-      return;
-    }
-
     if (spec.identityColumn == 'sync_id') {
       values['sync_id'] = entityId;
       values.remove('id');
@@ -259,64 +250,6 @@ class SyncEntityRegistry {
       );
     }
     return spec;
-  }
-
-  Future<void> _applyRemoteMeasurementUnit(
-    DatabaseExecutor database, {
-    required String entityId,
-    required Map<String, Object?> values,
-  }) async {
-    final unitValues = Map<String, Object?>.from(values)
-      ..remove('id')
-      ..['sync_id'] = entityId;
-
-    final remoteMatches = await database.query(
-      'unidades_medida',
-      columns: const ['id'],
-      where: 'sync_id = ?',
-      whereArgs: [entityId],
-      limit: 1,
-    );
-    if (remoteMatches.isNotEmpty) {
-      await database.update(
-        'unidades_medida',
-        unitValues,
-        where: 'id = ?',
-        whereArgs: [remoteMatches.single['id']],
-      );
-      return;
-    }
-
-    final code = unitValues['codigo']?.toString().trim() ?? '';
-    if (code.isNotEmpty) {
-      final naturalMatches = await database.query(
-        'unidades_medida',
-        columns: const ['id', 'sync_id'],
-        where: 'codigo = ?',
-        whereArgs: [code],
-        limit: 1,
-      );
-      if (naturalMatches.isNotEmpty) {
-        final naturalMatch = naturalMatches.single;
-        final currentSyncId = naturalMatch['sync_id']?.toString().trim() ?? '';
-        if (currentSyncId.isNotEmpty && currentSyncId != entityId) {
-          throw StateError(
-            'La unidad $code ya está vinculada con $currentSyncId '
-            'y no puede vincularse con $entityId.',
-          );
-        }
-        await database.update(
-          'unidades_medida',
-          unitValues,
-          where: 'id = ?',
-          whereArgs: [naturalMatch['id']],
-        );
-        return;
-      }
-    }
-
-    unitValues['id'] = entityId;
-    await database.insert('unidades_medida', unitValues);
   }
 
   Object? _sqliteValue(Object? value) {
@@ -483,10 +416,7 @@ const _specs = <String, _SyncEntitySpec>{
     identityColumn: 'sync_id',
     integerReferences: {'marca_id': 'marcas', 'categoria_id': 'categorias'},
   ),
-  'MEASUREMENT_UNIT': _SyncEntitySpec(
-    table: 'unidades_medida',
-    identityColumn: 'sync_id',
-  ),
+  'MEASUREMENT_UNIT': _SyncEntitySpec(table: 'unidades_medida'),
   'CATEGORY_ATTRIBUTE': _SyncEntitySpec(
     table: 'categoria_atributos',
     integerReferences: {'categoria_id': 'categorias'},
@@ -496,7 +426,6 @@ const _specs = <String, _SyncEntitySpec>{
   ),
   'CATEGORY_ATTRIBUTE_UNIT': _SyncEntitySpec(
     table: 'categoria_atributo_unidades',
-    integerReferences: {'unidad_medida_id': 'unidades_medida'},
   ),
   'LEGACY_ATTRIBUTE_DEFINITION': _SyncEntitySpec(
     table: 'atributos_def',
