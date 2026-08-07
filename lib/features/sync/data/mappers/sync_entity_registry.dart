@@ -177,6 +177,15 @@ class SyncEntityRegistry {
       return;
     }
 
+    if (await _mergeRemoteRelationalMasterByNaturalKey(
+      database,
+      entityType: entityType,
+      entityId: entityId,
+      values: values,
+    )) {
+      return;
+    }
+
     if (spec.identityColumn == 'sync_id') {
       values['sync_id'] = entityId;
       values.remove('id');
@@ -259,6 +268,125 @@ class SyncEntityRegistry {
       );
     }
     return spec;
+  }
+
+  Future<bool> _mergeRemoteRelationalMasterByNaturalKey(
+    DatabaseExecutor database, {
+    required String entityType,
+    required String entityId,
+    required Map<String, Object?> values,
+  }) async {
+    if (!const {
+      'COMPANY',
+      'BRAND',
+      'CATEGORY',
+      'BRAND_CATEGORY',
+    }.contains(entityType)) {
+      return false;
+    }
+
+    final spec = _spec(entityType);
+    final remoteMatches = await database.query(
+      spec.table,
+      columns: const ['sync_id'],
+      where: 'sync_id = ?',
+      whereArgs: [entityId],
+      limit: 1,
+    );
+    if (remoteMatches.isNotEmpty) {
+      return false;
+    }
+
+    String where;
+    List<Object?> whereArgs;
+    switch (entityType) {
+      case 'COMPANY':
+        final name = values['nombre']?.toString().trim() ?? '';
+        if (name.isEmpty) {
+          return false;
+        }
+        where = 'nombre = ? COLLATE NOCASE';
+        whereArgs = [name];
+      case 'BRAND':
+        final companyId = values['empresa_id'];
+        final name = values['nombre']?.toString().trim() ?? '';
+        if (companyId == null || name.isEmpty) {
+          return false;
+        }
+        where = 'empresa_id = ? AND nombre = ? COLLATE NOCASE';
+        whereArgs = [companyId, name];
+      case 'CATEGORY':
+        final parentId = values['categoria_padre_id'];
+        final name = values['nombre']?.toString().trim() ?? '';
+        if (name.isEmpty) {
+          return false;
+        }
+        if (parentId == null) {
+          where = 'categoria_padre_id IS NULL AND nombre = ? COLLATE NOCASE';
+          whereArgs = [name];
+        } else {
+          where = 'categoria_padre_id = ? AND nombre = ? COLLATE NOCASE';
+          whereArgs = [parentId, name];
+        }
+      case 'BRAND_CATEGORY':
+        final brandId = values['marca_id'];
+        final categoryId = values['categoria_id'];
+        if (brandId == null || categoryId == null) {
+          return false;
+        }
+        where = 'marca_id = ? AND categoria_id = ?';
+        whereArgs = [brandId, categoryId];
+      default:
+        return false;
+    }
+
+    final naturalMatches = await database.query(
+      spec.table,
+      columns: const ['sync_id'],
+      where: where,
+      whereArgs: whereArgs,
+      limit: 2,
+    );
+    if (naturalMatches.isEmpty) {
+      return false;
+    }
+    if (naturalMatches.length > 1) {
+      throw StateError(
+        'Se encontraron varias filas locales para la clave natural de '
+        '$entityType.',
+      );
+    }
+
+    final currentSyncId =
+        naturalMatches.single['sync_id']?.toString().trim() ?? '';
+    if (currentSyncId.isNotEmpty && currentSyncId != entityId) {
+      final pending = await database.query(
+        'sync_queue',
+        columns: const ['id'],
+        where:
+            'entidad = ? AND entidad_id = ? '
+            "AND estado IN ('pending', 'retry', 'sending', 'conflict')",
+        whereArgs: [entityType, currentSyncId],
+        limit: 1,
+      );
+      if (pending.isNotEmpty) {
+        throw StateError(
+          'No se puede adoptar la identidad remota de $entityType porque '
+          'la fila local $currentSyncId tiene cambios pendientes.',
+        );
+      }
+    }
+
+    final mergedValues = Map<String, Object?>.from(values)
+      ..remove('id')
+      ..['sync_id'] = entityId;
+    await database.update(
+      spec.table,
+      mergedValues,
+      where: where,
+      whereArgs: whereArgs,
+    );
+    return true;
   }
 
   Future<void> _applyRemoteMeasurementUnit(

@@ -274,6 +274,13 @@ class SyncRepositoryImpl implements SyncRepository {
         code: 'INVALID_CONTRACT_JSON',
         message: error.message,
       );
+    } catch (error) {
+      throw SyncException(
+        code: 'LOCAL_SYNC_APPLY_FAILED',
+        message:
+            'La tablet no pudo aplicar un registro recibido de la PC. '
+            '$error',
+      );
     } finally {
       _syncing = false;
     }

@@ -577,13 +577,20 @@ class SyncLocalDatasource {
       return;
     }
 
-    await _registry.applyRemote(
-      transaction,
-      entityType: entityType,
-      entityId: entityId,
-      operation: operation,
-      payload: payload,
-    );
+    try {
+      await _registry.applyRemote(
+        transaction,
+        entityType: entityType,
+        entityId: entityId,
+        operation: operation,
+        payload: payload,
+      );
+    } catch (error) {
+      throw StateError(
+        'Error aplicando $entityType/$entityId '
+        '($operation, version $version): $error',
+      );
+    }
     final now = DateTime.now().toUtc().toIso8601String();
     await transaction.insert('sync_entity_state', {
       'entity_type': entityType,
