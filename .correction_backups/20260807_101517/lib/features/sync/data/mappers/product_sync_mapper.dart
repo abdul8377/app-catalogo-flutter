@@ -249,7 +249,7 @@ class ProductSyncMapper {
       'id': productId,
       'codigo': code,
       'nombre': name,
-      'descripcion': _commercialDescription(aggregate['description']),
+      'descripcion': aggregate['description']?.toString() ?? '',
       'empresa': aggregate['company']?.toString() ?? '',
       'marca': aggregate['brand']?.toString() ?? '',
       'categoria': aggregate['category']?.toString() ?? '',
@@ -257,7 +257,7 @@ class ProductSyncMapper {
       'tipo_registro': _toLocalProductType(
         aggregate['productType']?.toString() ?? 'SINGLE',
       ),
-      'atributos_json': jsonEncode(_localFamilyAttributes(attributes)),
+      'atributos_json': jsonEncode(Map<String, Object?>.from(attributes)),
       'variantes_json': jsonEncode(localVariants),
       'presentaciones_json': jsonEncode(localPresentations),
       'venta_logistica_json':
@@ -622,61 +622,6 @@ class ProductSyncMapper {
         'configuration': row['configuracion'] ?? 'precio_fijo',
       };
     }).toList();
-  }
-
-  Map<String, Object?> _localFamilyAttributes(Object? value) {
-    if (value is! Map) return const {};
-    final result = <String, Object?>{};
-    for (final entry in value.entries) {
-      final name = entry.key.toString().trim();
-      if (name.isEmpty) continue;
-      final rendered = _displayAttributeValue(entry.value);
-      if (rendered.isNotEmpty) result[name] = rendered;
-    }
-    return result;
-  }
-
-  String _displayAttributeValue(Object? raw) {
-    if (raw == null) return '';
-    if (raw is bool) return raw ? 'Sí' : 'No';
-    if (raw is List) {
-      return raw
-          .map(_displayAttributeValue)
-          .where((value) => value.isNotEmpty)
-          .join(' · ');
-    }
-    if (raw is Map) {
-      final details = Map<Object?, Object?>.from(raw);
-      final selected = details['values'] ?? details['valores'];
-      if (selected is List && selected.isNotEmpty) {
-        final rendered = _displayAttributeValue(selected);
-        if (rendered.isNotEmpty) return rendered;
-      }
-      final value = details['value'] ?? details['valor'] ?? details['text'];
-      final unit = details['unit'] ?? details['unidad'];
-      final renderedValue = _displayAttributeValue(value);
-      final renderedUnit = unit?.toString().trim() ?? '';
-      if (renderedValue.isEmpty) return '';
-      return renderedUnit.isEmpty
-          ? renderedValue
-          : '$renderedValue $renderedUnit';
-    }
-    return raw.toString().trim();
-  }
-
-  String _commercialDescription(Object? value) {
-    final text = value?.toString().trim() ?? '';
-    if (text.isEmpty) return '';
-    final normalized = text.toLowerCase();
-    final looksLikeTrace =
-        normalized.contains('familia extraída') ||
-        normalized.contains('familia extraida') ||
-        normalized.contains('páginas:') ||
-        normalized.contains('paginas:') ||
-        normalized.contains('archivo pdf:') ||
-        (normalized.contains('lista interactiva') &&
-            normalized.contains('extra'));
-    return looksLikeTrace ? '' : text;
   }
 
   Map<String, Object?> _localVariant(Map<String, Object?> row) => {

@@ -627,7 +627,7 @@ void main() {
 
       expect(find.text('Docena'), findsWidgets);
       expect(bloc.state.presentaciones.single.nombre, 'Docena');
-      expect(bloc.state.presentaciones.single.unidad, '12 PZA');
+      expect(bloc.state.presentaciones.single.unidad, '12 UND');
       expect(
         bloc
             .state
@@ -700,7 +700,7 @@ void main() {
       expect(bloc.state.paso, 3);
       expect(find.text('Docena'), findsWidgets);
       expect(
-        find.text('12 PZA · Pedido mínimo: 1 · Incremento: 1'),
+        find.text('12 UND · Pedido mínimo: 1 · Incremento: 1'),
         findsOneWidget,
       );
 

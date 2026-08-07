@@ -36,12 +36,9 @@ extension _Step4PresentationEditing on _Step4SalesLogisticsContentPanelState {
     _presentationEquivalentController.text = '1';
     _presentationMinimumController.text = '1';
     _presentationIncrementController.text = '1';
-    final units = _effectiveBaseUnits;
-    _presentationBaseUnit = units.contains('UND')
-        ? 'UND'
-        : units.contains('PZA')
+    _presentationBaseUnit = widget.baseUnits.contains('PZA')
         ? 'PZA'
-        : units.first;
+        : widget.baseUnits.first;
     _presentationAllowsDecimals = false;
     _presentationIsDefault = _presentations.isEmpty;
     _presentationForAllVariants = true;

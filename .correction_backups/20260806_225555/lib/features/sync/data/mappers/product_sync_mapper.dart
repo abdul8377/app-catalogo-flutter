@@ -249,7 +249,7 @@ class ProductSyncMapper {
       'id': productId,
       'codigo': code,
       'nombre': name,
-      'descripcion': _commercialDescription(aggregate['description']),
+      'descripcion': aggregate['description']?.toString() ?? '',
       'empresa': aggregate['company']?.toString() ?? '',
       'marca': aggregate['brand']?.toString() ?? '',
       'categoria': aggregate['category']?.toString() ?? '',
@@ -257,7 +257,7 @@ class ProductSyncMapper {
       'tipo_registro': _toLocalProductType(
         aggregate['productType']?.toString() ?? 'SINGLE',
       ),
-      'atributos_json': jsonEncode(_localFamilyAttributes(attributes)),
+      'atributos_json': jsonEncode(Map<String, Object?>.from(attributes)),
       'variantes_json': jsonEncode(localVariants),
       'presentaciones_json': jsonEncode(localPresentations),
       'venta_logistica_json':
@@ -347,18 +347,12 @@ class ProductSyncMapper {
     required String productId,
     required Map<String, Object?> aggregate,
   }) async {
-    final now = DateTime.now().toUtc().toIso8601String();
-
     for (final axis in _asMaps(aggregate['familyAxes'])) {
-      final attributeId = _projectionText(axis, const [
-        'categoria_atributo_id',
-        'categoryAttributeId',
-      ]);
-      if (attributeId.isEmpty) {
-        throw const FormatException(
-          'PRODUCT.familyAxes contiene un eje sin categoria_atributo_id.',
-        );
-      }
+      final attributeId =
+          axis['categoria_atributo_id']?.toString() ??
+          axis['categoryAttributeId']?.toString() ??
+          '';
+      if (attributeId.isEmpty) continue;
       await database.insert('producto_familia_ejes', {
         'producto_id': productId,
         'categoria_atributo_id': attributeId,
@@ -366,201 +360,31 @@ class ProductSyncMapper {
       });
     }
 
-    final attributeColumns = (await database.rawQuery(
-      'PRAGMA table_info(producto_atributos)',
-    )).map((column) => column['name']?.toString() ?? '').toSet();
-    final optionColumns = (await database.rawQuery(
-      'PRAGMA table_info(producto_atributo_opciones)',
-    )).map((column) => column['name']?.toString() ?? '').toSet();
-
-    final rawOptions = _asMaps(aggregate['attributeOptions']);
-    final optionRowsByAttribute = <String, List<Map<String, Object?>>>{};
-    for (final option in rawOptions) {
-      final attributeValueId = _projectionText(option, const [
-        'producto_atributo_id',
-        'productAttributeId',
-      ]);
-      if (attributeValueId.isNotEmpty) {
-        optionRowsByAttribute
-            .putIfAbsent(attributeValueId, () => <Map<String, Object?>>[])
-            .add(option);
-      }
-    }
-
-    final definitionByAttributeValue = <String, String>{};
     final restoredAttributeIds = <String>{};
-
     for (final row in _asMaps(aggregate['attributeValues'])) {
-      final id = _projectionText(row, const ['id']);
-      final definitionId = _projectionText(row, const [
-        'categoria_atributo_id',
-        'categoryAttributeId',
-      ]);
-      if (id.isEmpty || definitionId.isEmpty) {
-        throw const FormatException(
-          'PRODUCT.attributeValues requiere id y categoria_atributo_id.',
-        );
-      }
-
-      final variantId = _projectionText(row, const [
-        'variante_id',
-        'variantId',
-      ]);
-      final unitRelationId = _projectionText(row, const [
-        'categoria_atributo_unidad_id',
-        'categoryAttributeUnitId',
-      ]);
-      final textValue = _projectionValue(row, const [
-        'valor_texto',
-        'textValue',
-      ]);
-      final numberValue = _projectionDouble(
-        _projectionValue(row, const ['valor_numero', 'numberValue']),
-      );
-      final maximumValue = _projectionDouble(
-        _projectionValue(row, const [
-          'valor_numero_hasta',
-          'valor_maximo',
-          'maximumValue',
-        ]),
-      );
-      final booleanValue = _projectionBoolean(
-        _projectionValue(row, const ['valor_booleano', 'booleanValue']),
-      );
-      final hasOptions =
-          (optionRowsByAttribute[id] ?? const <Map<String, Object?>>[])
-              .isNotEmpty;
-
-      final values = <String, Object?>{
-        'id': id,
-        'categoria_atributo_id': definitionId,
-        'producto_id': variantId.isEmpty ? productId : null,
-        'variante_id': variantId.isEmpty ? null : variantId,
-        'categoria_atributo_unidad_id': unitRelationId.isEmpty
-            ? null
-            : unitRelationId,
-        'tipo_valor': hasOptions
-            ? 'lista'
-            : booleanValue != null
-            ? 'booleano'
-            : numberValue != null && unitRelationId.isNotEmpty
-            ? 'numero_unidad'
-            : numberValue != null
-            ? 'numero'
-            : 'texto',
-        'valor_texto': textValue,
-        'valor_numero': numberValue,
-        'valor_numero_hasta': maximumValue,
-        'valor_booleano': booleanValue,
-        'actualizado_en':
-            _projectionText(row, const ['actualizado_en', 'updatedAt']).isEmpty
-            ? now
-            : _projectionText(row, const ['actualizado_en', 'updatedAt']),
-      };
-
-      if (numberValue != null) {
-        values['valor_normalizado'] = await _normalizedProjectionNumber(
-          database,
-          numberValue,
-          unitRelationId,
-        );
-      } else if (booleanValue != null) {
-        values['valor_normalizado'] = booleanValue.toDouble();
-      }
-      if (maximumValue != null) {
-        values['valor_normalizado_hasta'] = await _normalizedProjectionNumber(
-          database,
-          maximumValue,
-          unitRelationId,
-        );
-      }
-
-      values.removeWhere((key, _) => !attributeColumns.contains(key));
+      final id = row['id']?.toString() ?? '';
+      final definitionId =
+          row['categoria_atributo_id']?.toString() ??
+          row['categoryAttributeId']?.toString() ??
+          '';
+      if (id.isEmpty || definitionId.isEmpty) continue;
+      final values = Map<String, Object?>.from(row)
+        ..['id'] = id
+        ..['categoria_atributo_id'] = definitionId;
+      values.remove('categoryAttributeId');
+      if (values['producto_id'] != null) values['producto_id'] = productId;
+      final columns = (await database.rawQuery(
+        'PRAGMA table_info(producto_atributos)',
+      )).map((column) => column['name']).toSet();
+      values.removeWhere((key, _) => !columns.contains(key));
       await database.insert('producto_atributos', values);
-
-      definitionByAttributeValue[id] = definitionId;
       restoredAttributeIds.add(id);
     }
-
-    for (final row in rawOptions) {
-      final attributeValueId = _projectionText(row, const [
-        'producto_atributo_id',
-        'productAttributeId',
-      ]);
-      if (!restoredAttributeIds.contains(attributeValueId)) {
-        throw FormatException(
-          'PRODUCT.attributeOptions referencia el atributo inexistente '
-          '$attributeValueId.',
-        );
-      }
-      final explicitDefinitionId = _projectionText(row, const [
-        'categoria_atributo_id',
-        'categoryAttributeId',
-      ]);
-      final definitionId = explicitDefinitionId.isEmpty
-          ? definitionByAttributeValue[attributeValueId] ?? ''
-          : explicitDefinitionId;
-      final optionId = _projectionText(row, const ['opcion_id', 'optionId']);
-      if (definitionId.isEmpty || optionId.isEmpty) {
-        throw const FormatException(
-          'PRODUCT.attributeOptions requiere categoria_atributo_id '
-          'y opcion_id.',
-        );
-      }
-
-      final values = <String, Object?>{
-        'producto_atributo_id': attributeValueId,
-        'categoria_atributo_id': definitionId,
-        'opcion_id': optionId,
-      };
-      values.removeWhere((key, _) => !optionColumns.contains(key));
-      await database.insert('producto_atributo_opciones', values);
+    for (final row in _asMaps(aggregate['attributeOptions'])) {
+      final attributeId = row['producto_atributo_id']?.toString() ?? '';
+      if (!restoredAttributeIds.contains(attributeId)) continue;
+      await database.insert('producto_atributo_opciones', row);
     }
-  }
-
-  Object? _projectionValue(Map<String, Object?> row, List<String> keys) {
-    for (final key in keys) {
-      if (row.containsKey(key)) return row[key];
-    }
-    return null;
-  }
-
-  String _projectionText(Map<String, Object?> row, List<String> keys) {
-    return _projectionValue(row, keys)?.toString().trim() ?? '';
-  }
-
-  double? _projectionDouble(Object? value) {
-    if (value is num) return value.toDouble();
-    if (value == null) return null;
-    return double.tryParse(value.toString().trim().replaceAll(',', '.'));
-  }
-
-  int? _projectionBoolean(Object? value) {
-    if (value is bool) return value ? 1 : 0;
-    if (value is num) return value.toInt() == 0 ? 0 : 1;
-    final normalized = value?.toString().trim().toLowerCase() ?? '';
-    if (const {'true', 'si', 'sí', '1'}.contains(normalized)) return 1;
-    if (const {'false', 'no', '0'}.contains(normalized)) return 0;
-    return null;
-  }
-
-  Future<double> _normalizedProjectionNumber(
-    DatabaseExecutor database,
-    double value,
-    String unitRelationId,
-  ) async {
-    if (unitRelationId.isEmpty) return value;
-    final rows = await database.rawQuery(
-      'SELECT unit.factor_a_base AS factor '
-      'FROM categoria_atributo_unidades relation '
-      'JOIN unidades_medida unit '
-      'ON unit.id = relation.unidad_medida_id '
-      'WHERE relation.id = ? LIMIT 1',
-      [unitRelationId],
-    );
-    if (rows.isEmpty) return value;
-    final factor = _projectionDouble(rows.single['factor']);
-    return factor == null ? value : value * factor;
   }
 
   Future<List<Map<String, Object?>>> _exportImages(
@@ -622,61 +446,6 @@ class ProductSyncMapper {
         'configuration': row['configuracion'] ?? 'precio_fijo',
       };
     }).toList();
-  }
-
-  Map<String, Object?> _localFamilyAttributes(Object? value) {
-    if (value is! Map) return const {};
-    final result = <String, Object?>{};
-    for (final entry in value.entries) {
-      final name = entry.key.toString().trim();
-      if (name.isEmpty) continue;
-      final rendered = _displayAttributeValue(entry.value);
-      if (rendered.isNotEmpty) result[name] = rendered;
-    }
-    return result;
-  }
-
-  String _displayAttributeValue(Object? raw) {
-    if (raw == null) return '';
-    if (raw is bool) return raw ? 'Sí' : 'No';
-    if (raw is List) {
-      return raw
-          .map(_displayAttributeValue)
-          .where((value) => value.isNotEmpty)
-          .join(' · ');
-    }
-    if (raw is Map) {
-      final details = Map<Object?, Object?>.from(raw);
-      final selected = details['values'] ?? details['valores'];
-      if (selected is List && selected.isNotEmpty) {
-        final rendered = _displayAttributeValue(selected);
-        if (rendered.isNotEmpty) return rendered;
-      }
-      final value = details['value'] ?? details['valor'] ?? details['text'];
-      final unit = details['unit'] ?? details['unidad'];
-      final renderedValue = _displayAttributeValue(value);
-      final renderedUnit = unit?.toString().trim() ?? '';
-      if (renderedValue.isEmpty) return '';
-      return renderedUnit.isEmpty
-          ? renderedValue
-          : '$renderedValue $renderedUnit';
-    }
-    return raw.toString().trim();
-  }
-
-  String _commercialDescription(Object? value) {
-    final text = value?.toString().trim() ?? '';
-    if (text.isEmpty) return '';
-    final normalized = text.toLowerCase();
-    final looksLikeTrace =
-        normalized.contains('familia extraída') ||
-        normalized.contains('familia extraida') ||
-        normalized.contains('páginas:') ||
-        normalized.contains('paginas:') ||
-        normalized.contains('archivo pdf:') ||
-        (normalized.contains('lista interactiva') &&
-            normalized.contains('extra'));
-    return looksLikeTrace ? '' : text;
   }
 
   Map<String, Object?> _localVariant(Map<String, Object?> row) => {

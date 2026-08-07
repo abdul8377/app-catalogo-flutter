@@ -60,7 +60,6 @@ class Step4SalesLogisticsContentPanel extends StatefulWidget {
     this.initialHasProductContent,
     this.catalogVariants = const [],
     this.baseUnits = const [
-      'UND',
       'PZA',
       'M',
       'KG',
@@ -171,26 +170,6 @@ class _Step4SalesLogisticsContentPanelState
 
   Set<String> get _allVariantIds =>
       widget.variants.map((item) => item.id).toSet();
-
-  List<String> get _effectiveBaseUnits {
-    final result = <String>[];
-    final seen = <String>{};
-
-    void add(String raw) {
-      final value = raw.trim().toUpperCase();
-      if (value.isNotEmpty && seen.add(value)) result.add(value);
-    }
-
-    for (final unit in widget.baseUnits) {
-      add(unit);
-    }
-    for (final presentation in _presentations) {
-      add(presentation.baseUnit);
-    }
-    add(_presentationBaseUnit);
-    if (result.isEmpty) result.add('UND');
-    return result;
-  }
 
   Step4SalesDraft get _draft {
     return Step4SalesDraft(

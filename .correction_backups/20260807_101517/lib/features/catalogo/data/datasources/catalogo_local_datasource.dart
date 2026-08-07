@@ -71,7 +71,6 @@ class CatalogoLocalDatasource {
 
   Future<CatalogoFormData> obtenerDatosFormulario() async {
     final db = await _db;
-
     final empresas = await db.query(
       'empresas',
       where: 'estado = 1',
@@ -84,12 +83,42 @@ class CatalogoLocalDatasource {
       WHERE m.estado = 1 AND e.estado = 1
       ORDER BY e.nombre COLLATE NOCASE, m.nombre COLLATE NOCASE
     ''');
-    final categoryRows = await db.query(
+    final categorias = await db.query(
       'categorias',
-      where: 'estado = 1',
+      where: 'categoria_padre_id IS NULL AND estado = 1',
       orderBy: 'nombre COLLATE NOCASE',
     );
-    final relationRows = await db.rawQuery('''
+    final subcategorias = <String, List<String>>{};
+    final atributos = <String, List<AtributoDef>>{};
+    final marcasPorEmpresa = <String, List<String>>{};
+    final categoriasPorMarca = <String, List<String>>{};
+    for (final marca in marcas) {
+      final empresa = marca['empresa'] as String;
+      marcasPorEmpresa
+          .putIfAbsent(empresa, () => [])
+          .add(marca['nombre'] as String);
+    }
+    for (final categoria in categorias) {
+      final id = categoria['id'] as int;
+      final nombre = categoria['nombre'] as String;
+      final subs = await db.query(
+        'categorias',
+        where: 'categoria_padre_id = ? AND estado = 1',
+        whereArgs: [id],
+        orderBy: 'nombre COLLATE NOCASE',
+      );
+      subcategorias[nombre] = subs
+          .map((row) => row['nombre'] as String)
+          .toList();
+      atributos[nombre] = await _obtenerAtributosFormulario(db, id);
+      for (final sub in subs) {
+        atributos[sub['nombre'] as String] = await _obtenerAtributosFormulario(
+          db,
+          sub['id'] as int,
+        );
+      }
+    }
+    final relations = await db.rawQuery('''
       SELECT e.nombre AS empresa, m.nombre AS marca, c.nombre AS categoria
       FROM marca_categorias mc
       INNER JOIN marcas m ON m.id = mc.marca_id
@@ -102,182 +131,102 @@ class CatalogoLocalDatasource {
         AND c.categoria_padre_id IS NULL
       ORDER BY c.nombre COLLATE NOCASE
     ''');
-    final attributeRows = await db.query(
-      'categoria_atributos',
-      where: 'estado = 1 AND activo_nuevos = 1',
-      orderBy: 'categoria_id, orden, nombre COLLATE NOCASE',
-    );
-    final optionRows = await db.query(
-      'categoria_atributo_opciones',
-      columns: ['categoria_atributo_id', 'etiqueta'],
-      where: 'estado = 1',
-      orderBy: 'categoria_atributo_id, orden, etiqueta COLLATE NOCASE',
-    );
-    final unitRows = await db.rawQuery('''
-      SELECT cau.categoria_atributo_id,
-             u.codigo,
-             u.simbolo,
-             cau.es_predeterminada
-      FROM categoria_atributo_unidades cau
-      INNER JOIN unidades_medida u ON u.id = cau.unidad_medida_id
-      WHERE cau.estado = 1 AND u.estado = 1
-      ORDER BY cau.categoria_atributo_id,
-               cau.es_predeterminada DESC,
-               u.nombre COLLATE NOCASE
-    ''');
-
-    final categoriesById = <int, Map<String, Object?>>{};
-    final childrenByParent = <int, List<Map<String, Object?>>>{};
-    final roots = <Map<String, Object?>>[];
-    for (final row in categoryRows) {
-      final id = (row['id'] as num).toInt();
-      categoriesById[id] = row;
-      final parentRaw = row['categoria_padre_id'];
-      if (parentRaw == null) {
-        roots.add(row);
-      } else {
-        final parent = (parentRaw as num).toInt();
-        childrenByParent.putIfAbsent(parent, () => []).add(row);
-      }
-    }
-
-    final attributesByCategory = <int, List<Map<String, Object?>>>{};
-    for (final row in attributeRows) {
-      final categoryId = (row['categoria_id'] as num).toInt();
-      attributesByCategory.putIfAbsent(categoryId, () => []).add(row);
-    }
-    final optionsByAttribute = <String, List<String>>{};
-    for (final row in optionRows) {
-      final id = row['categoria_atributo_id']?.toString() ?? '';
-      final label = row['etiqueta']?.toString().trim() ?? '';
-      if (id.isEmpty || label.isEmpty) continue;
-      optionsByAttribute.putIfAbsent(id, () => []).add(label);
-    }
-    final unitsByAttribute = <String, List<Map<String, Object?>>>{};
-    for (final row in unitRows) {
-      final id = row['categoria_atributo_id']?.toString() ?? '';
-      if (id.isEmpty) continue;
-      unitsByAttribute.putIfAbsent(id, () => []).add(row);
-    }
-
-    AtributoDef toDefinition(Map<String, Object?> row) {
-      final id = row['id']?.toString() ?? '';
-      final units = <String>[];
-      String? defaultUnit;
-      for (final unit in unitsByAttribute[id] ?? const []) {
-        final symbol = unit['simbolo']?.toString().trim() ?? '';
-        if (symbol.isNotEmpty && !units.contains(symbol)) units.add(symbol);
-        if ((unit['es_predeterminada'] as num? ?? 0).toInt() == 1 &&
-            symbol.isNotEmpty) {
-          defaultUnit ??= symbol;
-        }
-      }
-      final capture = row['nivel_captura']?.toString() ?? 'familia';
-      return AtributoDef(
-        id: id,
-        nombre: row['nombre']?.toString() ?? '',
-        clave: row['clave']?.toString() ?? '',
-        tipo: row['tipo_dato']?.toString() ?? 'texto_corto',
-        esVariante:
-            capture == 'variante' ||
-            (capture == 'decidir' &&
-                (row['puede_ser_eje'] as num? ?? 0).toInt() == 1),
-        requerido: (row['requerido_activar'] as num? ?? 0).toInt() == 1,
-        opciones: List.unmodifiable(optionsByAttribute[id] ?? const []),
-        unidades: List.unmodifiable(units),
-        unidadPredeterminada: defaultUnit,
-        minimo: (row['minimo'] as num?)?.toDouble(),
-        maximo: (row['maximo'] as num?)?.toDouble(),
-        decimales: (row['decimales'] as num? ?? 0).toInt(),
-        maximoSelecciones: (row['maximo_selecciones'] as num?)?.toInt(),
-        magnitud: row['magnitud']?.toString(),
-        nivelCaptura: capture,
-        puedeSerEje: (row['puede_ser_eje'] as num? ?? 0).toInt() == 1,
-        ayuda: row['ayuda']?.toString() ?? '',
-        ejemplo: row['ejemplo']?.toString() ?? '',
-      );
-    }
-
-    List<AtributoDef> effectiveDefinitions(int categoryId) {
-      final byKey = <String, Map<String, Object?>>{};
-      for (final row in attributesByCategory[categoryId] ?? const []) {
-        final key = row['clave']?.toString() ?? '';
-        if (key.isNotEmpty) byKey.putIfAbsent(key, () => row);
-      }
-      final parentRaw = categoriesById[categoryId]?['categoria_padre_id'];
-      if (parentRaw != null) {
-        final parentId = (parentRaw as num).toInt();
-        for (final row in attributesByCategory[parentId] ?? const []) {
-          final key = row['clave']?.toString() ?? '';
-          if (key.isNotEmpty) byKey.putIfAbsent(key, () => row);
-        }
-      }
-      return byKey.values.map(toDefinition).toList();
-    }
-
-    final subcategorias = <String, List<String>>{};
-    final atributos = <String, List<AtributoDef>>{};
-    roots.sort(
-      (a, b) => (a['nombre']?.toString() ?? '').toLowerCase().compareTo(
-        (b['nombre']?.toString() ?? '').toLowerCase(),
-      ),
-    );
-    for (final root in roots) {
-      final id = (root['id'] as num).toInt();
-      final name = root['nombre']?.toString() ?? '';
-      final children = [...(childrenByParent[id] ?? const [])]
-        ..sort(
-          (a, b) => (a['nombre']?.toString() ?? '').toLowerCase().compareTo(
-            (b['nombre']?.toString() ?? '').toLowerCase(),
-          ),
-        );
-      subcategorias[name] = children
-          .map((row) => row['nombre']?.toString() ?? '')
-          .where((value) => value.isNotEmpty)
-          .toList();
-      atributos[name] = effectiveDefinitions(id);
-      for (final child in children) {
-        final childId = (child['id'] as num).toInt();
-        final childName = child['nombre']?.toString() ?? '';
-        if (childName.isNotEmpty) {
-          atributos[childName] = effectiveDefinitions(childId);
-        }
-      }
-    }
-
-    final marcasPorEmpresa = <String, List<String>>{};
-    for (final marca in marcas) {
-      final empresa = marca['empresa']?.toString() ?? '';
-      final nombre = marca['nombre']?.toString() ?? '';
-      if (empresa.isEmpty || nombre.isEmpty) continue;
-      marcasPorEmpresa.putIfAbsent(empresa, () => []).add(nombre);
-    }
-    final categoriasPorMarca = <String, List<String>>{};
-    for (final relation in relationRows) {
-      final empresa = relation['empresa']?.toString() ?? '';
-      final marca = relation['marca']?.toString() ?? '';
-      final categoria = relation['categoria']?.toString() ?? '';
-      if (empresa.isEmpty || marca.isEmpty || categoria.isEmpty) continue;
+    for (final relation in relations) {
+      final key = '${relation['empresa']}::${relation['marca']}';
       categoriasPorMarca
-          .putIfAbsent('$empresa::$marca', () => [])
-          .add(categoria);
+          .putIfAbsent(key, () => [])
+          .add(relation['categoria'] as String);
     }
-
     return CatalogoFormData(
-      empresas: empresas
-          .map((row) => row['nombre']?.toString() ?? '')
-          .where((value) => value.isNotEmpty)
-          .toList(),
-      marcas: marcas
-          .map((row) => row['nombre']?.toString() ?? '')
-          .where((value) => value.isNotEmpty)
-          .toSet()
-          .toList(),
+      empresas: empresas.map((row) => row['nombre'] as String).toList(),
+      marcas: marcas.map((row) => row['nombre'] as String).toSet().toList(),
       subcategorias: subcategorias,
       atributos: atributos,
       marcasPorEmpresa: marcasPorEmpresa,
       categoriasPorMarca: categoriasPorMarca,
     );
+  }
+
+  Future<List<AtributoDef>> _obtenerAtributosFormulario(
+    Database db,
+    int categoriaId,
+  ) async {
+    final rows = await db.rawQuery(
+      '''
+      WITH RECURSIVE cadena(id, categoria_padre_id, profundidad) AS (
+        SELECT id, categoria_padre_id, 0
+        FROM categorias
+        WHERE id = ?
+        UNION ALL
+        SELECT c.id, c.categoria_padre_id, cadena.profundidad + 1
+        FROM categorias c
+        INNER JOIN cadena ON cadena.categoria_padre_id = c.id
+      )
+      SELECT a.*, cadena.profundidad
+      FROM cadena
+      INNER JOIN categoria_atributos a ON a.categoria_id = cadena.id
+      WHERE a.estado = 1 AND a.activo_nuevos = 1
+      ORDER BY cadena.profundidad, a.orden, a.nombre COLLATE NOCASE
+    ''',
+      [categoriaId],
+    );
+    final byKey = <String, Map<String, Object?>>{};
+    for (final row in rows) {
+      byKey.putIfAbsent(row['clave'] as String, () => row);
+    }
+    final result = <AtributoDef>[];
+    for (final row in byKey.values) {
+      final id = row['id'] as String;
+      final optionRows = await db.query(
+        'categoria_atributo_opciones',
+        columns: ['etiqueta'],
+        where: 'categoria_atributo_id = ? AND estado = 1',
+        whereArgs: [id],
+        orderBy: 'orden, etiqueta COLLATE NOCASE',
+      );
+      final unitRows = await db.rawQuery(
+        '''
+        SELECT u.codigo, u.simbolo, cau.es_predeterminada
+        FROM categoria_atributo_unidades cau
+        INNER JOIN unidades_medida u ON u.id = cau.unidad_medida_id
+        WHERE cau.categoria_atributo_id = ? AND u.estado = 1
+        ORDER BY cau.es_predeterminada DESC, u.nombre COLLATE NOCASE
+      ''',
+        [id],
+      );
+      final defaultUnit = unitRows
+          .where((unit) => unit['es_predeterminada'] == 1)
+          .map((unit) => unit['simbolo'] as String)
+          .firstOrNull;
+      final capture = row['nivel_captura'] as String;
+      result.add(
+        AtributoDef(
+          id: id,
+          nombre: row['nombre'] as String,
+          clave: row['clave'] as String,
+          tipo: row['tipo_dato'] as String,
+          esVariante:
+              capture == 'variante' ||
+              (capture == 'decidir' && row['puede_ser_eje'] == 1),
+          requerido: row['requerido_activar'] == 1,
+          opciones: optionRows
+              .map((option) => option['etiqueta'] as String)
+              .toList(),
+          unidades: unitRows.map((unit) => unit['simbolo'] as String).toList(),
+          unidadPredeterminada: defaultUnit,
+          minimo: (row['minimo'] as num?)?.toDouble(),
+          maximo: (row['maximo'] as num?)?.toDouble(),
+          decimales: row['decimales'] as int? ?? 0,
+          maximoSelecciones: row['maximo_selecciones'] as int?,
+          magnitud: row['magnitud'] as String?,
+          nivelCaptura: capture,
+          puedeSerEje: row['puede_ser_eje'] == 1,
+          ayuda: row['ayuda'] as String? ?? '',
+          ejemplo: row['ejemplo'] as String? ?? '',
+        ),
+      );
+    }
+    return result;
   }
 
   Future<void> guardarProducto(NuevoProducto producto) async {
@@ -972,250 +921,128 @@ class CatalogoLocalDatasource {
     }
   }
 
-  Object? _decodeJsonSafely(Object? value, Object? fallback) {
-    if (value == null) return fallback;
-    if (value is! String) return value;
-    if (value.trim().isEmpty) return fallback;
-    try {
-      return jsonDecode(value);
-    } catch (_) {
-      return fallback;
-    }
-  }
-
-  String _readString(Object? value, [String fallback = '']) =>
-      value?.toString() ?? fallback;
-
-  double? _readDouble(Object? value) {
-    if (value is num) return value.toDouble();
-    if (value == null) return null;
-    return double.tryParse(value.toString().trim().replaceAll(',', '.'));
-  }
-
-  String _valorAtributoLegible(Object? raw) {
-    if (raw == null) return '';
-    if (raw is bool) return raw ? 'Sí' : 'No';
-    if (raw is List) {
-      return raw
-          .map(_valorAtributoLegible)
-          .where((value) => value.isNotEmpty)
-          .join(' · ');
-    }
-    if (raw is Map) {
-      final map = Map<Object?, Object?>.from(raw);
-      final selected = map['values'] ?? map['valores'];
-      if (selected is List && selected.isNotEmpty) {
-        final rendered = _valorAtributoLegible(selected);
-        if (rendered.isNotEmpty) return rendered;
-      }
-      final value =
-          map['value'] ??
-          map['valor'] ??
-          map['text'] ??
-          map['texto'] ??
-          map['label'];
-      final unit = map['unit'] ?? map['unidad'];
-      final renderedValue = _valorAtributoLegible(value);
-      final renderedUnit = unit?.toString().trim() ?? '';
-      if (renderedValue.isEmpty) return '';
-      return renderedUnit.isEmpty
-          ? renderedValue
-          : '$renderedValue $renderedUnit';
-    }
-    return raw.toString().trim();
-  }
-
   ProductoResumen _resumenFromMap(Map<String, Object?> row) {
-    final atributosDecoded = _decodeJsonSafely(row['atributos_json'], const {});
-    final atributos = atributosDecoded is Map
-        ? Map<String, dynamic>.from(atributosDecoded)
-        : <String, dynamic>{};
-    final presentationsDecoded = _decodeJsonSafely(
-      row['presentaciones_json'],
-      const [],
-    );
-    final presentacionesRaw = presentationsDecoded is List
-        ? presentationsDecoded
-        : const <Object?>[];
-    final presentaciones = <String>[];
-    for (final item in presentacionesRaw.whereType<Map>()) {
-      final name =
-          item['nombre']?.toString().trim() ??
-          item['name']?.toString().trim() ??
-          '';
-      if (name.isNotEmpty && !presentaciones.contains(name)) {
-        presentaciones.add(name);
-      }
-    }
-    final saleUnit = _readString(row['unidad_venta'], 'Unidad').trim();
-    if (presentaciones.isEmpty && saleUnit.isNotEmpty) {
-      presentaciones.add(saleUnit);
+    final atributos =
+        jsonDecode(row['atributos_json'] as String) as Map<String, dynamic>;
+    final presentacionesRaw =
+        jsonDecode(row['presentaciones_json'] as String) as List<dynamic>;
+    final presentaciones = presentacionesRaw
+        .map((item) => (item as Map<String, dynamic>)['nombre'] as String)
+        .where((nombre) => nombre.trim().isNotEmpty)
+        .toList();
+    if (presentaciones.isEmpty) {
+      presentaciones.add(row['unidad_venta'] as String);
     }
     final imagenes = _imagenesFromMap(row);
     return ProductoResumen(
-      id: _readString(row['id']),
-      codigo: _readString(row['codigo']),
-      nombre: _readString(row['nombre']),
-      empresa: _readString(row['empresa']),
-      marca: _readString(row['marca']),
-      categoria: _readString(row['categoria']),
-      subcategoria: _readString(row['subcategoria']),
-      unidadVenta: saleUnit,
-      precio: _readDouble(row['precio']),
-      sinPrecio: (row['sin_precio'] as num? ?? 0).toInt() == 1,
-      activo: (row['activo'] as num? ?? 0).toInt() == 1,
+      id: row['id'] as String,
+      codigo: row['codigo'] as String,
+      nombre: row['nombre'] as String,
+      empresa: row['empresa'] as String,
+      marca: row['marca'] as String,
+      categoria: row['categoria'] as String,
+      subcategoria: row['subcategoria'] as String,
+      unidadVenta: row['unidad_venta'] as String,
+      precio: (row['precio'] as num?)?.toDouble(),
+      sinPrecio: (row['sin_precio'] as int) == 1,
+      activo: (row['activo'] as int) == 1,
       imagenPath: imagenes.isEmpty ? null : imagenes.first,
       imagenesPaths: imagenes,
-      tipoRegistro: _readString(row['tipo_registro'], 'simple'),
+      tipoRegistro: row['tipo_registro'] as String,
       presentaciones: presentaciones,
       atributosClave: atributos.entries
-          .map(
-            (entry) => MapEntry(entry.key, _valorAtributoLegible(entry.value)),
-          )
-          .where((entry) => entry.value.isNotEmpty)
+          .where((entry) => entry.value.toString().trim().isNotEmpty)
           .map((entry) => '${entry.key}: ${entry.value}')
           .toList(),
-      creadoEn: DateTime.tryParse(_readString(row['creado_en'])),
+      creadoEn: DateTime.tryParse(row['creado_en'] as String),
     );
   }
 
   ProductoDetalle _detalleFromMap(Map<String, Object?> row) {
-    final atributosDecoded = _decodeJsonSafely(row['atributos_json'], const {});
-    final atributosRaw = atributosDecoded is Map
-        ? Map<String, dynamic>.from(atributosDecoded)
-        : <String, dynamic>{};
-    final presentationsDecoded = _decodeJsonSafely(
-      row['presentaciones_json'],
-      const [],
-    );
-    final presentacionesRaw = presentationsDecoded is List
-        ? presentationsDecoded
-        : const <Object?>[];
-    final pricesDecoded = _decodeJsonSafely(row['precios_json'], const []);
-    final preciosRaw = pricesDecoded is List
-        ? pricesDecoded
-        : const <Object?>[];
-
-    final ventaLogisticaRaw = _decodeJsonSafely(
-      row['venta_logistica_json'],
-      const {},
+    final atributosRaw =
+        jsonDecode(row['atributos_json'] as String) as Map<String, dynamic>;
+    final presentacionesRaw =
+        jsonDecode(row['presentaciones_json'] as String) as List<dynamic>;
+    final preciosRaw =
+        jsonDecode(row['precios_json'] as String) as List<dynamic>;
+    final ventaLogisticaRaw = jsonDecode(
+      row['venta_logistica_json'] as String? ?? '{}',
     );
     final ventaLogistica = ventaLogisticaRaw is Map
         ? Map<String, dynamic>.from(ventaLogisticaRaw)
         : null;
-    final preciosConfiguradosRaw = _decodeJsonSafely(
-      row['precios_configurados_json'],
-      const {},
+    final preciosConfiguradosRaw = jsonDecode(
+      row['precios_configurados_json'] as String? ?? '{}',
     );
     final preciosConfigurados = preciosConfiguradosRaw is Map
         ? Map<String, dynamic>.from(preciosConfiguradosRaw)
         : null;
-    final imagenesConfiguradasRaw = _decodeJsonSafely(
-      row['imagenes_configuradas_json'],
-      const {},
+    final imagenesConfiguradasRaw = jsonDecode(
+      row['imagenes_configuradas_json'] as String? ?? '{}',
     );
     final imagenesConfiguradas = imagenesConfiguradasRaw is Map
         ? Map<String, dynamic>.from(imagenesConfiguradasRaw)
         : null;
-
     final imagenes = _imagenesFromMap(row);
-    final variantsDecoded = _decodeJsonSafely(row['variantes_json'], const []);
-    final variantesRaw = variantsDecoded is List
-        ? variantsDecoded
-        : const <Object?>[];
-    final variantes = <ProductoVariante>[];
-    for (final item in variantesRaw.whereType<Map>()) {
-      variantes.add(ProductoVariante.fromMap(Map<String, dynamic>.from(item)));
-    }
-
-    final presentaciones = <PresentacionProducto>[];
-    for (final item in presentacionesRaw.whereType<Map>()) {
-      final map = Map<String, dynamic>.from(item);
-      final name =
-          map['nombre']?.toString().trim() ??
-          map['name']?.toString().trim() ??
-          '';
-      final unit =
-          map['unidad']?.toString().trim() ??
-          map['baseUnit']?.toString().trim() ??
-          map['base_unit']?.toString().trim() ??
-          '';
-      if (name.isEmpty) continue;
-      presentaciones.add(
-        PresentacionProducto(nombre: name, unidad: unit.isEmpty ? 'UND' : unit),
+    final variantesRaw =
+        jsonDecode(row['variantes_json'] as String? ?? '[]') as List<dynamic>;
+    final variantes = variantesRaw
+        .whereType<Map>()
+        .map(
+          (item) => ProductoVariante.fromMap(Map<String, dynamic>.from(item)),
+        )
+        .toList();
+    final presentaciones = presentacionesRaw.map((item) {
+      final map = item as Map<String, dynamic>;
+      return PresentacionProducto(
+        nombre: map['nombre'] as String,
+        unidad: map['unidad'] as String,
       );
-    }
+    }).toList();
     if (presentaciones.isEmpty) {
       presentaciones.add(
         PresentacionProducto(
-          nombre: _readString(row['unidad_venta'], 'Unidad'),
-          unidad: 'UND',
+          nombre: row['unidad_venta'] as String,
+          unidad: '1 ${row['unidad_venta'] as String}',
         ),
       );
     }
-
-    final precios = <PrecioProducto>[];
-    for (final item in preciosRaw.whereType<Map>()) {
-      final map = Map<String, dynamic>.from(item);
-      final value = _readDouble(map['valor'] ?? map['price']);
-      if (value == null) continue;
-      precios.add(
-        PrecioProducto(
-          presentacion:
-              map['presentacion']?.toString() ??
-              map['presentation']?.toString() ??
-              'Unidad',
-          valor: value,
-          listaPrecioId:
-              map['lista_precio_id']?.toString() ??
-              map['priceListId']?.toString() ??
-              '',
-          varianteId:
-              map['variante_id']?.toString() ??
-              map['variantId']?.toString() ??
-              '',
-          presentacionId:
-              map['presentacion_id']?.toString() ??
-              map['presentationId']?.toString() ??
-              '',
-          configuracion:
-              map['configuracion']?.toString() ??
-              map['configuration']?.toString() ??
-              'precio_fijo',
-        ),
+    final precios = preciosRaw.map((item) {
+      final map = item as Map<String, dynamic>;
+      return PrecioProducto(
+        presentacion: map['presentacion'] as String,
+        valor: (map['valor'] as num).toDouble(),
+        listaPrecioId: map['lista_precio_id'] as String? ?? '',
+        varianteId: map['variante_id'] as String? ?? '',
+        presentacionId: map['presentacion_id'] as String? ?? '',
+        configuracion: map['configuracion'] as String? ?? 'precio_fijo',
       );
-    }
-    final rowPrice = _readDouble(row['precio']);
-    if (precios.isEmpty && rowPrice != null) {
+    }).toList();
+    if (precios.isEmpty && row['precio'] != null) {
       precios.add(
         PrecioProducto(
           presentacion: presentaciones.first.nombre,
-          valor: rowPrice,
+          valor: (row['precio'] as num).toDouble(),
         ),
       );
     }
-
     return ProductoDetalle(
-      id: _readString(row['id']),
-      codigo: _readString(row['codigo']),
-      nombre: _readString(row['nombre']),
-      descripcion: _readString(row['descripcion']),
-      empresa: _readString(row['empresa']),
-      marca: _readString(row['marca']),
-      categoria: _readString(row['categoria']),
-      subcategoria: _readString(row['subcategoria']),
-      tipoRegistro: _readString(row['tipo_registro'], 'simple'),
-      atributos: {
-        for (final entry in atributosRaw.entries)
-          if (_valorAtributoLegible(entry.value).isNotEmpty)
-            entry.key: _valorAtributoLegible(entry.value),
-      },
+      id: row['id'] as String,
+      codigo: row['codigo'] as String,
+      nombre: row['nombre'] as String,
+      descripcion: row['descripcion'] as String,
+      empresa: row['empresa'] as String,
+      marca: row['marca'] as String,
+      categoria: row['categoria'] as String,
+      subcategoria: row['subcategoria'] as String,
+      tipoRegistro: row['tipo_registro'] as String,
+      atributos: atributosRaw.map(
+        (key, value) => MapEntry(key, value.toString()),
+      ),
       presentaciones: presentaciones,
       precios: precios,
-      activo: (row['activo'] as num? ?? 0).toInt() == 1,
-      creadoEn:
-          DateTime.tryParse(_readString(row['creado_en'])) ??
-          DateTime.fromMillisecondsSinceEpoch(0),
+      activo: (row['activo'] as int) == 1,
+      creadoEn: DateTime.parse(row['creado_en'] as String),
       variantes: variantes,
       imagenPath: imagenes.isEmpty ? null : imagenes.first,
       imagenesPaths: imagenes,

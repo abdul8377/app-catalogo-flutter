@@ -36,7 +36,7 @@ extension _Step4PresentationEditor on _Step4SalesLogisticsContentPanelState {
                 value: _presentationBaseUnit,
                 isExpanded: true,
                 decoration: _inputDecoration(),
-                items: _effectiveBaseUnits.map((unit) {
+                items: widget.baseUnits.map((unit) {
                   return DropdownMenuItem(value: unit, child: Text(unit));
                 }).toList(),
                 onChanged: (value) {
